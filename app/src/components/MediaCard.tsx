@@ -19,6 +19,11 @@ function formatDuration(ms: number | null | undefined): string | null {
 export interface MediaCardItem extends PublicMediaItem {
   /** Volitelné štítky zobrazené jako chips přes spodní hranu karty. */
   readonly tags?: readonly string[];
+  /**
+   * Štítky s ID (kategorie + hodnota) pro editaci v lightboxu (plán 012/edit).
+   * Plní se jen tam, kde je edit povolen; jinak `undefined`.
+   */
+  readonly editTags?: readonly { id: string; category: string; value: string }[];
   /** Volitelný titulek (např. jméno modelu) použitý i jako alt text. */
   readonly title?: string;
   /** Náhledový obrázek přes proxy Streaming_URL; drátuje se později. */

@@ -39,10 +39,9 @@ export function accessDecisionToResponse(
       // API: neautentizovaný požadavek dostane 401, ne redirect (R21.5).
       if (isApi) return jsonError(401, "Authentication required.");
       const target = urlFrom(request, "/signin");
-      target.searchParams.set(
-        "callbackUrl",
-        decision.callbackUrl ?? request.nextUrl.pathname,
-      );
+      // Zachovej i query (?m=<id> pro sdílení média) — návrat po loginu na lightbox.
+      const cb = decision.callbackUrl ?? request.nextUrl.pathname;
+      target.searchParams.set("callbackUrl", cb + request.nextUrl.search);
       return NextResponse.redirect(target);
     }
 

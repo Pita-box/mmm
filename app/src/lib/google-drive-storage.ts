@@ -228,6 +228,10 @@ export function createGoogleDriveStorage(): DriveStorage {
         await driveClient().drive.files.delete({ fileId: driveFileId });
         return ok();
       } catch (e) {
+        // Soubor už na Drive není → považuj za úspěch (idempotentní delete).
+        const status = (e as { code?: number; response?: { status?: number } }).code
+          ?? (e as { response?: { status?: number } }).response?.status;
+        if (status === 404) return ok();
         return err({
           code: "upload_failed",
           message: `Smazání souboru z Google Drive selhalo: ${(e as Error).message}`,

@@ -12,10 +12,21 @@
  * jako ambient pozadí, zavírací „X" vlevo nahoře. Zavírá Esc / klik na pozadí /
  * tlačítko; po dobu otevření zamkne scroll. Stav (které médium) drží rodič.
  */
-import { useEffect } from "react";
-import { X } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { X, Trash2, EyeOff, Pencil, Share2 } from "lucide-react";
 import type { MediaCardItem } from "./MediaCard";
 import { MediaPlayer } from "./MediaPlayer";
+import { MediaEditPanel } from "./admin/media-edit-panel";
+import { Button } from "./admin/admin-ui";
+import { SystemToast } from "./SystemToast";
+import type { ModelOption } from "./admin/media-upload-form";
+import {
+  assignMediaModelAction,
+  addMediaTagAction,
+  removeMediaTagAction,
+  setMediaPublishedAction,
+  deleteMediaAction,
+} from "@/app/(app)/admin/admin-actions";
 import { DRIVE_DOMAINS } from "@/lib/drive-domains";
 
 export interface MediaLightboxProps {
@@ -23,6 +34,11 @@ export interface MediaLightboxProps {
   readonly item: MediaCardItem | null;
   /** Zavření prohlížeče. */
   readonly onClose: () => void;
+  /** Uploader → zobrazí editaci (model/štítky/skrýt) a smazání. */
+  readonly canEdit?: boolean;
+  /** Modely a hodnoty štítků pro editaci (jen když canEdit). */
+  readonly models?: readonly ModelOption[];
+  readonly tagSuggestions?: Partial<Record<string, string[]>>;
 }
 
 /** Velikostní limit média ve viewportu (fit) — výška i šířka. */
@@ -34,7 +50,18 @@ function isDriveLink(url: string): boolean {
   return DRIVE_DOMAINS.some((domain) => lowered.includes(domain));
 }
 
-export function MediaLightbox({ item, onClose }: MediaLightboxProps) {
+export function MediaLightbox({
+  item,
+  onClose,
+  canEdit = false,
+  models = [],
+  tagSuggestions = {},
+}: MediaLightboxProps) {
+  const [pending, startTransition] = useTransition();
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
   useEffect(() => {
     if (!item) return;
     const onKey = (event: KeyboardEvent) => {
@@ -49,12 +76,51 @@ export function MediaLightbox({ item, onClose }: MediaLightboxProps) {
     };
   }, [item, onClose]);
 
+  // Při změně média zavři edit panel (lightbox zůstává mountovaný).
+  useEffect(() => {
+    setEditOpen(false);
+  }, [item?.id]);
+
   if (!item) return null;
 
   const url = item.thumbnailUrl ?? "";
   const safe = url.length > 0 && !isDriveLink(url);
   const isVideo = item.mediaType === "video";
   const mediaShadow = { boxShadow: "0 10px 50px rgba(0, 0, 0, 0.6)" };
+
+  const runAction = (action: () => Promise<{ ok: boolean; message?: string }>) => {
+    startTransition(async () => {
+      const res = await action();
+      // Server akce revaliduje "/" → preview se obnoví sama.
+      setActionError(res.ok ? null : res.message ?? "Akce se nezdařila.");
+    });
+  };
+
+  const handleDelete = () => {
+    if (!window.confirm("Smazat médium? Odstraní se z webu, databáze i z Google Drive.")) {
+      return;
+    }
+    startTransition(async () => {
+      const res = await deleteMediaAction(item.id);
+      if (!res.ok) setActionError(res.message ?? "Smazání selhalo.");
+      else onClose();
+    });
+  };
+
+  const handleShare = () => {
+    const shareUrl = `${window.location.origin}/?m=${item.id}`;
+    navigator.clipboard
+      ?.writeText(shareUrl)
+      .then(() => setToast("Link is copied! Ready to share."))
+      .catch(() => setToast("Kopírování se nezdařilo."));
+  };
+
+  // Glass round icon button (toolbar).
+  const iconBtn =
+    "flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border bg-[color:var(--color-deep-space)]/60 text-[color:var(--color-chalk-white)] backdrop-blur-md transition-colors hover:bg-[color:var(--color-deep-space)]/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-chalk-white)] disabled:opacity-50";
+  const glassBorder = {
+    borderColor: "color-mix(in oklab, var(--color-chalk-white) 15%, transparent)",
+  };
 
   return (
     <div
@@ -122,6 +188,86 @@ export function MediaLightbox({ item, onClose }: MediaLightboxProps) {
           />
         )}
       </div>
+
+      {/* Pravý horní roh: ikony edit (uploader), sdílet (všichni), smazat (uploader). */}
+      <div
+        onClick={(event) => event.stopPropagation()}
+        className="absolute right-4 top-4 z-20 flex items-center gap-2"
+      >
+        {canEdit && (
+          <button
+            type="button"
+            aria-label="Upravit médium"
+            title="Upravit"
+            style={glassBorder}
+            className={`${iconBtn} ${editOpen ? "text-[color:var(--color-netflix-red)]" : ""}`}
+            onClick={() => setEditOpen((v) => !v)}
+          >
+            <Pencil aria-hidden size={18} />
+          </button>
+        )}
+        <button
+          type="button"
+          aria-label="Sdílet odkaz"
+          title="Kopírovat odkaz"
+          style={glassBorder}
+          className={iconBtn}
+          onClick={handleShare}
+        >
+          <Share2 aria-hidden size={18} />
+        </button>
+        {canEdit && (
+          <button
+            type="button"
+            aria-label="Smazat médium"
+            title="Smazat"
+            disabled={pending}
+            style={glassBorder}
+            className={`${iconBtn} hover:text-[color:var(--color-netflix-red)]`}
+            onClick={handleDelete}
+          >
+            <Trash2 aria-hidden size={18} />
+          </button>
+        )}
+      </div>
+
+      {/* Editace kategorie / štítků — až po kliknutí na tužku (glass panel vpravo). */}
+      {canEdit && editOpen && (
+        <div
+          onClick={(event) => event.stopPropagation()}
+          style={glassBorder}
+          className="absolute right-4 top-16 z-20 flex max-h-[80vh] w-80 max-w-[92vw] flex-col gap-3 overflow-y-auto rounded-2xl border bg-[color:var(--color-deep-space)]/70 p-4 backdrop-blur-md"
+        >
+          {actionError ? (
+            <p role="alert" className="text-[length:var(--text-caption)] text-netflix-red">
+              {actionError}
+            </p>
+          ) : null}
+
+          <MediaEditPanel
+            mediaId={item.id}
+            currentModelId={item.modelId}
+            models={models}
+            tags={item.editTags ?? []}
+            tagSuggestions={tagSuggestions}
+            onAssignModel={assignMediaModelAction}
+            onAddTag={addMediaTagAction}
+            onRemoveTag={removeMediaTagAction}
+          />
+
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={pending}
+            onClick={() => runAction(() => setMediaPublishedAction(item.id, false))}
+          >
+            <EyeOff aria-hidden size={14} />
+            Skrýt
+          </Button>
+        </div>
+      )}
+
+      <SystemToast message={toast} onClear={() => setToast(null)} />
     </div>
   );
 }

@@ -79,6 +79,24 @@ export function PreviewFeed({
   const loadPage = useMemo(() => poolLoader(media), [media]);
   const rows = useMemo(() => groupByModel(media.slice(1)), [media]);
 
+  // Sdílený odkaz: otevři lightbox z ?m=<id> při načtení (bez navigace).
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("m");
+    if (!id) return;
+    const found = media.find((x) => x.id === id);
+    if (found) setSelected(found);
+    // jen při mountu
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Drž URL v souladu s otevřeným médiem (sdílení), bez přechodu na novou stránku.
+  useEffect(() => {
+    const u = new URL(window.location.href);
+    if (selected) u.searchParams.set("m", selected.id);
+    else u.searchParams.delete("m");
+    window.history.replaceState(null, "", u.pathname + u.search);
+  }, [selected]);
+
   // Drag & drop kamkoliv na stránku → overlay během tažení + drop otevře popup.
   useEffect(() => {
     if (!canUpload) return;
@@ -205,7 +223,13 @@ export function PreviewFeed({
       </h2>
       <MasonryGrid loadPage={loadPage} onSelect={setSelected} />
 
-      <MediaLightbox item={selected} onClose={() => setSelected(null)} />
+      <MediaLightbox
+        item={selected}
+        onClose={() => setSelected(null)}
+        canEdit={canUpload}
+        models={models}
+        tagSuggestions={tagSuggestions}
+      />
       {uploadUi}
     </section>
   );

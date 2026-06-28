@@ -35,6 +35,14 @@ export default async function Preview() {
       {
         title: row.model?.name,
         tags: row.tags.map((t) => t.tagValue.value),
+        // editTags jen pro uploadery (editace v lightboxu).
+        editTags: canUpload
+          ? row.tags.map((t) => ({
+              id: t.tagValue.id,
+              category: t.tagValue.category,
+              value: t.tagValue.value,
+            }))
+          : undefined,
       },
       now,
     ),

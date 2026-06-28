@@ -2,6 +2,19 @@
 
 Záznamy chronologicky, nejnovější nahoře.
 
+## 2026-06-28 — Editace/sdílení/mazání média v lightboxu + system toast
+
+### Nové funkce
+- `MediaLightbox` — pro uploadery edit/delete; navíc sdílení pro všechny role. Toolbar vpravo nahoře: **tužka** (edit — odkryje panel kategorie/štítky + Skrýt, jen uploader), **sdílet** (všechny role, copy URL do schránky), **koš** (delete, jen uploader). Edit rozhraní až po kliknutí na tužku. Edit/štítky přes `MediaEditPanel` (model + štítky, čárka + našeptávač).
+- Mazání kompletní: `deleteMediaAction` maže **nejdřív z Drive, pak z DB** (aby sync nemohl re-import); `driveStorage.deleteFile` idempotentní (404 = ok).
+- Sdílený odkaz `/?m=<id>`: lightbox drží URL přes `history.replaceState` (bez navigace); načtení s `?m=<id>` otevře médium (`PreviewFeed`); nepřihlášený → middleware redirect na `/signin` s `callbackUrl` vč. query (`access-response.ts`: `cb + nextUrl.search`) → po loginu zpět na lightbox.
+- `SystemToast` (`components/SystemToast.tsx`) — centrovaný dole, glassmorphism, auto-dismiss. Po kopii odkazu: „Link is copied! Ready to share.".
+- `MediaCardItem.editTags` (id+kategorie+hodnota) plněné pro uploadery v `(app)/page.tsx`; `DriveError` deleteFile 404→ok.
+
+### Pozn.
+- „Slug" = id média (média nemají titulek); sdílí se jen publikovaná média (preview pool).
+- Share ikona ve všech lightboxech; edit/delete jen na Preview (uploader, kde jsou data).
+
 ## 2026-06-28 — Plán 012 doladění: popup, global drop, proxy chunků, fix duplikace
 
 ### Nové funkce

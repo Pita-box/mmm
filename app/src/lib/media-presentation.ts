@@ -42,6 +42,8 @@ export function thumbUrlFor(
 export interface CardPresentation {
   readonly title?: string;
   readonly tags?: readonly string[];
+  /** Štítky s ID pro editaci v lightboxu (jen kde je edit povolen). */
+  readonly editTags?: readonly { id: string; category: string; value: string }[];
 }
 
 /**
@@ -58,6 +60,7 @@ export function toCardItem(
     ...toPublicMedia(item),
     title: presentation.title,
     tags: presentation.tags,
+    editTags: presentation.editTags,
     // posterUrl = malý náhled pro <img> na kartách/Hero (plán 010);
     // thumbnailUrl = plný stream pro přehrávač.
     posterUrl: thumbUrlFor(item.id, userId, now),

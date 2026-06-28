@@ -474,12 +474,16 @@ export async function deleteMediaAction(mediaId: string): Promise<ActionResult> 
   const principal = await requireUploader();
   const media = await prisma.mediaItem.findUnique({
     where: { id: mediaId },
-    select: { uploaderId: true },
+    select: { uploaderId: true, driveFileId: true },
   });
   if (media === null) return { ok: false, message: "Médium nebylo nalezeno." };
   if (!canDeleteMedia(principal.role, principal.userId, media)) {
     return { ok: false, message: "Nemáte oprávnění smazat toto médium." };
   }
+  // Drive nejdřív (aby ho sync nemohl re-import), pak DB. deleteFile je
+  // idempotentní (404 = ok). Selhání Drive → DB záznam zůstává (konzistence).
+  const driveDeleted = await driveStorage.deleteFile(media.driveFileId);
+  if (isErr(driveDeleted)) return { ok: false, message: driveDeleted.error.message };
   const result = await createMediaService(prisma).delete(mediaId);
   if (isErr(result)) return { ok: false, message: result.error.message };
   revalidatePath("/admin/media");
