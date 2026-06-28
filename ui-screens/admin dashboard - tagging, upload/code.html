@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lumina - Upload Media</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-container": "#aab3e0",
+                        "on-primary-fixed": "#410001",
+                        "graphite": "#2d2d2d",
+                        "inverse-on-surface": "#303030",
+                        "surface-tint": "#ffb4aa",
+                        "on-secondary-fixed": "#0f193d",
+                        "secondary": "#bcc4f3",
+                        "surface-variant": "#353535",
+                        "tertiary": "#e0bdca",
+                        "on-background": "#e2e2e2",
+                        "feature-gradient": "linear-gradient(149deg, #192247, #210e17)",
+                        "on-error-container": "#ffdad6",
+                        "inverse-surface": "#e2e2e2",
+                        "tertiary-container": "#876b76",
+                        "surface": "#131313",
+                        "on-primary-fixed-variant": "#930007",
+                        "secondary-fixed-dim": "#bcc4f3",
+                        "primary-container": "#e50914",
+                        "on-primary-container": "#fff7f6",
+                        "on-tertiary-fixed": "#29151f",
+                        "on-tertiary-fixed-variant": "#59404a",
+                        "on-error": "#690005",
+                        "error": "#ffb4ab",
+                        "on-primary": "#690003",
+                        "on-secondary": "#252e54",
+                        "tertiary-fixed-dim": "#e0bdca",
+                        "on-tertiary": "#402a34",
+                        "surface-container-highest": "#353535",
+                        "surface-container": "#1f1f1f",
+                        "surface-bright": "#393939",
+                        "outline": "#af8782",
+                        "error-container": "#93000a",
+                        "secondary-fixed": "#dde1ff",
+                        "surface-dim": "#131313",
+                        "silver": "#b3b3b3",
+                        "primary-fixed-dim": "#ffb4aa",
+                        "on-tertiary-container": "#fff8f8",
+                        "inverse-primary": "#c0000c",
+                        "secondary-container": "#3c456c",
+                        "primary": "#ffb4aa",
+                        "on-surface-variant": "#e9bcb6",
+                        "surface-container-low": "#1b1b1b",
+                        "tertiary-fixed": "#fdd9e6",
+                        "slate": "#5a5a5a",
+                        "chalk-white": "#ffffff",
+                        "background": "#131313",
+                        "primary-fixed": "#ffdad5",
+                        "on-secondary-fixed-variant": "#3c456c",
+                        "surface-container-high": "#2a2a2a",
+                        "on-surface": "#e2e2e2",
+                        "outline-variant": "#5e3f3b",
+                        "surface-container-lowest": "#0e0e0e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "margin-desktop": "48px",
+                        "gutter": "16px",
+                        "unit": "4px",
+                        "container-max": "1440px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-xl": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "label-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["56px", { "lineHeight": "64px", "letterSpacing": "-0.01em", "fontWeight": "800" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "display-xl": ["80px", { "lineHeight": "88px", "letterSpacing": "-0.02em", "fontWeight": "900" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["32px", { "lineHeight": "40px", "fontWeight": "800" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Custom mapping for feature-gradient to background-image to avoid standard color override issues */
+        .bg-feature-gradient-custom {
+            background-image: linear-gradient(149deg, #192247, #210e17);
+        }
+        
+        /* Custom scrollbar for masonry/modal */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #5a5a5a;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b3b3b3;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md overflow-hidden antialiased">
+<!-- Dimmed Dashboard Background (Behind Modal) -->
+<div class="flex h-screen w-full blur-sm opacity-50 select-none pointer-events-none transition-all duration-500">
+<!-- SideNavBar JSON Component Structure -->
+<nav class="h-screen w-64 fixed left-0 top-0 bg-surface-container-lowest border-r border-slate/10 flex flex-col py-6 z-10 hidden md:flex">
+<!-- Header -->
+<div class="px-6 mb-8 flex flex-col gap-2">
+<h1 class="font-headline-md text-headline-md font-black text-primary-container tracking-tighter">LUMINA</h1>
+<span class="font-label-sm text-label-sm text-silver uppercase tracking-widest">Premium Access</span>
+</div>
+<!-- CTA -->
+<div class="px-4 mb-6">
+<button class="w-full bg-primary-container text-chalk-white font-label-md text-label-md py-3 rounded-lg hover:brightness-110 transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add_circle</span>
+                    Upload Media
+                </button>
+</div>
+<!-- Navigation Links -->
+<div class="flex-1 overflow-y-auto px-2 space-y-1">
+<!-- Dashboard (Active) -->
+<a class="bg-feature-gradient-custom text-chalk-white rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 transition-transform active:scale-98" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<!-- Explore -->
+<a class="text-silver hover:bg-graphite/30 rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:scale-[1.02] hover:brightness-110 transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">explore</span>
+<span class="font-label-md text-label-md">Explore</span>
+</a>
+<!-- Models -->
+<a class="text-silver hover:bg-graphite/30 rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:scale-[1.02] hover:brightness-110 transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">group</span>
+<span class="font-label-md text-label-md">Models</span>
+</a>
+<!-- Community -->
+<a class="text-silver hover:bg-graphite/30 rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:scale-[1.02] hover:brightness-110 transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">forum</span>
+<span class="font-label-md text-label-md">Community</span>
+</a>
+<!-- Settings -->
+<a class="text-silver hover:bg-graphite/30 rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:scale-[1.02] hover:brightness-110 transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</div>
+<!-- Footer Links -->
+<div class="px-4 mt-auto space-y-1 border-t border-slate/10 pt-4">
+<a class="text-slate hover:text-silver rounded-lg px-4 py-2 flex items-center gap-3 transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">help</span>
+<span class="font-label-sm text-label-sm">Support</span>
+</a>
+<a class="text-slate hover:text-silver rounded-lg px-4 py-2 flex items-center gap-3 transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">logout</span>
+<span class="font-label-sm text-label-sm">Logout</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area Placeholder -->
+<main class="flex-1 ml-0 md:ml-64 p-margin-desktop overflow-hidden">
+<div class="columns-2 md:columns-3 lg:columns-4 gap-gutter space-y-gutter">
+<!-- Dummy Masonry Cards -->
+<div class="relative w-full rounded-xl overflow-hidden aspect-[3/4] bg-surface-container">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="A striking cinematic portrait of a fashion model in a dimly lit, atmospheric studio. High contrast lighting with neon red accents outlining their silhouette against a pure black background. The mood is intense, modern, and highly styled, capturing a premium editorial aesthetic." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBXgQ4p-gceqKW30aMm8S2d_S67wKU7V5ajLzgexTI-5loTVG-CP-6uH5yrylLv1pqnfKbmphMbs3pI8rE11cVDjmOlxZW0xHjceEc_DpaZSxrR3__es7K5TykDUjJ0q2j7UvDPb90w66_2nBrfrKrEhiFOKxGSZpBrmSxUUkyowVk1PcsJ8BgqAAgux-53WjX7hMfX5STMUAQhqT44cxSAPmUQnFubE_XRYF2GKcKraVpP6TKTrr7qtvPV165aFifqLYMtXkl3ZRo')"></div>
+</div>
+<div class="relative w-full rounded-xl overflow-hidden aspect-square bg-surface-container">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="An abstract, generative digital art piece featuring deep fluid-like textures merging dark navy blue and pure black tones. Subtle metallic highlights catch the light, creating a sense of depth and luxury. The aesthetic is minimalist yet complex, resembling a high-end visualizer." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCYOikOfoRJOPrPGirz-TkoZW2dEpoY-T_0rrBq31OTgIwuDHiAbeWJcSJjvrIU42wgn9iSsBM1V6RPsZ25fuTVPTisa0y0voepb9L-VlfZMgrbHoKWqp8_aez_38EzcoG3AAjkJfsjxXSPmFlf0Q7tfluBnFZQMti2lKMeBmFUuj4IhiJL-er9XiM5JLTcf9mIBcvzDMTHBWNZt5wnQ83BefhoCHXWy8zTZTgH2L_9AN7axjKWXu1kVlxNIlGMo3pt0f1AuQznzgs')"></div>
+</div>
+<div class="relative w-full rounded-xl overflow-hidden aspect-[4/3] bg-surface-container">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="A wide cinematic shot of a sleek, minimalist architectural interior at night. The room features dark granite surfaces, massive glass windows revealing a city skyline, and low-level ambient lighting in cool tones. The atmosphere is exclusive, serene, and ultra-modern." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBeE5c4zjtm-aGvQ_ckPQeRJVu39jZ28lKqumi7GMMaGAZe7Kdz8bR777nm3YewGthn6wjkolleV8TNzwBsvAqgp0JzJf5ljeQYZIYOKWxg43KTrnTTsy7dV903HBSSuaoZ_Z8TK6hsBEkVLHDxFrjuxQlkqUV6-K9SMRqP0pbDP1hVD-JWq5vi5rkNhL81B2J_Hr2beK4XB8eLV6cPbrqzkbVDxiGjrp8KoExwTCbHHTniQdLoZmJ31iHmRgqA67DZhtHhonelr-4')"></div>
+</div>
+</div>
+</main>
+</div>
+<!-- Upload Modal Overlay -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-margin-mobile md:p-margin-desktop bg-black/70 backdrop-blur-md">
+<!-- Modal Card -->
+<div class="w-full max-w-2xl bg-feature-gradient-custom rounded-xl shadow-2xl border border-slate/30 flex flex-col max-h-full overflow-hidden transform transition-transform scale-100">
+<!-- Modal Header -->
+<div class="flex items-center justify-between px-6 py-4 border-b border-slate/20 bg-surface/50 backdrop-blur-sm">
+<h2 class="font-headline-md text-headline-md text-chalk-white">Upload Media</h2>
+<button class="text-silver hover:text-chalk-white transition-colors p-1 rounded-full hover:bg-graphite">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Modal Body (Scrollable) -->
+<div class="flex-1 overflow-y-auto p-6 space-y-8">
+<!-- Drag and Drop Area -->
+<div class="w-full h-48 border-2 border-dashed border-slate hover:border-silver rounded-xl bg-graphite/40 flex flex-col items-center justify-center gap-4 transition-colors cursor-pointer group">
+<div class="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-4xl text-silver group-hover:text-chalk-white transition-colors">cloud_upload</span>
+</div>
+<div class="text-center">
+<p class="font-body-md text-body-md text-chalk-white"><span class="font-bold">Click to upload</span> or drag and drop</p>
+<p class="font-label-sm text-label-sm text-slate mt-1">MP4, MOV, JPG, PNG (Max 2GB)</p>
+</div>
+</div>
+<!-- Form Fields Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Assign Model -->
+<div class="space-y-2">
+<label class="block font-label-md text-label-md text-silver">Assign Model</label>
+<div class="relative">
+<select class="w-full bg-surface-container border border-slate rounded-lg px-4 py-3 text-chalk-white font-body-md text-body-md appearance-none focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors cursor-pointer">
+<option disabled="" selected="" value="">Select a model...</option>
+<option value="1">Aria Vance</option>
+<option value="2">Kaelen Rhys</option>
+<option value="3">Nova Sterling</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate pointer-events-none">expand_more</span>
+</div>
+</div>
+<!-- Category -->
+<div class="space-y-2">
+<label class="block font-label-md text-label-md text-silver">Category</label>
+<div class="relative">
+<select class="w-full bg-surface-container border border-slate rounded-lg px-4 py-3 text-chalk-white font-body-md text-body-md appearance-none focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors cursor-pointer">
+<option disabled="" selected="" value="">Select category...</option>
+<option value="cinematic">Cinematic</option>
+<option value="editorial">Editorial</option>
+<option value="raw">Raw/Behind the Scenes</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Tagging Section (Bento-ish Layout) -->
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<h3 class="font-label-md text-label-md text-chalk-white">Attributes & Tags</h3>
+<button class="text-primary-container hover:text-primary-fixed-dim font-label-sm text-label-sm flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[16px]">add</span>
+                            Create New Tag
+                        </button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Face Tags -->
+<div class="bg-surface-container/50 border border-slate/30 p-4 rounded-xl space-y-3">
+<label class="block font-label-sm text-label-sm text-silver uppercase tracking-wider">Face</label>
+<div class="flex flex-wrap gap-2">
+<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-graphite text-chalk-white font-label-sm text-label-sm border border-slate/50">
+                                    Freckles
+                                    <button class="hover:text-primary-container transition-colors flex items-center"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</span>
+<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-graphite text-chalk-white font-label-sm text-label-sm border border-slate/50">
+                                    Smokey Eye
+                                    <button class="hover:text-primary-container transition-colors flex items-center"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</span>
+<div class="relative w-full mt-2">
+<input class="w-full bg-surface border border-slate rounded-lg px-3 py-2 text-chalk-white font-body-md text-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container placeholder-slate/50" placeholder="Add face tag..." type="text"/>
+</div>
+</div>
+</div>
+<!-- Body Tags -->
+<div class="bg-surface-container/50 border border-slate/30 p-4 rounded-xl space-y-3">
+<label class="block font-label-sm text-label-sm text-silver uppercase tracking-wider">Body</label>
+<div class="flex flex-wrap gap-2">
+<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-graphite text-chalk-white font-label-sm text-label-sm border border-slate/50">
+                                    Athletic
+                                    <button class="hover:text-primary-container transition-colors flex items-center"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</span>
+<div class="relative w-full mt-2">
+<input class="w-full bg-surface border border-slate rounded-lg px-3 py-2 text-chalk-white font-body-md text-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container placeholder-slate/50" placeholder="Add body tag..." type="text"/>
+</div>
+</div>
+</div>
+<!-- Hair Tags -->
+<div class="bg-surface-container/50 border border-slate/30 p-4 rounded-xl space-y-3">
+<label class="block font-label-sm text-label-sm text-silver uppercase tracking-wider">Hair</label>
+<div class="flex flex-wrap gap-2">
+<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-graphite text-chalk-white font-label-sm text-label-sm border border-slate/50">
+                                    Brunette
+                                    <button class="hover:text-primary-container transition-colors flex items-center"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</span>
+<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-graphite text-chalk-white font-label-sm text-label-sm border border-slate/50">
+                                    Short
+                                    <button class="hover:text-primary-container transition-colors flex items-center"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</span>
+<div class="relative w-full mt-2">
+<input class="w-full bg-surface border border-slate rounded-lg px-3 py-2 text-chalk-white font-body-md text-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container placeholder-slate/50" placeholder="Add hair tag..." type="text"/>
+</div>
+</div>
+</div>
+<!-- Clothes Tags -->
+<div class="bg-surface-container/50 border border-slate/30 p-4 rounded-xl space-y-3">
+<label class="block font-label-sm text-label-sm text-silver uppercase tracking-wider">Clothes</label>
+<div class="flex flex-wrap gap-2">
+<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-graphite text-chalk-white font-label-sm text-label-sm border border-primary-container shadow-[0_0_10px_rgba(229,9,20,0.3)]">
+                                    Suit
+                                    <button class="hover:text-primary-container transition-colors flex items-center"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</span>
+<div class="relative w-full mt-2">
+<input class="w-full bg-surface border border-slate rounded-lg px-3 py-2 text-chalk-white font-body-md text-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container placeholder-slate/50" placeholder="Add clothing tag..." type="text"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Modal Footer -->
+<div class="px-6 py-4 border-t border-slate/20 bg-surface-container-lowest flex items-center justify-end gap-4">
+<button class="font-label-md text-label-md text-chalk-white bg-transparent border border-slate px-6 py-2.5 rounded-lg hover:bg-graphite transition-colors">
+                    Cancel
+                </button>
+<button class="font-label-md text-label-md text-chalk-white bg-primary-container px-8 py-2.5 rounded-lg hover:brightness-110 hover:shadow-[0_0_15px_rgba(229,9,20,0.4)] transition-all transform active:scale-95 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">publish</span>
+                    Publish
+                </button>
+</div>
+</div>
+</div>
+</body></html>

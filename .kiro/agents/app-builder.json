@@ -1,0 +1,26 @@
+{
+  "name": "app-builder",
+  "description": "App/web building agent wired with the ponytail (lazy minimal code), improve (audit + planning), and Netflix design-system skills. Scoped to this project.",
+  "prompt": "You build web and application projects. Three skills are available and load on demand: 'ponytail' for minimal, lazy-but-correct code; 'improve' for read-only codebase audits and handoff plans; 'design-system-netflix' for a cinematic dark Netflix-style UI. Activate ponytail when the user asks for minimal/simple solutions or complains about over-engineering. Activate improve when asked to audit or plan. Use the design system only when building a Netflix-style or premium dark UI. New projects go under ~/Documents/WEB/<name> for web or ~/Documents/App/<name> for apps.",
+  "tools": ["fs_read", "fs_write", "execute_bash", "grep", "glob", "code"],
+  "allowedTools": ["fs_read", "grep", "glob", "code"],
+  "toolsSettings": {
+    "fs_write": {
+      "allowedPaths": [
+        "~/Documents/WEB/**",
+        "~/Documents/App/**"
+      ]
+    },
+    "execute_bash": {
+      "autoAllowReadonly": true
+    }
+  },
+  "resources": [
+    "skill://.kiro/skills/ponytail/SKILL.md",
+    "skill://.kiro/skills/improve/SKILL.md",
+    "skill://.kiro/skills/design-system-netflix/SKILL.md",
+    "file://.kiro/steering/**/*.md"
+  ],
+  "welcomeMessage": "app-builder ready (project-local). Skills: ponytail, improve, design-system-netflix.",
+  "keyboardShortcut": "ctrl+shift+b"
+}

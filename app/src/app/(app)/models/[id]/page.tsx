@@ -1,0 +1,51 @@
+/**
+ * Detail modelu — artist page (R13.4, R13.5, R13.6).
+ *
+ * Načte profil přes `Model_Service.getProfile(id)` a galerii přes
+ * `getGallery(id)` (výhradně Approved_Media — R13.4). Neexistuje-li model,
+ * zobrazí chybové sdělení „model nenalezen" (R13.6). Náhledy jdou přes proxy
+ * Streaming_URL (R6.4).
+ */
+import { ModelDetail } from "@/components/ModelDetail";
+import { modelService } from "@/services/model-service";
+import { isErr, isOk } from "@/lib/result";
+import { requireSession } from "@/lib/session";
+import { toCardItem } from "@/lib/media-presentation";
+import { UserX } from "lucide-react";
+
+export default async function ModelDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const principal = await requireSession();
+  const { id } = await params;
+  const now = new Date();
+
+  const profile = await modelService.getProfile(id);
+  if (isErr(profile)) {
+    // R13.6 — neexistující model: chybové sdělení místo detailu.
+    return (
+      <section>
+        <p className="flex flex-col items-center gap-3 py-12 text-center text-[length:var(--text-body)] text-[color:var(--color-silver)]">
+          <UserX aria-hidden size={40} className="text-[color:var(--color-slate)]" />
+          Model nebyl nalezen.
+        </p>
+      </section>
+    );
+  }
+
+  // Galerie obsahuje výhradně Approved_Media modelu (R13.4).
+  const gallery = await modelService.getGallery(id, now);
+  const media = isOk(gallery)
+    ? gallery.value.map((item) => toCardItem(item, principal.userId, {}, now))
+    : [];
+
+  return (
+    <ModelDetail
+      name={profile.value.name}
+      bio={profile.value.bio ?? ""}
+      media={media}
+    />
+  );
+}

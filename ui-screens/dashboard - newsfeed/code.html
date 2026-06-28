@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LUMINA - Authenticated Feed</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-container": "#aab3e0",
+                        "on-primary-fixed": "#410001",
+                        "graphite": "#2d2d2d",
+                        "inverse-on-surface": "#303030",
+                        "surface-tint": "#ffb4aa",
+                        "on-secondary-fixed": "#0f193d",
+                        "secondary": "#bcc4f3",
+                        "surface-variant": "#353535",
+                        "tertiary": "#e0bdca",
+                        "on-background": "#e2e2e2",
+                        "feature-gradient": "linear-gradient(149deg, #192247, #210e17)",
+                        "on-error-container": "#ffdad6",
+                        "inverse-surface": "#e2e2e2",
+                        "tertiary-container": "#876b76",
+                        "surface": "#131313",
+                        "on-primary-fixed-variant": "#930007",
+                        "secondary-fixed-dim": "#bcc4f3",
+                        "primary-container": "#e50914",
+                        "on-primary-container": "#fff7f6",
+                        "on-tertiary-fixed": "#29151f",
+                        "on-tertiary-fixed-variant": "#59404a",
+                        "on-error": "#690005",
+                        "error": "#ffb4ab",
+                        "on-primary": "#690003",
+                        "on-secondary": "#252e54",
+                        "tertiary-fixed-dim": "#e0bdca",
+                        "on-tertiary": "#402a34",
+                        "surface-container-highest": "#353535",
+                        "surface-container": "#1f1f1f",
+                        "surface-bright": "#393939",
+                        "outline": "#af8782",
+                        "error-container": "#93000a",
+                        "secondary-fixed": "#dde1ff",
+                        "surface-dim": "#131313",
+                        "silver": "#b3b3b3",
+                        "primary-fixed-dim": "#ffb4aa",
+                        "on-tertiary-container": "#fff8f8",
+                        "inverse-primary": "#c0000c",
+                        "secondary-container": "#3c456c",
+                        "primary": "#ffb4aa",
+                        "on-surface-variant": "#e9bcb6",
+                        "surface-container-low": "#1b1b1b",
+                        "tertiary-fixed": "#fdd9e6",
+                        "slate": "#5a5a5a",
+                        "chalk-white": "#ffffff",
+                        "background": "#131313",
+                        "primary-fixed": "#ffdad5",
+                        "on-secondary-fixed-variant": "#3c456c",
+                        "surface-container-high": "#2a2a2a",
+                        "on-surface": "#e2e2e2",
+                        "outline-variant": "#5e3f3b",
+                        "surface-container-lowest": "#0e0e0e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "margin-desktop": "48px",
+                        "gutter": "16px",
+                        "unit": "4px",
+                        "container-max": "1440px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-xl": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "label-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["56px", { "lineHeight": "64px", "letterSpacing": "-0.01em", "fontWeight": "800" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "display-xl": ["80px", { "lineHeight": "88px", "letterSpacing": "-0.02em", "fontWeight": "900" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["32px", { "lineHeight": "40px", "fontWeight": "800" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #000000; /* Deep Immersion background */
+            color: #ffffff;
+        }
+        
+        .masonry-grid {
+            column-count: 2;
+            column-gap: 16px;
+        }
+        @media (min-width: 768px) {
+            .masonry-grid {
+                column-count: 3;
+            }
+        }
+        @media (min-width: 1024px) {
+            .masonry-grid {
+                column-count: 4;
+            }
+        }
+        @media (min-width: 1280px) {
+            .masonry-grid {
+                column-count: 5;
+            }
+        }
+        .masonry-item {
+            break-inside: avoid;
+            margin-bottom: 16px;
+        }
+
+        /* Feature Gradient Hover Effect */
+        .feature-card {
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(149deg, #192247, #210e17);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+            border-radius: 0.75rem;
+        }
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-surface/80 border-b border-slate/20 backdrop-blur-xl">
+<div class="flex justify-between items-center px-margin-desktop py-4 w-full max-w-container-max mx-auto">
+<!-- Brand -->
+<div class="font-headline-md text-headline-md font-black text-primary-container uppercase tracking-tighter">
+                LUMINA
+            </div>
+<!-- Navigation Links (Web only) -->
+<div class="hidden md:flex gap-6 items-center font-body-md text-body-md">
+<a class="text-silver font-medium hover:text-chalk-white transition-colors scale-95 active:scale-90 transition-transform" href="#">Preview</a>
+<a class="text-primary-container font-bold border-b-2 border-primary-container pb-1 scale-95 active:scale-90 transition-transform" href="#">Browser</a>
+<a class="text-silver font-medium hover:text-chalk-white transition-colors scale-95 active:scale-90 transition-transform" href="#">Models</a>
+<a class="text-silver font-medium hover:text-chalk-white transition-colors scale-95 active:scale-90 transition-transform" href="#">Settings</a>
+<a class="text-silver font-medium hover:text-chalk-white transition-colors scale-95 active:scale-90 transition-transform" href="#">Telegram</a>
+</div>
+<!-- Trailing Icons -->
+<div class="flex gap-4 items-center">
+<button aria-label="notifications" class="text-silver hover:text-chalk-white transition-colors p-2 hover:bg-graphite/50 transition-all duration-300 rounded-full">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button aria-label="person" class="text-silver hover:text-chalk-white transition-colors p-2 hover:bg-graphite/50 transition-all duration-300 rounded-full">
+<span class="material-symbols-outlined">person</span>
+</button>
+</div>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="pt-24 pb-12 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+<!-- Hero Card (Latest Highlight) -->
+<section class="mb-12">
+<div class="relative w-full h-[614px] rounded-xl overflow-hidden group cursor-pointer feature-card transition-transform duration-300 hover:scale-[1.02]">
+<img class="w-full h-full object-cover" data-alt="A cinematic, high-end editorial shot of a futuristic sports car bathed in dramatic neon lighting, pure black background, premium gallery style, vivid red accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgOEXQruIPY_OPly50bflKpqpA7W6-nUdf_vejKbVRHIKhmly-qPu1OxkxcJrvoQiA0vwEH1jYgyduLFk_vK8mlUdb9n-lJvIYIPMhXGnekDbZhKONUKdkO5mwBH5GsPL1o0TQ5rIOqXIrF_l-OcpXVB0ddAnawqfN3x5lpNuTYxN9S0IbtzV0oBZ59dSFO5BCpl7FR95vTG-jKqZK1hzuIep8DolQ7AzzzuUWRx4GpRuhf2guvzbV32YFGYv98d-CLhv41BkjfXk"/>
+<!-- Bottom-up protection gradient -->
+<div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none"></div>
+<div class="absolute bottom-0 left-0 p-8 w-full">
+<div class="flex gap-2 mb-3">
+<span class="bg-primary-container text-chalk-white px-3 py-1 rounded-full font-label-sm text-label-sm">Exclusive</span>
+<span class="bg-graphite text-silver px-3 py-1 rounded-full font-label-sm text-label-sm">Highlight</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-chalk-white mb-2">Neon Velocity</h1>
+<p class="font-body-lg text-body-lg text-silver max-w-2xl">The latest high-octane visual study, capturing motion and light in pure cinematic darkness.</p>
+</div>
+</div>
+</section>
+<!-- Chronological Vertical Feed (Masonry Grid) -->
+<section class="mb-12">
+<div class="flex justify-between items-center mb-6">
+<h2 class="font-headline-md text-headline-md text-chalk-white">Latest Media</h2>
+</div>
+<div class="masonry-grid">
+<!-- Item 1: Tall Portrait -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Portrait" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxdev1qKJfu3YSUbec5393N4lNe4_VKt1a4bOYc5SxVF4R1akMgov0EEKL1yJAkIdNIbxmo8Qn5_SYpdnG2j1bZBofd0TphzrEJLBCPuToQh39tEGuapRaPHnakzUpypth_ZQa6jJaU3Btgscn8-PgkiFDDigSzMbGs6xxj0UqMPwb1oyXk9t7JWvTX02ltpbEZkGrCw5PYmaVlv81-2uF3rpigW9CvWd-erw7bTqlvn02K9Yb3zgljh-Toc8n1HTHqx8nvzvB6F8"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-graphite/80 backdrop-blur-md text-silver px-2 py-0.5 rounded-full font-label-sm text-label-sm">Portrait</span>
+<span class="bg-primary-container text-chalk-white px-2 py-0.5 rounded-full font-label-sm text-label-sm">Exclusive</span>
+</div>
+</div>
+</div>
+<!-- Item 2: Square -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Abstract" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA92bQsFKxUVWHtJlkOB9hZas5gz32b5beLMX5Yxobmrkr_Z1l5IFD6PyHQm_BFfovWHbwX9sS12tCoiBKUUzEA5lmR8g3eKRNX0hrnYio-Pp6Klh0F5eDCKNGHEsVDHaO-Fobd0KtxzlLYInRkFBmQeo1P816ToyoQ5q6cNNfKCpkA_ltnXz8Y3--_yacRxobYHLkSMPGewj1WVEHP1S8QfJIinIuO8l4MD6yBMChPxAwj_uyHECgjJ8dQ6_amVLJQzzbVbHCPcXY"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-graphite/80 backdrop-blur-md text-silver px-2 py-0.5 rounded-full font-label-sm text-label-sm">Cinematic</span>
+</div>
+</div>
+</div>
+<!-- Item 3: Portrait -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Fashion" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlzj97--U5ETDGhTB8YmgCWVaJIHYgw51RgZlcDo6J8XQDlrmaJiFv_DiF2iQsOrexuEFnue9LCwR8TT_JmScZKIsPaUmuwwBStbNI34IM4BiLwR3lgDc9P7NjszSO_gVb3Gvif79AzTe6DRw_Qjh-5PoClPIAbaxI1ZINd0FlFMzWH8Rtegd-9ACt5G5F1GvluHTQo7IJ7a1f-oRSNBIVv4KGmWW6_mvuNh-4yuvKjCjpRuSRPism0VlU44soMt9pBCbYFYlwXVU"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-graphite/80 backdrop-blur-md text-silver px-2 py-0.5 rounded-full font-label-sm text-label-sm">Portrait</span>
+</div>
+</div>
+</div>
+<!-- Item 4: Tall Portrait -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Editorial" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2Oqh3JAYCn1CEaJPMKUpFQz3scJJHbAxXEUVGXmUPLq5jV-3GZ03n1xmZuPAPLOvTtv9k5T0r7ptgcSGY_S7wsYQ0wx8LZZz_vLv5GIOFfcXOpQqM8eFR9oLjiaWyq5fpPpbKzQBp1ynalwUdc3q6rD7JqWdb3pdVYVDXvQezwtNE0j9hWB_y_sCocuSr544z4rjT5CH4_RXQ_dhUmfr_YiewHuR0BnaGBezZIOp4y0Os_xLsz0px7-M2kmCAM8yT3Vo6dcKFvGk"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-primary-container text-chalk-white px-2 py-0.5 rounded-full font-label-sm text-label-sm">Exclusive</span>
+</div>
+</div>
+</div>
+<!-- Item 5: Square -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Style" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuApPUMyKD9NUFyLijvlbKSOh8Xx1jeI7g_Y97qodovqp354PeBkHvU_PBBkep7qmiobKwdUrZtS19stT5jmAQwh5LrgLW3OVycR1EsAm223SjW2-1MZ81X8WCrWaWZws7sQimHsYJi_1RM8yoICdUURVWOskpAj4z91OEqnNKEhwuyXSQd6M_MEfKdkm1Pm7sqMG90th_02vogcv5a3odanmtJp6m37DNsxzeIm1UqoFDSx4486ozpmtPH5aIDgiL6Ky9ai2H8gjs4"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-graphite/80 backdrop-blur-md text-silver px-2 py-0.5 rounded-full font-label-sm text-label-sm">Cinematic</span>
+</div>
+</div>
+</div>
+<!-- Item 6: Portrait -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Man" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMjfelk99HbcuzVp0qrBZlQwITWOR3lu9bzqc7nwMFVWbnX4RyHLRaDSw7Ot_Fzh9OKngFEKhcwX7KnCNb5KQb3CEKjhrBHdZBCD1G2fkUPT9m5z12s25BfJGNUgfAKtMW-tDYEcJnXD98vrXf43DROb4bGcnwOUjMkbOfr_1zciRqiJdhe8nNy35Pf2T5Gxqp1TMqibmohO7qHnO19zOpn8PJvrCtIuSxm-A5uYtpJ4GXwSxVAm0eJ8YKESvqut5_catEk3LYFP0"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-graphite/80 backdrop-blur-md text-silver px-2 py-0.5 rounded-full font-label-sm text-label-sm">Portrait</span>
+</div>
+</div>
+</div>
+<!-- Item 7: Tall Portrait -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Art" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDS_K5QRTbAGx0h8JctHbgum4JHOgCM6MH7IOJWH57Wug6jzG23PFBsKSyZoKHS59j-B6k-aHImkfEnM36CP4q-LKdwO26dEE6NSHEPNW-Of2jVSYgIQsqEDI4_R8uDpU_eZOq7P7b_ZkgbqM2ode0Qfeth6g9LAdw_6skH-GXNgv5nDlXRIV8l-pR238quf_nkFna74I-MvjvUQm_Lgxp17TQhp7JNlYtgkhotxmUQ8Sv8KZ0mRPUDvEYbcmBmTfPNWuJiNvef5OE"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-primary-container text-chalk-white px-2 py-0.5 rounded-full font-label-sm text-label-sm">Exclusive</span>
+</div>
+</div>
+</div>
+<!-- Item 8: Square -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Woman" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvBK-X1fkKAzcA1ikjiprMPmZf2HzS0td5sR83MN3E7_hox1At5ZSsLgGKwFpI_kLa00IgcIWbis_7OxrLD3UJU1SlSAGJ4Bv4c-HdVSHl25jk7GmxHVLLxM4u789CtdKoTMFablv6uV_y_OzVczGTQnPp2w_Xf-NfpTiOL0RMb8EMMOdXlRn9hhcbn_jNr8oFoHInX27gImgr9RRlJx9KbQwRowR4c91FlEZEZqU69_LrBkYuruAgzlR_J6rky-n92EQMZ8m_3G0"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-graphite/80 backdrop-blur-md text-silver px-2 py-0.5 rounded-full font-label-sm text-label-sm">Portrait</span>
+</div>
+</div>
+</div>
+<!-- Item 9: Portrait -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Architecture" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCk_y8T4VsQtnpJez7Q1qA-uebxZpeLkvDqas5aae2yT8LXu92ny0SRdUh5r5v3cgP1fpfC6cmIQzYLVKmjYn7jNbh1FK6TTTRSFt3v_c8Mapc8AbHkgQSa1IMdYg6EldEqfVFUckvyJyeXSRb3TLgrc86w7eECvpvjZEfD2TkWXKJZFqQGvuPokTq9QtuTdzRxllvZrkD9iGwzmmwgshJScA-AOudxlzjtn11fUvGOWGEsSJmgkUWsfTHegoI86UZCv1FMYQ_3XGA"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-graphite/80 backdrop-blur-md text-silver px-2 py-0.5 rounded-full font-label-sm text-label-sm">Cinematic</span>
+</div>
+</div>
+</div>
+<!-- Item 10: Tall Portrait -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Model" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhWnUfLUoiJtF6NdA62DugroVBZJxRsmZsvgvIqmzs-pB0gzGblRQ0rT5sHOBcXUCvGY4ttWP4UlM_60DvRRe2gyQ7t_ostsvR2jAEMX-4C6706ynMA-oDWVo0oM-jipasYTzjdCw39NRiyZn_-EBLaQb0L5BaKlGylgpV2GrGqcV8pRVpFe5sFXzYRl60YLiqdmj_mmjPOzx2iFLQbV71Zl5rmbAlZtmyve8a4RwLE531cVE_TL-DqEYqJGXZIis5JBI8rxzpEgQ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-primary-container text-chalk-white px-2 py-0.5 rounded-full font-label-sm text-label-sm">Exclusive</span>
+</div>
+</div>
+</div>
+<!-- Item 11: Square -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Vibe" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAHUAJ5DDIH5PGNd2Sm0I3XG6MlsbfCDV4riSwDmnuq4zNABBs2QD4zrISme1_JvWJKvu6BpoY4alQV-QoVo9p0_iXcze___AnDK2C3fATnLMz9Gs91ykAbbmza3j5dt5RgNzR7ObAx9zwomUsAe6ABEyH1DMPpHpZqZY_iHjA3KYYKtf4ZBtSSpEHZC4vXgg-Lzm7Nu9_FoRj8m4Q6_2mdWdqDTBOzfj_7fEB_OnC3Ydeb3DyDf5mAGAMfKye0fCqqc9MYAmiD3OQ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-graphite/80 backdrop-blur-md text-silver px-2 py-0.5 rounded-full font-label-sm text-label-sm">Portrait</span>
+</div>
+</div>
+</div>
+<!-- Item 12: Portrait -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Travel" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJWU4hi3FidruYPhFJZUfRINh3UMK2GcjAX9Ps8cFpsrgEg04YkuMliF9kWTMXPX710Lv2K0NILSEAu8-FbMadpZSVFyeyuyApSWRGHli2vNJO-9LCP6CSZHiRD1ITC9xniDgwLEBoEg5_fWtMy6Zr3Xq-7DTKiD_vKHnpRfFxmGr1tSibJEE0U6Mukhf8aqEbc-ZFtwV6NlAmU7TsqO7P-o8TikfhafWHolaH1fji_l-4_VaTSIhclGXGFgtXMsjkuTC1Du79Whg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-graphite/80 backdrop-blur-md text-silver px-2 py-0.5 rounded-full font-label-sm text-label-sm">Cinematic</span>
+</div>
+</div>
+</div>
+<!-- Item 13: Tall Portrait -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Fashion 2" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAox2jfr4spXoJGYpSss7f0dikxaJnNIHca_XmzNXu5pHZtDHvoRLD-OdwsXCWneVQLNWBYmkVvA-7aibmhYoEUJcP3mENROd0k-rTv-OCbEVzEk8QKnOXt3ZNIx7JWxupg_E5NHEZOTA-OkpKq5CiJ7O50zdz_mP4InoveZ7VpPty-6GBA8AIwNpYlY4eOhBpRu9-xA0RRrZs5dcIGya_nka-zFVkhQCTI0YVmFroUbTwmnGYO4a-SPJAEp5HPYAQZuL6MDS5-O1I"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-primary-container text-chalk-white px-2 py-0.5 rounded-full font-label-sm text-label-sm">Exclusive</span>
+</div>
+</div>
+</div>
+<!-- Item 14: Square -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Street" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDad2LxdPC6Mus02SJPVr_CNuJkurZdUZ13WWmosDxCJ4SQW38OpvXVfynDIAkFdSoCDVrnQ0ZI-DZV9hdG2QLhEXImc1ROJAAzs2wQJjTNgWE5h1pxeSu-ayJ0m-3X6qfdW6vFRRb3RtIfm77mBc47Ri8XX5ftC7BL7Qthm4GrO55tSpgga2YSkugA0EJBsmzsJaHdUu8Hw2eIO6qO6xnPYcmtSAN7vH3598cjzD2NpFzAywhgg25qadxjIHssEqZIcom4XUJvSk"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-graphite/80 backdrop-blur-md text-silver px-2 py-0.5 rounded-full font-label-sm text-label-sm">Portrait</span>
+</div>
+</div>
+</div>
+<!-- Item 15: Portrait -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Lifestyle" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuACmjd4pJWKhQkLNjPMjNSmG-4lFXjrjd5vhswS37CLFd18xjHWjT-4JORaqaay9JFdN_4r_yUsXRPlbCK5ZwM33nmvnPkmPTvfnSUQQkjUWP1yNpeOHuKmjGiZguuPHrtH2ko4ycpSw4KBhY8igE4za3qEM8HX-mWn2_hS4zlEqu3FLyM-GQc1D6_ytfAL1-6JeL1Eih4RBRB6ALoo6-oDPrHLsbu9rPaGwQa_rgjdgHcyVYW8WX546G5WWwKxyqupR5XvzaIStJ4"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-graphite/80 backdrop-blur-md text-silver px-2 py-0.5 rounded-full font-label-sm text-label-sm">Cinematic</span>
+</div>
+</div>
+</div>
+<!-- Item 16: Tall Portrait -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Urban" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvNixUN5iQJsn-povrSp5GklaQ3tMp-svr7a_5OADFACVE9q5mEMoUJlkfcMSiVwth9dWx3uo8UnBMYJ-fYaSt0E_LQW-d4i01_rrwAg5L3Xg0ZYfs94ZB_ejSiJ3_NIhq5RoCykyGnvWaGdNT8B6CwDmjY5WocDM9WRuCtPjeSg94Q0We9eVEedguz_D8gLQ2s2LGB8lO_zB-gu1y8NbSqKQHR2hf3vp_2lKs1Q92ojuJte3ZC3pQnnurWAQe2lQ6AmVzECmdIR4"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-primary-container text-chalk-white px-2 py-0.5 rounded-full font-label-sm text-label-sm">Exclusive</span>
+</div>
+</div>
+</div>
+<!-- Item 17: Square -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Face" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkyjjxHin_z23GiperTHrfDX5vjZRCMEZFE-y2AUCq_J2aWOvxahMKWUvdTHOHPUMp_Jtl1-HBepyUPsYSRwJwh5GM-wKV778yh8I0qo_OMk5dj3wN6sM2bdaWhzLcgrFDqG1FpxhLTns80-vwF33CkLD3fOkHOP9JeIcF1utvegv9xHDFodSf_NrbizyKj1h8GoPShyJZDdQGso_Boz7w9-T9m02EJ4l7NkYWhZDcE3rLzUOXY_O_L9vnasLJR-2bUyHBKhsJ2NI"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-graphite/80 backdrop-blur-md text-silver px-2 py-0.5 rounded-full font-label-sm text-label-sm">Portrait</span>
+</div>
+</div>
+</div>
+<!-- Item 18: Portrait -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Man 2" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLyonWcOsHJUfWPsEBY1gBEQltvQt50SNtaJx2qwdw5srmdrLnJsFIkJoMTY43tGFGqKmSh6Q5hFafasnGHYV364LTIIeFYcLGotwctgmrwjw8FiEU-rGGD0RtyCvlbkvElIrFYHGBv_pqlVzyHiEpWYoVcS3-ATRpw6b7Selkb_lWNrV_c1JBr4XxRxUCNkagIK7QavYihUKN_x01aWbBwTfSW5ea-lP92iBrH7J5_FYXH2RUYf7DOm0SEnTUYoxM_MV0wm18Hsc"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-graphite/80 backdrop-blur-md text-silver px-2 py-0.5 rounded-full font-label-sm text-label-sm">Cinematic</span>
+</div>
+</div>
+</div>
+<!-- Item 19: Tall Portrait -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Studio" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCELAsJqyETkPZFbaYb26t02VFf80BsdWEesh2yOJq5u0-0vSsYE2WPObjCtRWNzVeKraUw0qIQP5X98N-USG0yaAJb1zMiPHaR8JkH-WcdFdbKNK5bCjc9KqnfqTrMZjVdC-RCiMf8l9s10GqgW-dsGXhigDsPTqGcUAZR4nIN4Okg1JPTdz4dY4gBgamlfA16NcetMah-q0R0mbrCTyN5dvo4TPIlOBmW8ykS-stBlb4UX2Y-Zq11ibNnMluJZODS5KRV4GqtZ8c"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-primary-container text-chalk-white px-2 py-0.5 rounded-full font-label-sm text-label-sm">Exclusive</span>
+</div>
+</div>
+</div>
+<!-- Item 20: Square -->
+<div class="masonry-item group relative overflow-hidden rounded-xl cursor-pointer transition-transform duration-300 hover:scale-[1.02]">
+<img alt="Vogue" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuATAwBOY_TLet8Q0ntdafE-_pGdtgLXVSw6cmbaiqT9MnKEdIDdOECh61x3tLdLLiDkVYAcdJV6w4uxP4hjD2McoGoTuhGbXlR7qfqFsj9Ca51RNFO7l1cW56UlNQLUS09FyGtvk4pnXqOgGX5GB9WnO5m36Cr6O5q6lqG2FWK_73QqaZ8NxMarQ_AawDcuRNfzP2FM1fiMs98F5ds9ZGWW71dG9NzxVutHugNyorGHAUXY1N3_b7XJcBPZb8MppuAN1YHa9-79hWg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="flex gap-2">
+<span class="bg-graphite/80 backdrop-blur-md text-silver px-2 py-0.5 rounded-full font-label-sm text-label-sm">Portrait</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-background border-t border-slate/20 w-full py-12">
+<div class="max-w-container-max mx-auto px-margin-desktop flex flex-col md:flex-row justify-between items-center gap-4">
+<div class="text-silver font-label-sm text-label-sm">
+                © 2024 LUMINA PRIVATE MEDIA. ALL RIGHTS RESERVED.
+            </div>
+<div class="flex gap-6 font-label-sm text-label-sm">
+<a class="text-slate hover:text-silver hover:underline opacity-80 hover:opacity-100 transition-opacity" href="#">Terms</a>
+<a class="text-slate hover:text-silver hover:underline opacity-80 hover:opacity-100 transition-opacity" href="#">Privacy</a>
+<a class="text-slate hover:text-silver hover:underline opacity-80 hover:opacity-100 transition-opacity" href="#">Cookies</a>
+<a class="text-slate hover:text-silver hover:underline opacity-80 hover:opacity-100 transition-opacity" href="#">DMCA</a>
+</div>
+</div>
+</footer>
+</body></html>

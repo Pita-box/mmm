@@ -1,0 +1,216 @@
+// Prisma schema — MMMRED Streaming Dashboard
+// Datový model dle design.md (ER diagram + Invarianty datového modelu).
+// Enumy zrcadlí stringové uniony v src/lib/domain.ts (jediný zdroj doménového jazyka).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // POZN. (plán 006/DEPS-02): při příští migraci přidej
+  //   directUrl = env("DIRECT_URL")
+  // a `DIRECT_URL` do .env (přímé nepoolované připojení, port 5432) —
+  // Supabase pooler nestačí pro shadow DB + advisory locks `prisma migrate`.
+}
+
+// ─── Enumy ──────────────────────────────────────────────────────────────────
+
+/// Role uživatele; výchozí User (R3.1, R3.2).
+enum Role {
+  Admin
+  Distributor
+  User
+}
+
+/// Stav účtu; zablokovaný účet je považován za neautentizovaný (R15.3).
+enum AccountStatus {
+  active
+  blocked
+}
+
+/// Stav předplatného; nový účet výchozí inactive (R20.7).
+enum SubscriptionStatus {
+  active
+  inactive
+}
+
+/// Typ média odvozený z MIME (R5.2).
+enum MediaType {
+  photo
+  video
+}
+
+/// Stav položky média v publikačním cyklu (stavový diagram v designu).
+enum MediaStatus {
+  scheduled
+  published
+  hidden
+}
+
+// ─── Hlavní modely ────────────────────────────────────────────────────────────
+
+/// Uživatelský účet. E-mail je unikátní (R2.2); role default User (R3.2);
+/// subscriptionStatus default inactive (R20.7).
+model User {
+  id                  String             @id @default(uuid())
+  email               String             @unique
+  passwordHash        String
+  role                Role               @default(User)
+  status              AccountStatus      @default(active)
+  displayName         String?
+  subscriptionStatus  SubscriptionStatus @default(inactive)
+  failedLoginAttempts Int                @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime           @default(now())
+
+  sessions     Session[]
+  collections  Collection[]
+  subscription Subscription?
+  uploadedMedia MediaItem[]  @relation("UploadedMedia")
+}
+
+/// Databázová relace (umožňuje revokaci a 30min inaktivitu — R2.3, R1.6).
+model Session {
+  id             String   @id @default(uuid())
+  userId         String
+  lastActivityAt DateTime @default(now())
+  expiresAt      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Profil modelu (artist page — R4, R13).
+model ModelProfile {
+  id             String   @id @default(uuid())
+  name           String
+  bio            String?
+  profileMediaId String?
+  createdAt      DateTime @default(now())
+
+  media MediaItem[]
+}
+
+/// Položka média. Reference na ModelProfile je NEPOVINNÁ (R5.1) — médium může
+/// existovat bez modelu; je-li model přiřazen, slouží jeho stránka jako album.
+model MediaItem {
+  id          String      @id @default(uuid())
+  modelId     String?
+  driveFileId String      @unique
+  mediaType   MediaType
+  mimeType    String
+  sizeBytes   Int
+  status      MediaStatus @default(scheduled)
+  publishAt   DateTime?
+  width       Int
+  height      Int
+  durationMs  Int?
+  createdAt   DateTime    @default(now())
+  uploaderId  String?
+
+  model           ModelProfile?    @relation(fields: [modelId], references: [id], onDelete: SetNull)
+  uploader        User?            @relation("UploadedMedia", fields: [uploaderId], references: [id], onDelete: SetNull)
+  tags            MediaTag[]
+  collectionItems CollectionItem[]
+
+  @@index([modelId])
+  @@index([status, publishAt])
+  @@index([uploaderId])
+}
+
+/// Hodnota štítku. normalizedValue (trim + lower) je unikátní v rámci category
+/// (R7.4). category je vždy jedna z 6 fixních hodnot — vynuceno v Tag_Service
+/// (FIXED_CATEGORIES); spaces v názvech kategorií nedovolují Prisma enum.
+model TagValue {
+  id              String @id @default(uuid())
+  category        String
+  value           String
+  normalizedValue String
+
+  mediaTags MediaTag[]
+
+  @@unique([category, normalizedValue])
+}
+
+/// Vazba média ↔ hodnota štítku (M:N).
+model MediaTag {
+  mediaId    String
+  tagValueId String
+
+  media    MediaItem @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  tagValue TagValue  @relation(fields: [tagValueId], references: [id], onDelete: Cascade)
+
+  @@id([mediaId, tagValueId])
+  @@index([tagValueId])
+}
+
+/// Privátní kolekce; přístupná pouze ownerId (R14.4).
+model Collection {
+  id        String   @id @default(uuid())
+  ownerId   String
+  name      String
+  createdAt DateTime @default(now())
+
+  owner User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  items CollectionItem[]
+
+  @@index([ownerId])
+}
+
+/// Vazba kolekce ↔ médium (M:N). Při smazání média je vazba odstraněna (R9.3).
+model CollectionItem {
+  collectionId String
+  mediaId      String
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  media      MediaItem  @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@id([collectionId, mediaId])
+  @@index([mediaId])
+}
+
+/// Předplatné uživatele (1:1). [POST-MVP]
+model Subscription {
+  userId           String             @id
+  stripeCustomerId String?
+  status           SubscriptionStatus @default(inactive)
+  currentPeriodEnd DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Singletony / konfigurace ───────────────────────────────────────────────
+
+/// Globální oznamovací banner; zobrazen pouze jeden aktivní (R17.5).
+model Notification {
+  id        String   @id @default(uuid())
+  text      String
+  active    Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}
+
+/// Perzistentní mapa section → hidden; přetrvává napříč relacemi (R16.5).
+model PageVisibility {
+  sectionKey String  @id
+  hidden     Boolean @default(false)
+}
+
+/// Konfigurace aplikace; PAYMENTS_ENABLED výchozí false (R21.3).
+model AppConfig {
+  key   String  @id
+  value Boolean @default(false)
+}
+
+/// Log přijatých/odmítnutých Stripe webhooků (R20.5). [POST-MVP]
+model WebhookEvent {
+  id          String   @id @default(uuid())
+  eventId     String?  @unique
+  type        String
+  accepted    Boolean
+  reason      String?
+  payloadHash String?
+  receivedAt  DateTime @default(now())
+}

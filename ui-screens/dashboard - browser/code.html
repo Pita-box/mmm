@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Search and Discovery Browser</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-container": "#aab3e0",
+                        "on-primary-fixed": "#410001",
+                        "graphite": "#2d2d2d",
+                        "inverse-on-surface": "#303030",
+                        "surface-tint": "#ffb4aa",
+                        "on-secondary-fixed": "#0f193d",
+                        "secondary": "#bcc4f3",
+                        "surface-variant": "#353535",
+                        "tertiary": "#e0bdca",
+                        "on-background": "#e2e2e2",
+                        "feature-gradient": "linear-gradient(149deg, #192247, #210e17)",
+                        "on-error-container": "#ffdad6",
+                        "inverse-surface": "#e2e2e2",
+                        "tertiary-container": "#876b76",
+                        "surface": "#131313",
+                        "on-primary-fixed-variant": "#930007",
+                        "secondary-fixed-dim": "#bcc4f3",
+                        "primary-container": "#e50914",
+                        "on-primary-container": "#fff7f6",
+                        "on-tertiary-fixed": "#29151f",
+                        "on-tertiary-fixed-variant": "#59404a",
+                        "on-error": "#690005",
+                        "error": "#ffb4ab",
+                        "on-primary": "#690003",
+                        "on-secondary": "#252e54",
+                        "tertiary-fixed-dim": "#e0bdca",
+                        "on-tertiary": "#402a34",
+                        "surface-container-highest": "#353535",
+                        "surface-container": "#1f1f1f",
+                        "surface-bright": "#393939",
+                        "outline": "#af8782",
+                        "error-container": "#93000a",
+                        "secondary-fixed": "#dde1ff",
+                        "surface-dim": "#131313",
+                        "silver": "#b3b3b3",
+                        "primary-fixed-dim": "#ffb4aa",
+                        "on-tertiary-container": "#fff8f8",
+                        "inverse-primary": "#c0000c",
+                        "secondary-container": "#3c456c",
+                        "primary": "#ffb4aa",
+                        "on-surface-variant": "#e9bcb6",
+                        "surface-container-low": "#1b1b1b",
+                        "tertiary-fixed": "#fdd9e6",
+                        "slate": "#5a5a5a",
+                        "chalk-white": "#ffffff",
+                        "background": "#131313",
+                        "primary-fixed": "#ffdad5",
+                        "on-secondary-fixed-variant": "#3c456c",
+                        "surface-container-high": "#2a2a2a",
+                        "on-surface": "#e2e2e2",
+                        "outline-variant": "#5e3f3b",
+                        "surface-container-lowest": "#0e0e0e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "margin-desktop": "48px",
+                        "gutter": "16px",
+                        "unit": "4px",
+                        "container-max": "1440px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-xl": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "label-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["56px", { "lineHeight": "64px", "letterSpacing": "-0.01em", "fontWeight": "800" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "display-xl": ["80px", { "lineHeight": "88px", "letterSpacing": "-0.02em", "fontWeight": "900" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["32px", { "lineHeight": "40px", "fontWeight": "800" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .feature-gradient-bg { background-image: linear-gradient(149deg, #192247, #210e17); }
+        .masonry-card-hover .hover-overlay { opacity: 0; transition: opacity 0.3s ease; }
+        .masonry-card-hover:hover .hover-overlay { opacity: 1; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased flex">
+<!-- SideNavBar (Desktop Only) -->
+<nav class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-surface-container-lowest z-40 border-r border-slate/10 py-6">
+<div class="px-6 mb-8 flex flex-col gap-2">
+<h1 class="font-headline-md text-headline-md font-black text-primary-container tracking-tighter uppercase">LUMINA</h1>
+<span class="font-label-sm text-label-sm text-silver">Premium Access</span>
+</div>
+<div class="flex-1 flex flex-col gap-1 overflow-y-auto px-2 hide-scrollbar">
+<a class="text-silver hover:bg-graphite/30 rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 font-label-md text-label-md active:scale-98 transition-transform hover:scale-[1.02] hover:brightness-110 transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<a class="bg-feature-gradient text-chalk-white rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 font-label-md text-label-md active:scale-98 transition-transform hover:scale-[1.02] hover:brightness-110 transition-all feature-gradient-bg" href="#">
+<span class="material-symbols-outlined">explore</span>
+                Explore
+            </a>
+<a class="text-silver hover:bg-graphite/30 rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 font-label-md text-label-md active:scale-98 transition-transform hover:scale-[1.02] hover:brightness-110 transition-all" href="#">
+<span class="material-symbols-outlined">group</span>
+                Models
+            </a>
+<a class="text-silver hover:bg-graphite/30 rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 font-label-md text-label-md active:scale-98 transition-transform hover:scale-[1.02] hover:brightness-110 transition-all" href="#">
+<span class="material-symbols-outlined">forum</span>
+                Community
+            </a>
+<a class="text-silver hover:bg-graphite/30 rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 font-label-md text-label-md active:scale-98 transition-transform hover:scale-[1.02] hover:brightness-110 transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+</div>
+<div class="px-4 mt-auto flex flex-col gap-2">
+<button class="w-full bg-primary-container text-chalk-white rounded-lg py-3 font-label-md text-label-md hover:brightness-110 transition-all shadow-[0_0_15px_rgba(229,9,20,0.3)] flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">upload</span>
+                Upload Media
+            </button>
+<div class="mt-4 pt-4 border-t border-slate/10 flex flex-col gap-1">
+<a class="text-silver hover:bg-graphite/30 rounded-lg mx-2 my-1 px-4 py-2 flex items-center gap-3 font-label-sm text-label-sm transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">help</span>
+                    Support
+                </a>
+<a class="text-silver hover:bg-graphite/30 rounded-lg mx-2 my-1 px-4 py-2 flex items-center gap-3 font-label-sm text-label-sm transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">logout</span>
+                    Logout
+                </a>
+</div>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-0 md:ml-64 relative min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-slate/20 flex justify-between items-center px-margin-desktop py-4 max-w-container-max mx-auto md:w-[calc(100%-16rem)]">
+<div class="flex items-center gap-8">
+<div class="md:hidden font-headline-md text-headline-md font-black text-primary-container uppercase tracking-tighter">LUMINA</div>
+<nav class="hidden md:flex gap-6 items-center">
+<a class="text-silver font-medium hover:text-chalk-white transition-colors font-body-md text-body-md hover:bg-graphite/50 px-3 py-1 rounded-md" href="#">Preview</a>
+<a class="text-primary-container font-bold border-b-2 border-primary-container pb-1 font-body-md text-body-md" href="#">Browser</a>
+<a class="text-silver font-medium hover:text-chalk-white transition-colors font-body-md text-body-md hover:bg-graphite/50 px-3 py-1 rounded-md" href="#">Models</a>
+<a class="text-silver font-medium hover:text-chalk-white transition-colors font-body-md text-body-md hover:bg-graphite/50 px-3 py-1 rounded-md" href="#">Settings</a>
+<a class="text-silver font-medium hover:text-chalk-white transition-colors font-body-md text-body-md hover:bg-graphite/50 px-3 py-1 rounded-md" href="#">Telegram</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-silver hover:text-chalk-white transition-colors scale-95 active:scale-90 p-2 rounded-full hover:bg-graphite/50">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-silver hover:text-chalk-white transition-colors scale-95 active:scale-90 p-2 rounded-full hover:bg-graphite/50">
+<span class="material-symbols-outlined">person</span>
+</button>
+</div>
+</header>
+<!-- Filter Bar -->
+<div class="sticky top-[73px] z-40 bg-surface/90 backdrop-blur-md border-b border-slate/20 py-4 px-margin-mobile md:px-margin-desktop w-full shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)]">
+<div class="max-w-container-max mx-auto flex flex-col lg:flex-row gap-4 items-center justify-between">
+<!-- Search Input -->
+<div class="relative w-full lg:w-1/3 group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-silver group-focus-within:text-primary-container transition-colors">search</span>
+<input class="w-full bg-graphite border border-slate/50 rounded-xl py-3 pl-12 pr-4 text-chalk-white font-body-md placeholder:text-silver/50 focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all shadow-inner" placeholder="Search models, tags, styles..." type="text"/>
+</div>
+<!-- Filters -->
+<div class="flex flex-wrap items-center gap-3 w-full lg:w-auto overflow-x-auto hide-scrollbar pb-2 lg:pb-0">
+<button class="bg-surface-container-highest border border-slate rounded-lg px-4 py-2 text-silver font-label-md flex items-center gap-2 hover:border-slate/80 hover:bg-surface-bright transition-all whitespace-nowrap">
+                        Face Type <span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+<button class="bg-surface-container-highest border border-slate rounded-lg px-4 py-2 text-silver font-label-md flex items-center gap-2 hover:border-slate/80 hover:bg-surface-bright transition-all whitespace-nowrap">
+                        Body Type <span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+<button class="bg-surface-container-highest border border-slate rounded-lg px-4 py-2 text-silver font-label-md flex items-center gap-2 hover:border-slate/80 hover:bg-surface-bright transition-all whitespace-nowrap">
+                        Hair Color <span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+<button class="bg-surface-container-highest border border-slate rounded-lg px-4 py-2 text-silver font-label-md flex items-center gap-2 hover:border-slate/80 hover:bg-surface-bright transition-all whitespace-nowrap">
+                        Outfit <span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+<div class="h-8 w-px bg-slate/30 mx-2 hidden lg:block"></div>
+<button class="text-primary-container hover:text-primary-fixed-dim font-label-md flex items-center gap-1 transition-colors whitespace-nowrap">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+                        All Filters
+                    </button>
+</div>
+</div>
+</div>
+<!-- Content Area: Masonry Grid -->
+<div class="flex-1 p-margin-mobile md:p-margin-desktop max-w-container-max mx-auto w-full pt-8">
+<div class="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-gutter space-y-gutter">
+<!-- Card 1 -->
+<div class="relative rounded-[16px] overflow-hidden break-inside-avoid masonry-card-hover cursor-pointer bg-surface-container group">
+<img class="w-full h-auto object-cover aspect-[3/4]" data-alt="Cinematic portrait of a fashion model in a dimly lit neon environment. High-key contrasting rim lighting with a deep black background. The model wears a sleek, modern dark suit. The style is hyper-realistic photography with a cinematic color grade favoring deep shadows and vibrant accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKQS-9vy43uLp5JuLLMPgg58pGa-Dz6iMwPWwvtOk9Gkjmwe4DJO2VvWrtKsil5FnhkkBoW12fp6RMyhioMA_BrhSEfyQaHvSqc7InVsLVKHuhrnbsnRPSTRmsXyzPRIuJCW11Cd68SwmS6MZAr8QpvcPqGV-kUjfZl-lkn6VUI2Gr5h1pGuhhtLny3OB2PTa_psov1Fq_xNVSLZ645rgAr-C-N14H_DjOIaNb4m8Igxdhp-F4l0a4NDk9MPRboHgVkxRZkfT3v9g"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none"></div>
+<div class="absolute inset-0 feature-gradient-bg opacity-0 group-hover:opacity-20 transition-opacity duration-300 mix-blend-screen pointer-events-none"></div>
+<div class="hover-overlay absolute inset-0 flex flex-col justify-between p-4 z-10">
+<div class="flex justify-end">
+<span class="material-symbols-outlined text-chalk-white bg-black/50 p-2 rounded-full backdrop-blur-sm">more_horiz</span>
+</div>
+<div class="flex items-center justify-center flex-1">
+<div class="bg-primary-container/90 text-chalk-white rounded-full p-4 transform scale-90 group-hover:scale-100 transition-transform duration-300 shadow-[0_0_20px_rgba(229,9,20,0.6)]">
+<span class="material-symbols-outlined text-[32px] ml-1" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2 mt-auto">
+<span class="bg-graphite text-silver font-label-sm px-3 py-1 rounded-full border border-slate/50 backdrop-blur-md">Suit</span>
+<span class="bg-graphite text-silver font-label-sm px-3 py-1 rounded-full border border-slate/50 backdrop-blur-md">Cinematic</span>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="relative rounded-[16px] overflow-hidden break-inside-avoid masonry-card-hover cursor-pointer bg-surface-container group">
+<img class="w-full h-auto object-cover aspect-[9/16]" data-alt="Vertical medium shot of a sci-fi character in a minimalist corridor. Soft, diffused lighting highlights metallic textures against a pure black aesthetic background. The character has bright blue eyes contrasting with the dark surroundings. The mood is tense and immersive." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB64Mx5fXqwKlmWL0cOYqYW9QAMpnYSy1Vx5QgiggQS0pTvhetCOE146K0AK1e2XQ6nKBBP4kSHiTPWzE4HGdkAlXafejPJmpgxMTG2oyzxJlEw2sEHzpHa8bKUAgo4iVAqc4asEWLshTvH61e1ChAaLouppxmPIK9np6A4uorBBuZK46Zl5F61m38dG2eUr2sBS_lc5sqm3E7tlHuywabG83M4U8vKE_kEZksXhE40hBz85FF5SUD1ht2h9D9K7rn50_u8YlAnwRo"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none"></div>
+<div class="hover-overlay absolute inset-0 flex flex-col justify-between p-4 z-10">
+<div class="flex justify-end"></div>
+<div class="flex items-center justify-center flex-1">
+<div class="bg-primary-container/90 text-chalk-white rounded-full p-4 transform scale-90 group-hover:scale-100 transition-transform duration-300 shadow-[0_0_20px_rgba(229,9,20,0.6)]">
+<span class="material-symbols-outlined text-[32px] ml-1" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2 mt-auto">
+<span class="bg-graphite text-silver font-label-sm px-3 py-1 rounded-full border border-slate/50 backdrop-blur-md">Blue Eyes</span>
+<span class="bg-graphite text-silver font-label-sm px-3 py-1 rounded-full border border-slate/50 backdrop-blur-md">Sci-Fi</span>
+<span class="bg-graphite text-primary-container font-label-sm px-3 py-1 rounded-full border border-primary-container/50 backdrop-blur-md">4K</span>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="relative rounded-[16px] overflow-hidden break-inside-avoid masonry-card-hover cursor-pointer bg-surface-container group">
+<img class="w-full h-auto object-cover aspect-[4/5]" data-alt="Artistic close-up of a face partially obscured by geometric glass prisms. The lighting creates a subtle internal glow effect, fitting a minimalist glassmorphism aesthetic. Deep black background ensures the subject pops. High fashion, editorial style photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBZBQXrfK2Ljskl9JbAD8KEueLcnmIihbNfOk9A9AaRQgIsrNePIWyiKu5uH7NzMYT0IbvBWju4vs8aioyU0nb_BGsD3GEgaI4IUnwODrZQ_h-uHbJSC7zNdvO3x6erii7wLe9U2Wqan6Z6k3RdPuVIrwHLfSIGjh5FvMcl5rFpaTLjd3VphxoCbFwZkHgmRnYu3r-NqIzeWK-F5tReXCIOq8wCoSFtG2D60916KXm2I-uzAxPivTO2OZqBI2kU-KK0dic-Ooyxks"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none"></div>
+<div class="hover-overlay absolute inset-0 flex flex-col justify-between p-4 z-10">
+<div class="flex justify-end"></div>
+<div class="flex items-center justify-center flex-1">
+<div class="bg-primary-container/90 text-chalk-white rounded-full p-4 transform scale-90 group-hover:scale-100 transition-transform duration-300 shadow-[0_0_20px_rgba(229,9,20,0.6)]">
+<span class="material-symbols-outlined text-[32px] ml-1" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2 mt-auto">
+<span class="bg-graphite text-silver font-label-sm px-3 py-1 rounded-full border border-slate/50 backdrop-blur-md">Abstract</span>
+<span class="bg-graphite text-silver font-label-sm px-3 py-1 rounded-full border border-slate/50 backdrop-blur-md">Editorial</span>
+</div>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="relative rounded-[16px] overflow-hidden break-inside-avoid masonry-card-hover cursor-pointer bg-surface-container group">
+<img class="w-full h-auto object-cover aspect-[2/3]" data-alt="Dynamic action pose of an athletic figure in futuristic sportswear. Set against a deep immersion dark gray background. Lighting is sharp and theatrical, highlighting musculature and fabric texture. The scene implies motion and high energy." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDfgb9MKtiMKJ7Y77_5axkJiXI-rptq764M2V5fWVa71A2LuCu-d83a4WdAXjC34Yefhq5k8Ke0w97-Xzb2TEDelKOevC0aTpcLgARI1LkYxCadb5bnPLgfr34xTAmXrhqMdT4-dQSGPscDK-2gf5t5Bc5apotw7OafDYZ95fn_baglF0EVuiiN5Wau298PGkF9mq7eFs00IX8Kx8_zPmUGE9OuU2PGi35uynQLrOXN3ZeOBsdJAVSqgLQs1kmzDbSVld-JRDb17Sg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none"></div>
+<div class="hover-overlay absolute inset-0 flex flex-col justify-between p-4 z-10">
+<div class="flex justify-end"></div>
+<div class="flex items-center justify-center flex-1">
+<div class="bg-primary-container/90 text-chalk-white rounded-full p-4 transform scale-90 group-hover:scale-100 transition-transform duration-300 shadow-[0_0_20px_rgba(229,9,20,0.6)]">
+<span class="material-symbols-outlined text-[32px] ml-1" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2 mt-auto">
+<span class="bg-graphite text-silver font-label-sm px-3 py-1 rounded-full border border-slate/50 backdrop-blur-md">Action</span>
+<span class="bg-graphite text-silver font-label-sm px-3 py-1 rounded-full border border-slate/50 backdrop-blur-md">Athletic</span>
+</div>
+</div>
+</div>
+<!-- Card 5 -->
+<div class="relative rounded-[16px] overflow-hidden break-inside-avoid masonry-card-hover cursor-pointer bg-surface-container group">
+<img class="w-full h-auto object-cover aspect-[3/4]" data-alt="Ethereal portrait of a fantasy character with luminescent hair. The setting is pure black darkness with the only light source emanating from the subject. The visual style is premium gallery art, highly detailed with a soft, dreamlike quality." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDESzHSo1FJ9HID6agJ6g0MQggE8_JmJla10vRKDxcd_UEfmCe2CAwAJ537VJcDXIDMrvBn7Dh7k1nTqGe6v6dFHE7IXtNP_gL-oqBeM8POHf3yoXf7ATEfawUXmdV0NDClOCehuuGu4pmiNd4s5SFx86cspaIRwtgzpc5KQvmNWJx3GzXdNy6wD7Vab5SZCJGS6t3V1EOySBj0Pr_jZNdU9m5lbfI2vTt9cpQjvcHE3BvenP0hbck8IutcndflAz65qDEnTNhZES8"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none"></div>
+<div class="hover-overlay absolute inset-0 flex flex-col justify-between p-4 z-10">
+<div class="flex justify-end"></div>
+<div class="flex items-center justify-center flex-1">
+<div class="bg-primary-container/90 text-chalk-white rounded-full p-4 transform scale-90 group-hover:scale-100 transition-transform duration-300 shadow-[0_0_20px_rgba(229,9,20,0.6)]">
+<span class="material-symbols-outlined text-[32px] ml-1" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2 mt-auto">
+<span class="bg-graphite text-silver font-label-sm px-3 py-1 rounded-full border border-slate/50 backdrop-blur-md">Fantasy</span>
+<span class="bg-graphite text-silver font-label-sm px-3 py-1 rounded-full border border-slate/50 backdrop-blur-md">Blonde</span>
+</div>
+</div>
+</div>
+<!-- Card 6 -->
+<div class="relative rounded-[16px] overflow-hidden break-inside-avoid masonry-card-hover cursor-pointer bg-surface-container group">
+<img class="w-full h-auto object-cover aspect-[4/3]" data-alt="A moody, atmospheric wide shot of a modern architectural interior at night. Deep blacks and slate grays dominate, with striking crimson accent lighting cutting through the scene. The aesthetic is extremely high-end, minimal, and immersive." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtuUsny82d_8ODpcUPYeGYVNkSQzSDa_A3i5v6CrtOaznzAsNUDxlH3hyV-38STKjrzM47_I4zDM82aGoLCV9BvDqIag0fd1j_yKAtKxcDk4czoW-HoFTu-Q9ssLmE-IMLRfzJMeSbQOBn5gKlpPxduOL7VVvj34Hs-epwT0sZrMYSzSDw6zW2ISfMIEt6tr5jN5WxIUuYeIAsKBKqzYm3ltzrTvR03Y4CmJjElo7FKwcLS61M7xdQjgm3BEZkYu5NK3fub87K4BI"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none"></div>
+<div class="hover-overlay absolute inset-0 flex flex-col justify-between p-4 z-10">
+<div class="flex justify-end"></div>
+<div class="flex items-center justify-center flex-1">
+<div class="bg-primary-container/90 text-chalk-white rounded-full p-4 transform scale-90 group-hover:scale-100 transition-transform duration-300 shadow-[0_0_20px_rgba(229,9,20,0.6)]">
+<span class="material-symbols-outlined text-[32px] ml-1" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2 mt-auto">
+<span class="bg-graphite text-silver font-label-sm px-3 py-1 rounded-full border border-slate/50 backdrop-blur-md">Environment</span>
+<span class="bg-graphite text-silver font-label-sm px-3 py-1 rounded-full border border-slate/50 backdrop-blur-md">Night</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<footer class="w-full py-12 bg-background border-t border-slate/20 mt-auto">
+<div class="max-w-container-max mx-auto px-margin-desktop flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="font-label-sm text-label-sm text-silver">© 2024 LUMINA PRIVATE MEDIA. ALL RIGHTS RESERVED.</p>
+<div class="flex gap-6">
+<a class="font-label-sm text-label-sm text-slate hover:text-silver hover:underline opacity-80 hover:opacity-100 transition-opacity" href="#">Terms</a>
+<a class="font-label-sm text-label-sm text-slate hover:text-silver hover:underline opacity-80 hover:opacity-100 transition-opacity" href="#">Privacy</a>
+<a class="font-label-sm text-label-sm text-slate hover:text-silver hover:underline opacity-80 hover:opacity-100 transition-opacity" href="#">Cookies</a>
+<a class="font-label-sm text-label-sm text-slate hover:text-silver hover:underline opacity-80 hover:opacity-100 transition-opacity" href="#">DMCA</a>
+</div>
+</div>
+</footer>
+</main>
+</body></html>

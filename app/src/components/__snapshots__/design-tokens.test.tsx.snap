@@ -1,0 +1,118 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Netflix design tokeny > odpovídá uloženému snapshotu (MediaCard) 1`] = `
+<article
+  aria-label="Video"
+  class="group block w-full text-left transition-transform duration-200 ease-out hover:scale-[1.03] focus-visible:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-netflix-red)]"
+>
+  <div
+    class="relative w-full overflow-hidden rounded-2xl"
+    style="aspect-ratio: 1.7777777777777777 / 1; background: var(--gradient-feature-card);"
+  >
+    <span
+      aria-hidden="true"
+      class="absolute inset-0"
+      style="background: var(--gradient-feature-card);"
+    />
+    <span
+      aria-hidden="true"
+      class="pointer-events-none absolute inset-0 flex items-center justify-center"
+    >
+      <span
+        class="flex h-14 w-14 items-center justify-center rounded-full bg-[color:var(--color-deep-space)]/60 ring-1 ring-[color:var(--color-chalk-white)]/40 transition-transform group-hover:scale-110"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-play ml-0.5 fill-[color:var(--color-chalk-white)] text-[color:var(--color-chalk-white)]"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"
+          />
+        </svg>
+      </span>
+    </span>
+    <span
+      class="pointer-events-none absolute inset-x-0 bottom-0 flex flex-wrap gap-1 bg-gradient-to-t from-[color:var(--color-deep-space)]/80 to-transparent p-2"
+    >
+      <span
+        class="rounded-sm bg-[color:var(--color-charcoal)]/80 px-2 py-0.5 text-[length:var(--text-caption)] leading-none text-[color:var(--color-chalk-white)]"
+      >
+        Portrét
+      </span>
+    </span>
+  </div>
+</article>
+`;
+
+exports[`Netflix design tokeny > odpovídá uloženému snapshotu (NotificationBanner) 1`] = `
+<div
+  aria-live="polite"
+  class="fixed bottom-6 right-6 z-50 flex max-w-[calc(100vw-3rem)] items-start gap-3 rounded-2xl border bg-[color:var(--color-deep-space)]/60 px-6 py-3 text-[length:var(--text-body)] text-[color:var(--color-chalk-white)] backdrop-blur-md sm:max-w-sm"
+  role="status"
+  style="animation: toast-in 220ms ease-out; border-color: color-mix(in oklab, var(--color-chalk-white) 15%, transparent); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);"
+>
+  <svg
+    aria-hidden="true"
+    class="lucide lucide-megaphone mt-0.5 shrink-0 text-[color:var(--color-netflix-red)]"
+    fill="none"
+    height="18"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+    width="18"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"
+    />
+    <path
+      d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14"
+    />
+    <path
+      d="M8 6v8"
+    />
+  </svg>
+  <p
+    class="flex-1 font-medium leading-snug"
+  >
+    Vítejte v MMMRED
+  </p>
+  <button
+    aria-label="Zavřít oznámení"
+    class="-mr-1 -mt-1 shrink-0 cursor-pointer rounded-[var(--radius-sm)] p-1 leading-none text-[color:var(--color-silver)] transition-colors hover:text-[color:var(--color-chalk-white)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-chalk-white)]"
+    type="button"
+  >
+    <svg
+      aria-hidden="true"
+      class="lucide lucide-x"
+      fill="none"
+      height="16"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="16"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M18 6 6 18"
+      />
+      <path
+        d="m6 6 12 12"
+      />
+    </svg>
+  </button>
+</div>
+`;

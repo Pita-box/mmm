@@ -1,0 +1,20 @@
+# deps & build
+**/node_modules/
+**/.next/
+**/out/
+**/build/
+**/dist/
+
+# secrets — NIKDY neverzovat (živé hodnoty v app/.env)
+**/.env
+**/.env.local
+**/.env*.local
+
+# logs & cache
+**/*.log
+**/.turbo/
+**/coverage/
+
+# OS
+.DS_Store
+**/.DS_Store
