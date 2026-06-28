@@ -2,6 +2,46 @@
 
 Záznamy chronologicky, nejnovější nahoře.
 
+## 2026-06-28 — Plán 012 doladění: popup, global drop, proxy chunků, fix duplikace
+
+### Nové funkce
+- `UploadModal` (`components/admin/upload-modal.tsx`) — popup obal nad `UploadWizard` (1:1 se stránkou `/upload`). FAB na `/preview` ho otevírá; Esc / klik na pozadí zavře; scroll celého overlaye (`min-h-full items-center`) → vycentrovaný když se vejde, jinak scrolluje s paddingem (zaoblené rohy vždy vidět).
+- Global drag&drop na `/preview` — drop kamkoliv otevře popup s těmi soubory; během tažení overlay (low opacity, rámeček ve velikosti popupu). Window listenery jen pro uploadery, počítadlo dragenter/leave.
+- `UploadDropzone`/`UploadWizard` přijímají `initialFiles` (externě dropnuté soubory).
+- FAB: kruhové „+", glassmorphism + hover, `z-[60]` (nad toastem). Nav „Nahrát" (uploader-only) jako vždy-viditelná pojistka.
+- Proxy route `api/drive-chunk/route.ts` — přepošle resumable chunk na Google (browser nesmí PUT přímo → CORS). SSRF guard (jen `googleapis.com/upload/`), jen Admin/Distributor, po 8 MB chuncích.
+
+### Bug & fix
+- **Symptom:** „Failed to fetch" při web uploadu.
+- **Root cause:** browser→`googleapis.com/upload` přímý chunk PUT blokován CORS.
+- **Fix:** chunky přes vlastní proxy `/api/drive-chunk` (`uploadResumable` mluví s proxy, `{done,id}`).
+- **Symptom:** „Hotovo: vytvořeno 2" z jednoho souboru (duplikace).
+- **Root cause:** dev StrictMode spustil `initialFiles` efekt 2× (guard `busy` async, nechytil); navíc drop na otevřený dropzone bublal na window (globální handler) → druhý upload.
+- **Fix:** ref guard v `UploadDropzone` (dávka jen jednou) + `stopPropagation` na drop/dragover dropzone.
+
+### Pozn.
+- Web upload teď propouští bajty serverem po chuncích (proxy). Pro mnohaGB videa je úspornější „Synchronizovat z Drive".
+
+## 2026-06-28 — Plán 012: přívětivý upload (bulk + drag&drop + wizard + našeptávač)
+
+### Hotové tasky
+- Plán 012 slice 1–4 — ověřeno (tsc 0, 305 testů zelených, build 0, lint 0). Route `/upload` přibyla.
+
+### Nové funkce
+- `splitTagInput(raw)` (`services/tag-service.ts`) — čárka jako oddělovač víc štítků (`"daddy, bear"` → 2), trim, case-insensitive dedup, ořez délky. +3 testy.
+- `TagService.listValues` + singleton `tagService` + akce `listTagValuesAction` — zdroj pro našeptávač.
+- Našeptávač (`<datalist>`) + čárka-split zapojené do `MediaUploadForm`, `MediaEditPanel` a wizardu; `tagSuggestions` prowiruje `media/page.tsx`.
+- `lib/resumable-upload.ts` — `uploadResumable` vytaženo z `MediaUploadForm` (sdílí dropzone i form).
+- `UploadDropzone` (`components/admin/upload-dropzone.tsx`) — bulk + drag&drop, validace per soubor, sekvenční resumable upload přímo na Drive, per-soubor progress, vrací `UploadedItem[]` (vč. lokálního `objectURL` náhledu).
+- `UploadWizard` (`components/admin/upload-wizard.tsx`) — dvousloupcový (vlevo náhled + Prev/Next + fronta, vpravo model + 6 kategorií se štítky), „použít na všechna", „Publikovat vše" / „Uložit skryté".
+- `finalizeUploadsAction(items, publish)` (`admin-actions.ts`) — bulk finalize přes sdílenou `persistMediaWithTags` (rozšířenou o `publish` flag: false → médium se po vytvoření skryje). `requireUploader`.
+- Route `(app)/upload/page.tsx` — uploader-only (`requireUploader`).
+- `PreviewFeed` plovoucí „+ Nahrát" FAB (`canUpload`), viditelný jen pro Admin/Distributor → `/upload`.
+
+### Pozn.
+- Bajty uploadu jdou přímo na Drive (žádné zvednutí `bodySizeLimit`). Browser→Drive chunk PUT závisí na CORS (pozn. plán 007 B) — ověřit live; fallback je „Synchronizovat z Drive".
+- Bulk upload sekvenční (1 soubor po druhém) — paralelní s limitem souběhu je follow-up.
+
 ## 2026-06-28 — Plány 009/010/011 (improve execute)
 
 ### Hotové tasky

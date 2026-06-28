@@ -6,6 +6,7 @@ import {
   validateTagValue,
   checkCategoryLimit,
   createTagService,
+  splitTagInput,
   MAX_TAG_VALUE_LENGTH,
   MAX_VALUES_PER_CATEGORY,
 } from "./tag-service";
@@ -87,6 +88,22 @@ describe("checkCategoryLimit", () => {
         expect(r.error.limit).toBe(MAX_VALUES_PER_CATEGORY);
       }
     }
+  });
+});
+
+describe("splitTagInput (plán 012)", () => {
+  it("rozdělí na čárkách, trim, zahodí prázdné", () => {
+    expect(splitTagInput("daddy, bear , grandpa")).toEqual(["daddy", "bear", "grandpa"]);
+    expect(splitTagInput("a,,  ,b")).toEqual(["a", "b"]);
+  });
+
+  it("case-insensitive dedup, zachová první výskyt", () => {
+    expect(splitTagInput("Daddy, daddy, DADDY")).toEqual(["Daddy"]);
+  });
+
+  it("prázdný / jen čárky → prázdné pole", () => {
+    expect(splitTagInput("   ")).toEqual([]);
+    expect(splitTagInput(",,,")).toEqual([]);
   });
 });
 

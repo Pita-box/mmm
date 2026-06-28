@@ -7,14 +7,18 @@
  * `previewOrder` (R10.2). Náhledy jdou přes proxy Streaming_URL (R6.4).
  */
 import { PreviewFeed } from "@/components/PreviewFeed";
+import type { ModelOption } from "@/components/admin";
 import { previewOrder } from "@/services/media-service";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { toCardItem } from "@/lib/media-presentation";
+import { modelService } from "@/services/model-service";
+import { tagService } from "@/services/tag-service";
 
 export default async function Preview() {
   const principal = await requireSession();
   const now = new Date();
+  const canUpload = principal.role === "Admin" || principal.role === "Distributor";
 
   const rows = await prisma.mediaItem.findMany({
     where: { status: "published", publishAt: { lte: now } },
@@ -38,5 +42,24 @@ export default async function Preview() {
 
   // Nejnovější Approved_Media slouží jako featured hero (R10.1); zbytek jde do
   // karuselů a masonry mřížky. Vše skládá klientský PreviewFeed.
-  return <PreviewFeed media={media} />;
+  // Pro uploadery načteme data pro upload wizard (modely + našeptávač štítků).
+  let models: ModelOption[] = [];
+  const tagSuggestions: Record<string, string[]> = {};
+  if (canUpload) {
+    const profiles = await modelService.listProfiles();
+    models = profiles.map((p) => ({ id: p.id, name: p.name }));
+    const tagValues = await tagService.listValues();
+    for (const { category, value } of tagValues) {
+      (tagSuggestions[category] ??= []).push(value);
+    }
+  }
+
+  return (
+    <PreviewFeed
+      media={media}
+      canUpload={canUpload}
+      models={models}
+      tagSuggestions={tagSuggestions}
+    />
+  );
 }

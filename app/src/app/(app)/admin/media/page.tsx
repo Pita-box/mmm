@@ -12,6 +12,7 @@ import {
 } from "@/components/admin";
 import { prisma } from "@/lib/prisma";
 import { modelService } from "@/services/model-service";
+import { tagService } from "@/services/tag-service";
 import { requireUploader } from "@/lib/session";
 import { canDeleteMedia } from "@/lib/permissions";
 import {
@@ -29,6 +30,13 @@ export default async function AdminMediaPage() {
   const principal = await requireUploader();
   const profiles = await modelService.listProfiles();
   const models: ModelOption[] = profiles.map((p) => ({ id: p.id, name: p.name }));
+
+  // Našeptávač: existující hodnoty štítků seskupené po kategoriích (plán 012).
+  const tagValues = await tagService.listValues();
+  const tagSuggestions: Record<string, string[]> = {};
+  for (const { category, value } of tagValues) {
+    (tagSuggestions[category] ??= []).push(value);
+  }
 
   const media = await prisma.mediaItem.findMany({
     orderBy: { createdAt: "desc" },
@@ -56,12 +64,14 @@ export default async function AdminMediaPage() {
       <DriveImportButton onImport={importFromDriveAction} />
       <MediaUploadForm
         models={models}
+        tagSuggestions={tagSuggestions}
         onCreateSession={createUploadSessionAction}
         onFinalize={finalizeDriveUploadAction}
       />
       <AdminMediaList
         rows={rows}
         models={models}
+        tagSuggestions={tagSuggestions}
         onDelete={deleteMediaAction}
         onSetPublished={setMediaPublishedAction}
         onAssignModel={assignMediaModelAction}

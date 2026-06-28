@@ -18,8 +18,9 @@ import { useState } from "react";
 import { Upload, Plus, X } from "lucide-react";
 import { FIXED_CATEGORIES, type TagCategory } from "@/lib/domain";
 import { validateUpload, MAX_UPLOAD_BYTES } from "@/services/media-service";
-import { MIN_TAG_VALUE_LENGTH, MAX_TAG_VALUE_LENGTH } from "@/services/tag-service";
+import { MAX_TAG_VALUE_LENGTH, splitTagInput } from "@/services/tag-service";
 import { isErr } from "@/lib/result";
+import { uploadResumable } from "@/lib/resumable-upload";
 import { AdminCard, Field, TextInput, Button, Badge } from "./admin-ui";
 
 /** Minimální tvar profilu modelu pro výběr v selectu. */
@@ -43,6 +44,8 @@ export interface MediaUploadValues {
 export interface MediaUploadFormProps {
   /** Dostupné profily modelů pro přiřazení. */
   readonly models?: readonly ModelOption[];
+  /** Existující hodnoty štítků po kategoriích pro našeptávač (plán 012). */
+  readonly tagSuggestions?: Partial<Record<TagCategory, string[]>>;
   /** Vytvoří resumable session (server) → vrátí `uploadUrl` pro přímý upload do Drive. */
   readonly onCreateSession: (
     name: string,
@@ -61,66 +64,31 @@ export interface MediaUploadFormProps {
 
 const MAX_UPLOAD_GB = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024 * 1024));
 
-/** Velikost chunku resumable uploadu — násobek 256 KB dle Drive protokolu. */
-const UPLOAD_CHUNK_BYTES = 8 * 1024 * 1024;
-
-/**
- * Nahraje soubor po částech PŘÍMO na Drive resumable `uploadUrl` (bajty nejdou
- * přes náš server). Vrací `driveFileId`. 308 = pokračuj, 200/201 = hotovo.
- */
-async function uploadResumable(
-  uploadUrl: string,
-  file: File,
-  onProgress: (pct: number) => void,
-): Promise<string> {
-  let offset = 0;
-  let fileId = "";
-  while (offset < file.size) {
-    const end = Math.min(offset + UPLOAD_CHUNK_BYTES, file.size);
-    const res = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Range": `bytes ${offset}-${end - 1}/${file.size}` },
-      body: file.slice(offset, end),
-    });
-    if (res.status === 308) {
-      offset = end;
-    } else if (res.ok) {
-      const data = (await res.json().catch(() => ({}))) as { id?: string };
-      fileId = data.id ?? "";
-      offset = file.size;
-    } else {
-      throw new Error(`Nahrávání selhalo (HTTP ${res.status}).`);
-    }
-    onProgress(Math.round((end / file.size) * 100));
-  }
-  if (!fileId) throw new Error("Drive nevrátil ID souboru.");
-  return fileId;
-}
-
 /** Vstup pro hodnoty jedné kategorie štítků — chips s přidáním a odebráním. */
 function TagCategoryInput({
   category,
   values,
   onChange,
+  suggestions = [],
 }: {
   readonly category: TagCategory;
   readonly values: readonly string[];
   readonly onChange: (next: string[]) => void;
+  readonly suggestions?: readonly string[];
 }) {
   const [draft, setDraft] = useState("");
   const inputId = `tag-${category.replace(/\s+/g, "-").toLowerCase()}`;
+  const listId = `${inputId}-list`;
 
   function addValue() {
-    const trimmed = draft.trim();
-    if (
-      trimmed.length < MIN_TAG_VALUE_LENGTH ||
-      trimmed.length > MAX_TAG_VALUE_LENGTH
-    ) {
-      return;
+    // Čárka odděluje víc hodnot: "daddy, bear" → 2 chipy (R7.2 UX, plán 012).
+    const incoming = splitTagInput(draft);
+    if (incoming.length === 0) return;
+    const next = [...values];
+    for (const v of incoming) {
+      if (!next.some((e) => e.toLowerCase() === v.toLowerCase())) next.push(v);
     }
-    // Deduplikace case-insensitive (R7.4) — stejná hodnota se nepřidá dvakrát.
-    const exists = values.some((v) => v.toLowerCase() === trimmed.toLowerCase());
-    if (!exists) onChange([...values, trimmed]);
+    onChange(next);
     setDraft("");
   }
 
@@ -134,6 +102,7 @@ function TagCategoryInput({
         <TextInput
           id={inputId}
           value={draft}
+          list={suggestions.length > 0 ? listId : undefined}
           maxLength={MAX_TAG_VALUE_LENGTH}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -142,8 +111,15 @@ function TagCategoryInput({
               addValue();
             }
           }}
-          placeholder={`Přidat hodnotu do „${category}“`}
+          placeholder={`Přidat do „${category}“ (víc oddělte čárkou)`}
         />
+        {suggestions.length > 0 ? (
+          <datalist id={listId}>
+            {suggestions.map((s) => (
+              <option key={s} value={s} />
+            ))}
+          </datalist>
+        ) : null}
         <Button type="button" variant="secondary" onClick={addValue}>
           <Plus aria-hidden size={14} />
           Přidat
@@ -170,7 +146,7 @@ function TagCategoryInput({
   );
 }
 
-export function MediaUploadForm({ models = [], onCreateSession, onFinalize }: MediaUploadFormProps) {
+export function MediaUploadForm({ models = [], tagSuggestions = {}, onCreateSession, onFinalize }: MediaUploadFormProps) {
   const [file, setFile] = useState<File | null>(null);
   const [modelId, setModelId] = useState("");
   const [tags, setTags] = useState<TagSelection>({});
@@ -283,6 +259,7 @@ export function MediaUploadForm({ models = [], onCreateSession, onFinalize }: Me
               key={category}
               category={category}
               values={tags[category] ?? []}
+              suggestions={tagSuggestions[category] ?? []}
               onChange={(next) => setCategoryValues(category, next)}
             />
           ))}

@@ -167,6 +167,8 @@ interface PersistMediaInput {
   readonly publishAt: Date | null;
   readonly tags: Partial<Record<TagCategory, string[]>>;
   readonly uploaderId: string;
+  /** false = po vytvoření skrýt (wizard „uložit skryté", plán 012). Default published. */
+  readonly publish?: boolean;
 }
 
 /**
@@ -193,6 +195,14 @@ async function persistMediaWithTags(input: PersistMediaInput): Promise<ActionRes
         uploaderId: input.uploaderId,
       });
       if (isErr(created)) throw new UploadAbort(created.error.message);
+
+      // Wizard „uložit skryté" (plán 012): médium vznikne, ale skryjeme ho.
+      if (input.publish === false) {
+        await txClient.mediaItem.update({
+          where: { id: created.value.id },
+          data: { status: "hidden" },
+        });
+      }
 
       for (const category of FIXED_CATEGORIES) {
         for (const raw of input.tags[category] ?? []) {
@@ -339,6 +349,68 @@ export async function removeMediaTagAction(
   revalidatePath("/admin/media");
   revalidatePath("/");
   return OK;
+}
+
+/** Existující hodnoty štítků pro našeptávač (plán 012). Uploader. */
+export async function listTagValuesAction(): Promise<
+  { category: string; value: string }[]
+> {
+  await requireUploader();
+  return createTagService(prisma).listValues();
+}
+
+/** Jedna položka k finalizaci z wizardu (soubor už na Drive). */
+export interface WizardUploadItem {
+  readonly driveFileId: string;
+  readonly mimeType: string;
+  readonly sizeBytes: number;
+  readonly modelId: string | null;
+  readonly tags: Partial<Record<TagCategory, string[]>>;
+}
+
+/**
+ * Bulk finalizace nahraných souborů z wizardu (plán 012). Pro každou položku
+ * vytvoří Media_Item + štítky (atomicky, rollback při selhání). `publish=false`
+ * → média zůstanou skrytá. Vrací souhrn počtů.
+ */
+export async function finalizeUploadsAction(
+  items: readonly WizardUploadItem[],
+  publish: boolean,
+): Promise<{ ok: boolean; created: number; failed: number; message?: string }> {
+  const principal = await requireUploader();
+  let created = 0;
+  let failed = 0;
+  let lastError: string | undefined;
+  for (const item of items) {
+    if (classifyType(item.mimeType) === null) {
+      failed++;
+      lastError = "Nepodporovaný formát souboru.";
+      continue;
+    }
+    const res = await persistMediaWithTags({
+      driveFileId: item.driveFileId,
+      modelId: item.modelId,
+      mimeType: item.mimeType,
+      sizeBytes: item.sizeBytes,
+      publishAt: null,
+      tags: item.tags,
+      uploaderId: principal.userId,
+      publish,
+    });
+    if (res.ok) created++;
+    else {
+      failed++;
+      lastError = res.message;
+    }
+  }
+  revalidatePath("/admin/media");
+  revalidatePath("/");
+  return {
+    ok: failed === 0,
+    created,
+    failed,
+    message: failed > 0 ? `Vytvořeno ${created}, selhalo ${failed}. ${lastError ?? ""}`.trim() : undefined,
+  };
 }
 
 // ─── Správa uživatelů ─────────────────────────────────────────────────────────

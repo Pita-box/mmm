@@ -58,6 +58,8 @@ export interface AdminMediaListProps {
     id: string,
     tagValueId: string,
   ) => Promise<{ ok: boolean; message?: string }>;
+  /** Existující hodnoty štítků po kategoriích pro našeptávač (plán 012). */
+  readonly tagSuggestions?: Partial<Record<string, string[]>>;
 }
 
 function StatusBadge({ status }: { readonly status: MediaStatus }) {
@@ -74,6 +76,7 @@ export function AdminMediaList({
   onAssignModel,
   onAddTag,
   onRemoveTag,
+  tagSuggestions = {},
 }: AdminMediaListProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -161,6 +164,7 @@ export function AdminMediaList({
                 currentModelId={row.modelId}
                 models={models}
                 tags={row.tags}
+                tagSuggestions={tagSuggestions}
                 onAssignModel={onAssignModel}
                 onAddTag={onAddTag}
                 onRemoveTag={onRemoveTag}

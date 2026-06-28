@@ -22,6 +22,7 @@ import type { PrismaClient, TagValue } from "@prisma/client";
 import { FIXED_CATEGORIES, type TagCategory } from "@/lib/domain";
 import type { TagError } from "@/lib/errors";
 import { ok, err, isErr, type Result } from "@/lib/result";
+import { prisma } from "@/lib/prisma";
 
 // ─── Konstanty ────────────────────────────────────────────────────────────────
 
@@ -94,6 +95,25 @@ export function checkCategoryLimit(resultingDistinctCount: number): Result<void,
   return ok();
 }
 
+/**
+ * Rozdělí volný text na hodnoty štítků oddělené čárkou (R7.2 UX). Trim, zahodí
+ * prázdné, ořeže na MAX délku, case-insensitive dedup (zachová první výskyt).
+ * `"daddy, bear ,, Daddy"` → `["daddy", "bear"]`.
+ */
+export function splitTagInput(raw: string): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of raw.split(",")) {
+    const v = part.trim().slice(0, MAX_TAG_VALUE_LENGTH);
+    if (v.length < MIN_TAG_VALUE_LENGTH) continue;
+    const key = v.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(v);
+  }
+  return out;
+}
+
 // ─── Perzistentní vrstva ────────────────────────────────────────────────────────
 
 export interface TagService {
@@ -120,6 +140,8 @@ export interface TagService {
     mediaId: string,
     tagValueId: string,
   ): Promise<Result<void, TagError>>;
+  /** Všechny existující hodnoty (pro našeptávač), seřazené dle kategorie+hodnoty. */
+  listValues(): Promise<{ category: string; value: string }[]>;
 }
 
 const INVALID_CATEGORY: TagError = {
@@ -189,5 +211,15 @@ export function createTagService(prisma: PrismaClient): TagService {
       await prisma.mediaTag.deleteMany({ where: { mediaId, tagValueId } });
       return ok();
     },
+
+    listValues() {
+      return prisma.tagValue.findMany({
+        select: { category: true, value: true },
+        orderBy: [{ category: "asc" }, { value: "asc" }],
+      });
+    },
   };
 }
+
+/** Produkční instance napojená na sdílený Prisma klient. */
+export const tagService: TagService = createTagService(prisma);

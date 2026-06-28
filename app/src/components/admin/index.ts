@@ -5,6 +5,9 @@
  */
 export * from "./admin-ui";
 export * from "./media-upload-form";
+export * from "./upload-dropzone";
+export * from "./upload-wizard";
+export * from "./upload-modal";
 export * from "./drive-import-button";
 export * from "./model-profile-form";
 export * from "./users-overview";

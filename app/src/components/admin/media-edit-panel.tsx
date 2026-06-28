@@ -12,6 +12,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { X, Plus } from "lucide-react";
 import { FIXED_CATEGORIES } from "@/lib/domain";
+import { splitTagInput } from "@/services/tag-service";
 import { Button } from "./admin-ui";
 
 export interface MediaTagChip {
@@ -43,6 +44,8 @@ export interface MediaEditPanelProps {
     mediaId: string,
     tagValueId: string,
   ) => Promise<{ ok: boolean; message?: string }>;
+  /** Existující hodnoty štítků po kategoriích pro našeptávač (plán 012). */
+  readonly tagSuggestions?: Partial<Record<string, string[]>>;
 }
 
 const SELECT_CLASS =
@@ -56,6 +59,7 @@ export function MediaEditPanel({
   onAssignModel,
   onAddTag,
   onRemoveTag,
+  tagSuggestions = {},
 }: MediaEditPanelProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -120,20 +124,31 @@ export function MediaEditPanel({
           <input
             aria-label="Hodnota štítku"
             className={SELECT_CLASS}
-            placeholder="hodnota"
+            list={`edit-tags-${mediaId}-${category}`}
+            placeholder="hodnota (víc oddělte čárkou)"
             value={value}
             disabled={pending}
             onChange={(e) => setValue(e.target.value)}
           />
+          <datalist id={`edit-tags-${mediaId}-${category}`}>
+            {(tagSuggestions[category] ?? []).map((s) => (
+              <option key={s} value={s} />
+            ))}
+          </datalist>
           <Button
             type="button"
             variant="secondary"
             disabled={pending || value.trim() === ""}
             onClick={() =>
               run(async () => {
-                const res = await onAddTag(mediaId, category, value);
-                if (res.ok) setValue("");
-                return res;
+                // Čárka odděluje víc hodnot (plán 012); přidá postupně, stop na chybě.
+                let last: { ok: boolean; message?: string } = { ok: true };
+                for (const v of splitTagInput(value)) {
+                  last = await onAddTag(mediaId, category, v);
+                  if (!last.ok) return last;
+                }
+                if (last.ok) setValue("");
+                return last;
               })
             }
           >
