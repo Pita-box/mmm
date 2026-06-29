@@ -118,6 +118,14 @@ describe("decideAccess — page visibility (R16.3)", () => {
     );
     expect(decision.outcome).toBe("deny404");
   });
+
+  it("Admin má přístup i ke skryté sekci (skrytí blokuje jen ostatní role)", () => {
+    const decision = decideAccess(
+      ctx({ path: "/models/123", role: "Admin", hiddenSections: { models: true } }),
+      MVP,
+    );
+    expect(decision.outcome).toBe("allow");
+  });
 });
 
 describe("decideAccess — role (R3.3, R9.6)", () => {

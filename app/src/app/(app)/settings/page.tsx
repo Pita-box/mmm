@@ -9,6 +9,7 @@ import { SettingsPanel } from "@/components/settings/settings-panel";
 import { settingsService } from "@/services/settings-service";
 import { isOk } from "@/lib/result";
 import { requireSession } from "@/lib/session";
+import { requireVisibleSection } from "@/lib/section-visibility";
 import {
   saveProfileAction,
   changePasswordAction,
@@ -17,6 +18,7 @@ import {
 
 export default async function SettingsPage() {
   const principal = await requireSession();
+  await requireVisibleSection("settings", principal.role);
   const profile = await settingsService.getProfile(principal.userId);
   const initialDisplayName = isOk(profile) ? profile.value.displayName : "";
 

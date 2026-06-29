@@ -48,8 +48,8 @@ export default async function Preview() {
     ),
   );
 
-  // Nejnovější Approved_Media slouží jako featured hero (R10.1); zbytek jde do
-  // karuselů a masonry mřížky. Vše skládá klientský PreviewFeed.
+  // Approved_Media jde do karuselů podle modelu a masonry mřížky „Procházet vše".
+  // Vše skládá klientský PreviewFeed.
   // Pro uploadery načteme data pro upload wizard (modely + našeptávač štítků).
   let models: ModelOption[] = [];
   const tagSuggestions: Record<string, string[]> = {};

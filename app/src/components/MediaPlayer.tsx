@@ -66,8 +66,14 @@ export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaP
   const [volume, setVolume] = useState(1);
   const [fullscreen, setFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   const safe = src.length > 0 && !isDriveLink(src);
+
+  // Nový zdroj → znovu fake black screen + spinner (prev/next v lightboxu).
+  useEffect(() => {
+    setLoading(true);
+  }, [src]);
 
   // Auto-hide ovládání během přehrávání po nečinnosti.
   const revealControls = useCallback(() => {
@@ -92,7 +98,7 @@ export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaP
   function togglePlay() {
     const v = videoRef.current;
     if (!v) return;
-    if (v.paused) void v.play();
+    if (v.paused) void v.play().catch(() => {});
     else v.pause();
     revealControls();
   }
@@ -127,7 +133,7 @@ export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaP
       if (!v) return;
       if (e.code === "Space" || e.key === " ") {
         e.preventDefault();
-        if (v.paused) void v.play();
+        if (v.paused) void v.play().catch(() => {});
         else v.pause();
         revealControls();
       } else if (e.key === "ArrowLeft") {
@@ -194,7 +200,7 @@ export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaP
       onMouseLeave={() => {
         if (!videoRef.current?.paused) setControlsVisible(false);
       }}
-      className={`group relative overflow-hidden rounded-2xl bg-[color:var(--color-deep-space)] ${className ?? ""}`}
+      className="group relative inline-flex overflow-hidden rounded-2xl bg-[color:var(--color-deep-space)]"
     >
       <video
         ref={videoRef}
@@ -202,12 +208,17 @@ export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaP
         poster={poster}
         autoPlay={autoPlay}
         playsInline
+        preload="auto"
         controls={false}
         controlsList="nodownload noremoteplayback"
         disablePictureInPicture
         onClick={togglePlay}
+        onWaiting={() => setLoading(true)}
+        onCanPlay={() => setLoading(false)}
+        onLoadedData={() => setLoading(false)}
         onPlay={() => {
           setPlaying(true);
+          setLoading(false);
           revealControls();
         }}
         onPause={() => {
@@ -220,8 +231,18 @@ export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaP
           setPlaying(false);
           setControlsVisible(true);
         }}
-        className="h-full w-full cursor-pointer object-contain"
+        className={`block h-auto w-auto cursor-pointer object-contain ${className ?? ""}`}
       />
+
+      {/* Fake black screen + spinner během načítání (vyplní celý kontejner). */}
+      <div
+        aria-hidden={!loading}
+        className={`pointer-events-none absolute inset-0 flex items-center justify-center bg-[color:var(--color-deep-space)] transition-opacity duration-300 ${
+          loading ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        <span className="h-10 w-10 animate-spin rounded-full border-2 border-[color:var(--color-chalk-white)]/25 border-t-[color:var(--color-netflix-red)]" />
+      </div>
 
       {/* Spodní navigace: přes video, transparentní (bez pozadí i borderu). */}
       <div

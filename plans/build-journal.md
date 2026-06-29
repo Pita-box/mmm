@@ -2,6 +2,22 @@
 
 Záznamy chronologicky, nejnovější nahoře.
 
+## 2026-06-29 — MediaPlayer: AbortError + preload + loading screen; Preview bez Hera
+
+### Nové funkce / změny
+- `components/MediaPlayer.tsx` — fake black screen + spinner přes celý kontejner během načítání (`loading` stav: reset na `true` při změně `src`, `false` na `onCanPlay`/`onLoadedData`/`onPlay`, zpět `true` na `onWaiting`). Overlay `absolute inset-0` s barvou `--color-deep-space`, fade `opacity` 300 ms.
+- Přidán `preload="auto"` na `<video>`.
+- `components/PreviewFeed.tsx` — **odebrán `Hero`** z domovské stránky (Preview); zůstávají jen modelové karusely + masonry „Procházet vše". Komponenta `components/Hero.tsx` smazána (nikde jinde nepoužitá). Komentáře v `PreviewFeed`/`app/(app)/page.tsx` doladěny.
+
+### Bug & fix
+- **Symptom:** Runtime `AbortError: The play() request was interrupted by a call to pause()` při prev/next přepínání videí v lightboxu (autoPlay + změna `src` přeruší předchozí `play()` promise).
+- **Root cause:** `togglePlay` i klávesový Space handler volaly `void v.play()` bez zachycení rejectnuté promise; změna zdroje / pause během rozjetého `play()` ji odmítne.
+- **Fix:** všechny `v.play()` obaleny `.catch(() => {})` (togglePlay + Space handler).
+
+- **Symptom:** video na šířku (landscape) se na webu v lightboxu roztahovalo / deformovalo.
+- **Root cause:** lightbox vnucoval přehrávači pevnou šířku `w-[min(92vw,1100px)]` a `<video>` mělo `h-full w-full` → video se natáhlo do nuceného boxu místo zachování poměru stran (`<img>` to nemá, proto fungoval).
+- **Fix:** `<video>` teď `h-auto w-auto object-contain` + limity `max-h-[88vh] max-w-[92vw]` (jako `<img>`); kontejner přehrávače `inline-flex` obaluje video na jeho skutečnou velikost; lightbox předává jen `FIT` bez nucené šířky. Ověřeno tsc 0, 318 testů zelených.
+
 ## 2026-06-28 — Plán 014: sjednocení štítkovacího vstupu (branch audit)
 
 ### Hotové tasky

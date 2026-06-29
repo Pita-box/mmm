@@ -12,10 +12,12 @@ import type { TagCategory } from "@/lib/domain";
 import { toPublicMedia } from "@/services/drive-connector";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
+import { requireVisibleSection } from "@/lib/section-visibility";
 import { streamingUrlFor } from "@/lib/media-presentation";
 
 export default async function SearchPage() {
   const principal = await requireSession();
+  await requireVisibleSection("search", principal.role);
   const now = new Date();
 
   const rows = await prisma.mediaItem.findMany({

@@ -10,6 +10,7 @@ import { ModelDetail } from "@/components/ModelDetail";
 import { modelService } from "@/services/model-service";
 import { isErr, isOk } from "@/lib/result";
 import { requireSession } from "@/lib/session";
+import { requireVisibleSection } from "@/lib/section-visibility";
 import { toCardItem } from "@/lib/media-presentation";
 import { UserX } from "lucide-react";
 
@@ -19,6 +20,7 @@ export default async function ModelDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const principal = await requireSession();
+  await requireVisibleSection("models", principal.role);
   const { id } = await params;
   const now = new Date();
 

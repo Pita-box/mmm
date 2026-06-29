@@ -13,7 +13,7 @@
  * tlačítko; po dobu otevření zamkne scroll. Stav (které médium) drží rodič.
  */
 import { useEffect, useState, useTransition } from "react";
-import { X, Trash2, EyeOff, Pencil, Share2 } from "lucide-react";
+import { X, Trash2, EyeOff, Pencil, Share2, ChevronLeft, ChevronRight } from "lucide-react";
 import type { MediaCardItem } from "./MediaCard";
 import { MediaPlayer } from "./MediaPlayer";
 import { MediaEditPanel } from "./admin/media-edit-panel";
@@ -39,6 +39,9 @@ export interface MediaLightboxProps {
   /** Modely a hodnoty štítků pro editaci (jen když canEdit). */
   readonly models?: readonly ModelOption[];
   readonly tagSuggestions?: Partial<Record<string, string[]>>;
+  /** Navigace na předchozí/další médium (undefined = na kraji / nedostupné). */
+  readonly onPrev?: () => void;
+  readonly onNext?: () => void;
 }
 
 /** Velikostní limit média ve viewportu (fit) — výška i šířka. */
@@ -56,6 +59,8 @@ export function MediaLightbox({
   canEdit = false,
   models = [],
   tagSuggestions = {},
+  onPrev,
+  onNext,
 }: MediaLightboxProps) {
   const [pending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
@@ -65,6 +70,8 @@ export function MediaLightbox({
     if (!item) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
+      else if (event.key === "ArrowLeft") onPrev?.();
+      else if (event.key === "ArrowRight") onNext?.();
     };
     document.addEventListener("keydown", onKey);
     const previousOverflow = document.body.style.overflow;
@@ -73,7 +80,7 @@ export function MediaLightbox({
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = previousOverflow;
     };
-  }, [item, onClose]);
+  }, [item, onClose, onPrev, onNext]);
 
   // Při změně média zavři edit panel (lightbox zůstává mountovaný).
   useEffect(() => {
@@ -159,6 +166,42 @@ export function MediaLightbox({
         <X aria-hidden size={20} />
       </button>
 
+      {/* Navigace prev/next — boční glass šipky (zobrazí se, když je kam jít). */}
+      {(onPrev || onNext) && !editOpen && (
+        <>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onPrev?.();
+            }}
+            disabled={!onPrev}
+            aria-label="Předchozí médium"
+            style={glassBorder}
+            className={`absolute left-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border bg-[color:var(--color-deep-space)]/60 text-[color:var(--color-chalk-white)] backdrop-blur-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-chalk-white)] ${
+              onPrev ? "cursor-pointer hover:bg-[color:var(--color-deep-space)]/80" : "cursor-default opacity-40"
+            }`}
+          >
+            <ChevronLeft aria-hidden size={22} />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onNext?.();
+            }}
+            disabled={!onNext}
+            aria-label="Další médium"
+            style={glassBorder}
+            className={`absolute right-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border bg-[color:var(--color-deep-space)]/60 text-[color:var(--color-chalk-white)] backdrop-blur-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-chalk-white)] ${
+              onNext ? "cursor-pointer hover:bg-[color:var(--color-deep-space)]/80" : "cursor-default opacity-40"
+            }`}
+          >
+            <ChevronRight aria-hidden size={22} />
+          </button>
+        </>
+      )}
+
       {/* Médium — vycentrované, přirozený poměr, fit do viewportu. */}
       <div
         onClick={(event) => event.stopPropagation()}
@@ -173,7 +216,7 @@ export function MediaLightbox({
             src={url}
             poster={url}
             autoPlay
-            className={`${FIT} w-[min(92vw,1100px)]`}
+            className={FIT}
           />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element -- proxy Streaming_URL, ne next/image

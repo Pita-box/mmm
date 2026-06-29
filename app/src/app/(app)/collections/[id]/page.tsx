@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { FolderX, FolderOpen } from "lucide-react";
 import { requireSession } from "@/lib/session";
+import { requireVisibleSection } from "@/lib/section-visibility";
 import { collectionService } from "@/services/collection-service";
 import { isErr, isOk } from "@/lib/result";
 import { CollectionGallery } from "@/components/CollectionGallery";
@@ -20,6 +21,7 @@ export default async function CollectionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const principal = await requireSession();
+  await requireVisibleSection("collections", principal.role);
   const { id } = await params;
   const now = new Date();
 

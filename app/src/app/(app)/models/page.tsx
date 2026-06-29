@@ -9,10 +9,12 @@
 import { ModelCard } from "@/components/ModelCard";
 import { modelService } from "@/services/model-service";
 import { requireSession } from "@/lib/session";
+import { requireVisibleSection } from "@/lib/section-visibility";
 import { Users } from "lucide-react";
 
 export default async function ModelsPage() {
-  await requireSession();
+  const principal = await requireSession();
+  await requireVisibleSection("models", principal.role);
   const profiles = await modelService.listProfiles();
 
   return (

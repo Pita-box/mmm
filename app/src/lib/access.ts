@@ -10,7 +10,7 @@
  *   1. veřejná cesta            → allow
  *   2. autentizace              → redirectSignIn (stránka) / deny401 (API)
  *      (zahrnuje platnou relaci, aktivní účet i neexpirovanou inaktivitu)
- *   3. page visibility          → deny404 (sekce globálně skrytá)
+ *   3. page visibility          → deny404 (sekce skrytá; Admin má přístup vždy)
  *   4. role                     → deny403 (admin cesta pro ne-Admina)
  *   5. předplatné [POST-MVP]    → redirectPaywall (jen když PAYMENTS_ENABLED)
  *
@@ -174,8 +174,9 @@ export function decideAccess(
     return denyUnauthenticated(ctx);
   }
 
-  // 3. Globálně skrytá sekce vrací 404 (R16.3).
-  if (isSectionHidden(ctx)) {
+  // 3. Globálně skrytá sekce vrací 404 — ale Admin má přístup vždy (R16.3 +
+  //    požadavek: skrytí jen zabrání přístup ostatním rolím, Adminovi ne).
+  if (isSectionHidden(ctx) && ctx.role !== "Admin") {
     return { outcome: "deny404" };
   }
 

@@ -74,7 +74,12 @@ export function buildNavItems({
   return NAV_ITEMS.filter((item) => {
     // Admin položka: pro Admina i Distributora (jen User ji nevidí, R3.4 + feature distributor).
     if (item.adminOnly && role === "User") return false;
-    if (item.sectionKey !== null && hiddenSections[item.sectionKey] === true) {
+    // Skrytá sekce: schová z nav jen ne-Adminům; Admin vidí (a má přístup) vždy.
+    if (
+      role !== "Admin" &&
+      item.sectionKey !== null &&
+      hiddenSections[item.sectionKey] === true
+    ) {
       return false;
     }
     return true;

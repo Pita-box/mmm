@@ -45,7 +45,18 @@ export function CollectionGallery({
         ))}
       </div>
 
-      <MediaLightbox item={selected} onClose={() => setSelected(null)} />
+      <MediaLightbox
+        item={selected}
+        onClose={() => setSelected(null)}
+        onPrev={(() => {
+          const i = selected ? media.findIndex((m) => m.id === selected.id) : -1;
+          return i > 0 ? () => setSelected(media[i - 1]) : undefined;
+        })()}
+        onNext={(() => {
+          const i = selected ? media.findIndex((m) => m.id === selected.id) : -1;
+          return i >= 0 && i < media.length - 1 ? () => setSelected(media[i + 1]) : undefined;
+        })()}
+      />
     </>
   );
 }

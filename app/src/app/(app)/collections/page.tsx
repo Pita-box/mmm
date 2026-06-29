@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { Library, Plus, Trash2 } from "lucide-react";
 import { requireSession } from "@/lib/session";
+import { requireVisibleSection } from "@/lib/section-visibility";
 import { collectionService } from "@/services/collection-service";
 import { Field, TextInput, Button } from "@/components/admin";
 import {
@@ -17,6 +18,7 @@ import {
 
 export default async function CollectionsPage() {
   const principal = await requireSession();
+  await requireVisibleSection("collections", principal.role);
   const collections = await collectionService.listCollections(principal.userId);
 
   return (

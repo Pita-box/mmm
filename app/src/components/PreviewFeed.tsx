@@ -5,9 +5,8 @@
  *
  * Skládá Netflix-style layout nad seřazeným fondem Approved_Media (sestupně dle
  * času zveřejnění, R10.1/R10.2 — řadí volající přes `previewOrder`):
- *  1. `Hero` s nejnovějším médiem a CTA „Watch",
- *  2. horizontální `Carousel` řady seskupené podle modelu,
- *  3. masonry mřížka „Procházet vše" s nekonečným scrollem.
+ *  1. horizontální `Carousel` řady seskupené podle modelu,
+ *  2. masonry mřížka „Procházet vše" s nekonečným scrollem.
  *
  * Pro uploadery (Admin/Distributor) navíc: plovoucí „+" otevře upload popup
  * (stejný wizard jako stránka /upload) a soubory lze přetáhnout kamkoliv na
@@ -15,7 +14,6 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
-import { Hero } from "./Hero";
 import { Carousel } from "./Carousel";
 import { MasonryGrid, poolLoader } from "./MasonryGrid";
 import { MediaLightbox } from "./MediaLightbox";
@@ -77,8 +75,8 @@ export function PreviewFeed({
   const [dragging, setDragging] = useState(false);
   const dragDepth = useRef(0);
   const loadPage = useMemo(() => poolLoader(media), [media]);
-  // Karusely modelů z VŠECH médií (ne slice(1)) — jinak nejnovější (hero)
-  // v modelové sekci chybí. Hero se může objevit i ve své řadě (Netflix-style).
+  // Karusely modelů ze VŠECH médií (ne slice(1)) — nejnovější médium tak
+  // nechybí ve své modelové řadě.
   const rows = useMemo(() => groupByModel(media), [media]);
 
   // Sdílený odkaz: otevři lightbox z ?m=<id> při načtení (bez navigace).
@@ -205,12 +203,8 @@ export function PreviewFeed({
     );
   }
 
-  const featured = media[0];
-
   return (
     <section>
-      <Hero item={featured} onWatch={setSelected} />
-
       {rows.map((row) => (
         <Carousel
           key={row.title}
@@ -231,6 +225,14 @@ export function PreviewFeed({
         canEdit={canUpload}
         models={models}
         tagSuggestions={tagSuggestions}
+        onPrev={(() => {
+          const i = selected ? media.findIndex((m) => m.id === selected.id) : -1;
+          return i > 0 ? () => setSelected(media[i - 1]) : undefined;
+        })()}
+        onNext={(() => {
+          const i = selected ? media.findIndex((m) => m.id === selected.id) : -1;
+          return i >= 0 && i < media.length - 1 ? () => setSelected(media[i + 1]) : undefined;
+        })()}
       />
       {uploadUi}
     </section>

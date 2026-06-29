@@ -78,10 +78,11 @@ export function MediaCard({ item, onSelect }: MediaCardProps) {
   // DPR-aware náhled: retina (default 2) → 1024, ne-retina (1) → 512 (úspora).
   // Default 2 drží retina ostré bez druhého fetche; DPR1 se swapne po mountu.
   const [dpr, setDpr] = useState(2);
+  const [imgError, setImgError] = useState(false);
   useEffect(() => {
     if ((window.devicePixelRatio || 1) <= 1) setDpr(1);
   }, []);
-  const posterSrc = item.posterUrl ? `${item.posterUrl}?dpr=${dpr}` : undefined;
+  const posterSrc = item.posterUrl && !imgError ? `${item.posterUrl}?dpr=${dpr}` : undefined;
 
   const visual = (
     <div
@@ -98,6 +99,7 @@ export function MediaCard({ item, onSelect }: MediaCardProps) {
           alt={label}
           loading="lazy"
           decoding="async"
+          onError={() => setImgError(true)}
           // Známý poměr → object-cover sedí přesně (object-top jen pojistka proti
           // uříznutí hlavy); neznámý poměr → přirozená výška, žádný ořez (masonry).
           // Hover škáluje JEN obrázek; zaoblený kontejner zůstává statický (rohy OK).
