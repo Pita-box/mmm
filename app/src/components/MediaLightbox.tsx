@@ -13,19 +13,22 @@
  * tlačítko; po dobu otevření zamkne scroll. Stav (které médium) drží rodič.
  */
 import { useEffect, useState, useTransition } from "react";
-import { X, Trash2, EyeOff, Pencil, Share2, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Trash2, EyeOff, Pencil, Share2, ChevronLeft, ChevronRight, ImagePlus } from "lucide-react";
 import type { MediaCardItem } from "./MediaCard";
 import { MediaPlayer } from "./MediaPlayer";
 import { MediaEditPanel } from "./admin/media-edit-panel";
 import { Button } from "./admin/admin-ui";
 import { SystemToast } from "./SystemToast";
-import type { ModelOption } from "./admin/media-upload-form";
+import { captureVideoPoster, blobToBase64 } from "@/lib/video-poster";
+import type { ModelOption } from "./admin/upload-wizard";
 import {
   assignMediaModelAction,
   addMediaTagAction,
   removeMediaTagAction,
   setMediaPublishedAction,
   deleteMediaAction,
+  uploadPosterAction,
+  setMediaPosterAction,
 } from "@/app/(app)/admin/admin-actions";
 import { DRIVE_DOMAINS } from "@/lib/drive-domains";
 
@@ -65,6 +68,7 @@ export function MediaLightbox({
   const [pending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [genLoading, setGenLoading] = useState(false);
 
   useEffect(() => {
     if (!item) return;
@@ -111,6 +115,25 @@ export function MediaLightbox({
       if (!res.ok) setToast(res.message ?? "Smazání selhalo.");
       else onClose();
     });
+  };
+
+  // Vygeneruje poster videa (snímek z 1/3 délky) z proxy streamu a uloží ho.
+  const handleGeneratePoster = async () => {
+    if (genLoading) return;
+    setGenLoading(true);
+    try {
+      const blob = await captureVideoPoster(url);
+      const base64 = await blobToBase64(blob);
+      const up = await uploadPosterAction(base64, `${item.id}.poster.jpg`);
+      if (!up.ok || !up.driveFileId) throw new Error(up.message ?? "Nahrání náhledu selhalo.");
+      const set = await setMediaPosterAction(item.id, up.driveFileId);
+      if (!set.ok) throw new Error(set.message ?? "Uložení náhledu selhalo.");
+      setToast("Náhled vygenerován.");
+    } catch (e) {
+      setToast((e as Error).message);
+    } finally {
+      setGenLoading(false);
+    }
   };
 
   const handleShare = () => {
@@ -236,6 +259,19 @@ export function MediaLightbox({
         onClick={(event) => event.stopPropagation()}
         className="absolute right-4 top-4 z-20 flex items-center gap-2"
       >
+        {canEdit && isVideo && (
+          <button
+            type="button"
+            aria-label="Vygenerovat náhled"
+            title="Vygenerovat náhled (snímek z 1/3 videa)"
+            disabled={genLoading}
+            style={glassBorder}
+            className={iconBtn}
+            onClick={handleGeneratePoster}
+          >
+            <ImagePlus aria-hidden size={18} />
+          </button>
+        )}
         {canEdit && (
           <button
             type="button"

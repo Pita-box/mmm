@@ -23,7 +23,7 @@ import type { CollectionError } from "@/lib/errors";
 import { ok, err, isErr, type Result } from "@/lib/result";
 import { validateCollectionName } from "@/lib/validation";
 import { prisma } from "@/lib/prisma";
-import { isApproved } from "./media-service";
+import { isApproved, visibleMedia } from "./media-service";
 
 // ─── Čisté jádro ───────────────────────────────────────────────────────────────
 
@@ -63,6 +63,15 @@ export function checkOwnership(
 
 // ─── Perzistentní vrstva ────────────────────────────────────────────────────────
 
+/** Náhled kolekce pro mřížku /collections: název, počet a poslední média. */
+export interface CollectionPreview {
+  readonly id: string;
+  readonly name: string;
+  readonly mediaCount: number;
+  /** ID posledních (max 3) Approved_Media, nejnovější první (pro collage). */
+  readonly recentMediaIds: readonly string[];
+}
+
 export interface CollectionService {
   /** Vytvoření kolekce vlastněné `ownerId` s validací názvu (R14.1, R14.6). */
   createCollection(
@@ -73,6 +82,8 @@ export interface CollectionService {
   getCollection(id: string, userId: string): Promise<Result<Collection, CollectionError>>;
   /** Seznam kolekcí daného vlastníka. */
   listCollections(ownerId: string): Promise<Collection[]>;
+  /** Kolekce s náhledem (počet + poslední 3 Approved_Media) pro mřížku /collections. */
+  listCollectionsWithPreview(ownerId: string, now?: Date): Promise<CollectionPreview[]>;
   /** Položky kolekce (média) s kontrolou vlastnictví. */
   getItems(id: string, userId: string): Promise<Result<MediaItem[], CollectionError>>;
   /** Idempotentní přidání pouze Approved_Media do vlastní kolekce (R14.2, R14.7). */
@@ -119,6 +130,27 @@ export function createCollectionService(prisma: PrismaClient): CollectionService
       return prisma.collection.findMany({
         where: { ownerId },
         orderBy: { createdAt: "desc" },
+      });
+    },
+
+    async listCollectionsWithPreview(ownerId, now = new Date()) {
+      const collections = await prisma.collection.findMany({
+        where: { ownerId },
+        orderBy: { createdAt: "desc" },
+        include: { items: { include: { media: true } } },
+      });
+      return collections.map((c) => {
+        // Jen Approved_Media, nejnovější první → collage z posledních 3.
+        const visible = visibleMedia(
+          c.items.map((i) => i.media),
+          now,
+        ).sort((a, b) => b.publishAt!.getTime() - a.publishAt!.getTime());
+        return {
+          id: c.id,
+          name: c.name,
+          mediaCount: visible.length,
+          recentMediaIds: visible.slice(0, 3).map((m) => m.id),
+        };
       });
     },
 

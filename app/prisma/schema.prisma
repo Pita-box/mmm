@@ -61,6 +61,8 @@ model User {
   status              AccountStatus      @default(active)
   displayName         String?
   subscriptionStatus  SubscriptionStatus @default(inactive)
+  /// Konec platnosti aktivního členství nastavený adminem; null = bez expirace (R20/R21).
+  membershipExpiresAt DateTime?
   failedLoginAttempts Int                @default(0)
   lockedUntil         DateTime?
   createdAt           DateTime           @default(now())
@@ -108,6 +110,8 @@ model MediaItem {
   width       Int
   height      Int
   durationMs  Int?
+  /// Vlastní vygenerovaný poster (snímek z 1/3 délky videa) — Drive file ID; null = fallback na Drive náhled.
+  posterDriveFileId String?
   createdAt   DateTime    @default(now())
   uploaderId  String?
 
@@ -115,6 +119,7 @@ model MediaItem {
   uploader        User?            @relation("UploadedMedia", fields: [uploaderId], references: [id], onDelete: SetNull)
   tags            MediaTag[]
   collectionItems CollectionItem[]
+  gateSample      MembershipGateSample?
 
   @@index([modelId])
   @@index([status, publishAt])
@@ -170,6 +175,15 @@ model CollectionItem {
 
   @@id([collectionId, mediaId])
   @@index([mediaId])
+}
+
+/// Výběr médií zobrazených jako „sample" náhledy v MembershipGate (admin volí).
+/// Smazání média vazbu odstraní (onDelete: Cascade).
+model MembershipGateSample {
+  mediaId   String   @id
+  createdAt DateTime @default(now())
+
+  media MediaItem @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 }
 
 /// Předplatné uživatele (1:1). [POST-MVP]

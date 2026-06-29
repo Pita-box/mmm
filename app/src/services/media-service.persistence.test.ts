@@ -42,6 +42,7 @@ function makeMediaRow(over: Partial<MediaItem> & { id: string }): MediaItem {
     durationMs: over.durationMs ?? null,
     createdAt: over.createdAt ?? new Date("2026-01-01T00:00:00.000Z"),
     uploaderId: over.uploaderId ?? null,
+    posterDriveFileId: over.posterDriveFileId ?? null,
   };
 }
 

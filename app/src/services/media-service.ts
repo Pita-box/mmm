@@ -64,6 +64,8 @@ export interface CreateMediaInput {
   readonly height: number;
   /** Kdo médium nahrál (Distributor/Admin); null = legacy/neznámý. */
   readonly uploaderId?: string | null;
+  /** Vlastní vygenerovaný poster (snímek z 1/3 videa) — Drive file ID. */
+  readonly posterDriveFileId?: string | null;
   /** Je-li v budoucnu → scheduled; jinak (null / nyní / minulost) → publikováno ihned. */
   readonly publishAt?: Date | null;
 }
@@ -240,6 +242,7 @@ export function createMediaService(prisma: PrismaClient): MediaService {
           status,
           publishAt,
           uploaderId: input.uploaderId ?? null,
+          posterDriveFileId: input.posterDriveFileId ?? null,
         },
       });
       return ok(created);

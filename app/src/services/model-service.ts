@@ -68,10 +68,21 @@ export function validateProfileInput(input: {
 
 // ─── Perzistentní vrstva ────────────────────────────────────────────────────────
 
+/** Náhled modelu pro mřížku /models: název, počet a poslední média (R13.1). */
+export interface ProfilePreview {
+  readonly id: string;
+  readonly name: string;
+  readonly mediaCount: number;
+  /** ID posledních (max 3) Approved_Media, nejnovější první (pro collage). */
+  readonly recentMediaIds: readonly string[];
+}
+
 export interface ModelService {
   createProfile(input: CreateProfileInput): Promise<Result<ModelProfile, ModelError>>;
   getProfile(id: string): Promise<Result<ModelProfile, ModelError>>;
   listProfiles(): Promise<ModelProfile[]>;
+  /** Modely s náhledem (počet + poslední 3 Approved_Media) pro mřížku /models. */
+  listProfilesWithPreview(now?: Date): Promise<ProfilePreview[]>;
   updateProfile(
     id: string,
     patch: UpdateProfileInput,
@@ -117,6 +128,25 @@ export function createModelService(prisma: PrismaClient): ModelService {
     listProfiles() {
       // Seznam všech modelů pro stránku Models (R13.1).
       return prisma.modelProfile.findMany({ orderBy: { createdAt: "desc" } });
+    },
+
+    async listProfilesWithPreview(now = new Date()) {
+      const profiles = await prisma.modelProfile.findMany({
+        orderBy: { createdAt: "desc" },
+        include: { media: true },
+      });
+      return profiles.map((p) => {
+        // Jen Approved_Media (R13.4), nejnovější první → collage z posledních 3.
+        const visible = visibleMedia(p.media, now).sort(
+          (a, b) => b.publishAt!.getTime() - a.publishAt!.getTime(),
+        );
+        return {
+          id: p.id,
+          name: p.name,
+          mediaCount: visible.length,
+          recentMediaIds: visible.slice(0, 3).map((m) => m.id),
+        };
+      });
     },
 
     async updateProfile(id, patch) {

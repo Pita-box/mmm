@@ -58,6 +58,62 @@ export async function createModelProfileAction(values: {
   return OK;
 }
 
+/** Editace profilu modelu (jméno + bio). Uploader (Admin i Distributor). */
+export async function updateModelProfileAction(
+  modelId: string,
+  values: { name: string; bio: string },
+): Promise<ActionResult> {
+  await requireUploader();
+  const result = await modelService.updateProfile(modelId, {
+    name: values.name,
+    bio: values.bio,
+  });
+  if (isErr(result)) return { ok: false, message: result.error.message };
+  revalidatePath("/admin/models");
+  revalidatePath("/models");
+  revalidatePath(`/models/${modelId}`);
+  return OK;
+}
+
+/**
+ * Smazání profilu modelu (Admin). Dvě varianty:
+ *  - `withMedia=false` → smaže jen profil; jeho média zůstanou (FK `onDelete:
+ *    SetNull` jim vynuluje `modelId`).
+ *  - `withMedia=true` → smaže profil i jeho média, a to nejdřív z Google Drive
+ *    (idempotentně, aby je sync nemohl re-importovat), pak z DB (kaskáda uklidí
+ *    štítky/kolekce/gate-sample).
+ */
+export async function deleteModelProfileAction(
+  modelId: string,
+  withMedia: boolean,
+): Promise<ActionResult> {
+  await requireAdmin();
+  try {
+    if (withMedia) {
+      const items = await prisma.mediaItem.findMany({
+        where: { modelId },
+        select: { driveFileId: true },
+      });
+      for (const it of items) {
+        // idempotentní (404 = ok); případné selhání nebrání smazání záznamů.
+        await driveStorage.deleteFile(it.driveFileId);
+      }
+      await prisma.$transaction([
+        prisma.mediaItem.deleteMany({ where: { modelId } }),
+        prisma.modelProfile.delete({ where: { id: modelId } }),
+      ]);
+    } else {
+      await prisma.modelProfile.delete({ where: { id: modelId } });
+    }
+  } catch {
+    return { ok: false, message: "Smazání modelu se nezdařilo." };
+  }
+  revalidatePath("/admin/models");
+  revalidatePath("/models");
+  revalidatePath("/");
+  return OK;
+}
+
 // ─── Upload média ───────────────────────────────────────────────────────────
 
 /** Hodnoty pro upload (kompatibilní s `MediaUploadForm.onSubmit`). */
@@ -167,6 +223,8 @@ interface PersistMediaInput {
   readonly publishAt: Date | null;
   readonly tags: Partial<Record<TagCategory, string[]>>;
   readonly uploaderId: string;
+  /** Vlastní poster videa (Drive file ID), pokud byl vygenerován. */
+  readonly posterDriveFileId?: string | null;
   /** false = po vytvoření skrýt (wizard „uložit skryté", plán 012). Default published. */
   readonly publish?: boolean;
 }
@@ -193,6 +251,7 @@ async function persistMediaWithTags(input: PersistMediaInput): Promise<ActionRes
         height: 0,
         publishAt: input.publishAt,
         uploaderId: input.uploaderId,
+        posterDriveFileId: input.posterDriveFileId ?? null,
       });
       if (isErr(created)) throw new UploadAbort(created.error.message);
 
@@ -389,6 +448,8 @@ export interface WizardUploadItem {
   readonly sizeBytes: number;
   readonly modelId: string | null;
   readonly tags: Partial<Record<TagCategory, string[]>>;
+  /** Vlastní poster videa (Drive file ID), pokud byl vygenerován. */
+  readonly posterDriveFileId?: string | null;
 }
 
 /**
@@ -418,6 +479,7 @@ export async function finalizeUploadsAction(
       publishAt: null,
       tags: item.tags,
       uploaderId: principal.userId,
+      posterDriveFileId: item.posterDriveFileId ?? null,
       publish,
     });
     if (res.ok) created++;
@@ -434,6 +496,86 @@ export async function finalizeUploadsAction(
     failed,
     message: failed > 0 ? `Vytvořeno ${created}, selhalo ${failed}. ${lastError ?? ""}`.trim() : undefined,
   };
+}
+
+// ─── Video poster (vlastní náhled z 1/3 délky) ───────────────────────────────
+
+/**
+ * Nahraje vygenerovaný poster (JPEG, base64) na Drive a vrátí jeho `driveFileId`.
+ * Poster je malý obrázek → projde i přes limit Server Actions. Uploader.
+ */
+export async function uploadPosterAction(
+  base64: string,
+  name: string,
+): Promise<{ ok: boolean; driveFileId?: string; message?: string }> {
+  await requireUploader();
+  try {
+    const bytes = Buffer.from(base64, "base64");
+    if (bytes.length === 0) return { ok: false, message: "Prázdný náhled." };
+    const res = await driveStorage.upload(bytes, { mimeType: "image/jpeg", name });
+    if (isErr(res)) return { ok: false, message: res.error.message };
+    return { ok: true, driveFileId: res.value.driveFileId };
+  } catch {
+    return { ok: false, message: "Nahrání náhledu selhalo." };
+  }
+}
+
+/**
+ * Nastaví/aktualizuje vlastní poster videa (`posterDriveFileId`). Uploader.
+ * Starý poster (pokud byl) se kompenzačně smaže z Drive (idempotentně).
+ */
+export async function setMediaPosterAction(
+  mediaId: string,
+  posterDriveFileId: string,
+): Promise<ActionResult> {
+  await requireUploader();
+  const prev = await prisma.mediaItem.findUnique({
+    where: { id: mediaId },
+    select: { posterDriveFileId: true },
+  });
+  try {
+    await prisma.mediaItem.update({
+      where: { id: mediaId },
+      data: { posterDriveFileId },
+    });
+  } catch {
+    return { ok: false, message: "Uložení náhledu selhalo." };
+  }
+  if (prev?.posterDriveFileId && prev.posterDriveFileId !== posterDriveFileId) {
+    await driveStorage.deleteFile(prev.posterDriveFileId);
+  }
+  revalidatePath("/admin/media");
+  revalidatePath("/");
+  return OK;
+}
+
+// ─── Membership gate sample fotky ─────────────────────────────────────────────
+
+/**
+ * Zařadí/odebere médium z výběru „sample" náhledů zobrazených v MembershipGate
+ * (admin). Idempotentní. Po změně revaliduje layout, aby se gate obnovil.
+ */
+export async function setGateSampleAction(
+  mediaId: string,
+  included: boolean,
+): Promise<ActionResult> {
+  await requireAdmin();
+  try {
+    if (included) {
+      await prisma.membershipGateSample.upsert({
+        where: { mediaId },
+        create: { mediaId },
+        update: {},
+      });
+    } else {
+      await prisma.membershipGateSample.deleteMany({ where: { mediaId } });
+    }
+  } catch {
+    return { ok: false, message: "Změna výběru se nezdařila." };
+  }
+  revalidatePath("/admin/membership-gate");
+  revalidatePath("/", "layout");
+  return OK;
 }
 
 // ─── Správa uživatelů ─────────────────────────────────────────────────────────
@@ -457,6 +599,40 @@ export async function setUserStatusAction(
     });
   } catch {
     return { ok: false, message: "Změna stavu účtu se nezdařila." };
+  }
+  revalidatePath("/admin/users");
+  return OK;
+}
+
+/**
+ * Nastavení aktivního členství uživatele (R20/R21). Admin ručně aktivuje/deaktivuje
+ * a volitelně nastaví datum expirace (`expiresAt` ISO; `null` = bez expirace).
+ * Deaktivace expiraci vynuluje. Při selhání zachová původní stav.
+ */
+export async function setUserMembershipAction(
+  userId: string,
+  active: boolean,
+  expiresAt: string | null,
+): Promise<ActionResult> {
+  await requireAdmin();
+  let expiry: Date | null = null;
+  if (active && expiresAt) {
+    const parsed = new Date(expiresAt);
+    if (Number.isNaN(parsed.getTime())) {
+      return { ok: false, message: "Neplatné datum expirace." };
+    }
+    expiry = parsed;
+  }
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        subscriptionStatus: active ? "active" : "inactive",
+        membershipExpiresAt: active ? expiry : null,
+      },
+    });
+  } catch {
+    return { ok: false, message: "Změna členství se nezdařila." };
   }
   revalidatePath("/admin/users");
   return OK;
@@ -497,7 +673,7 @@ export async function deleteMediaAction(mediaId: string): Promise<ActionResult> 
   const principal = await requireUploader();
   const media = await prisma.mediaItem.findUnique({
     where: { id: mediaId },
-    select: { uploaderId: true, driveFileId: true },
+    select: { uploaderId: true, driveFileId: true, posterDriveFileId: true },
   });
   if (media === null) return { ok: false, message: "Médium nebylo nalezeno." };
   if (!canDeleteMedia(principal.role, principal.userId, media)) {
@@ -507,6 +683,8 @@ export async function deleteMediaAction(mediaId: string): Promise<ActionResult> 
   // idempotentní (404 = ok). Selhání Drive → DB záznam zůstává (konzistence).
   const driveDeleted = await driveStorage.deleteFile(media.driveFileId);
   if (isErr(driveDeleted)) return { ok: false, message: driveDeleted.error.message };
+  // Vlastní poster (pokud byl) — idempotentní úklid, selhání nebrání smazání.
+  if (media.posterDriveFileId) await driveStorage.deleteFile(media.posterDriveFileId);
   const result = await createMediaService(prisma).delete(mediaId);
   if (isErr(result)) return { ok: false, message: result.error.message };
   revalidatePath("/admin/media");

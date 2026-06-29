@@ -5,7 +5,7 @@
  * Tato stránka jen vykresluje navigaci na jednotlivé administrátorské sekce.
  */
 import Link from "next/link";
-import { Film, Users, UserCog, EyeOff, Megaphone, Tags, type LucideIcon } from "lucide-react";
+import { Film, Users, UserCog, EyeOff, Megaphone, Tags, Lock, type LucideIcon } from "lucide-react";
 import { requireUploader } from "@/lib/session";
 import { canManageAdmin } from "@/lib/permissions";
 
@@ -19,7 +19,8 @@ const ADMIN_SECTIONS: readonly {
   { href: "/admin/media", title: "Média", desc: "Nahrávání, štítkování a plánování zveřejnění.", icon: Film },
   { href: "/admin/models", title: "Modely", desc: "Vytváření a editace profilů modelů.", icon: Users },
   { href: "/admin/tags", title: "Štítky", desc: "Správa hodnot štítků — přejmenování a mazání.", icon: Tags, adminOnly: true },
-  { href: "/admin/users", title: "Uživatelé", desc: "Přehled účtů, role, blokace a odblokování.", icon: UserCog, adminOnly: true },
+  { href: "/admin/users", title: "Uživatelé", desc: "Přehled účtů, role, blokace a členství.", icon: UserCog, adminOnly: true },
+  { href: "/admin/membership-gate", title: "Membership gate", desc: "Výběr sample fotek pro bariéru členství.", icon: Lock, adminOnly: true },
   { href: "/admin/pages", title: "Viditelnost stránek", desc: "Globální skrytí a zobrazení sekcí.", icon: EyeOff, adminOnly: true },
   { href: "/admin/notifications", title: "Oznámení", desc: "Globální oznamovací banner.", icon: Megaphone, adminOnly: true },
 ];

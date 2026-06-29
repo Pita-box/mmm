@@ -12,6 +12,7 @@ import { UploadCloud } from "lucide-react";
 import { validateUpload, classifyType, MAX_UPLOAD_BYTES } from "@/services/media-service";
 import { isErr } from "@/lib/result";
 import { uploadResumable } from "@/lib/resumable-upload";
+import { captureVideoPoster, blobToBase64 } from "@/lib/video-poster";
 
 export interface UploadedItem {
   readonly name: string;
@@ -21,6 +22,8 @@ export interface UploadedItem {
   /** Lokální náhled (objectURL) pro wizard, než vznikne médium. */
   readonly previewUrl: string;
   readonly mediaType: "photo" | "video";
+  /** Vlastní poster videa (snímek z 1/3 délky) na Drive, pokud se povedl. */
+  readonly posterDriveFileId?: string | null;
 }
 
 export interface UploadDropzoneProps {
@@ -28,6 +31,11 @@ export interface UploadDropzoneProps {
     name: string,
     mimeType: string,
   ) => Promise<{ ok: boolean; uploadUrl?: string; message?: string }>;
+  /** Nahrání vygenerovaného posteru (JPEG base64) na Drive → vrátí driveFileId. */
+  readonly onUploadPoster?: (
+    base64: string,
+    name: string,
+  ) => Promise<{ ok: boolean; driveFileId?: string; message?: string }>;
   readonly onUploaded: (items: UploadedItem[]) => void;
   /** Externě dropnuté soubory (např. drop kamkoliv na /preview) — nahrají se hned. */
   readonly initialFiles?: readonly File[] | null;
@@ -41,7 +49,7 @@ interface Progress {
   readonly error?: string;
 }
 
-export function UploadDropzone({ onCreateSession, onUploaded, initialFiles }: UploadDropzoneProps) {
+export function UploadDropzone({ onCreateSession, onUploadPoster, onUploaded, initialFiles }: UploadDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const processedRef = useRef<readonly File[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -73,13 +81,31 @@ export function UploadDropzone({ onCreateSession, onUploaded, initialFiles }: Up
         const driveFileId = await uploadResumable(session.uploadUrl, file, (pct) =>
           setItems((prev) => prev.map((p, idx) => (idx === i ? { ...p, pct } : p))),
         );
+        const previewUrl = URL.createObjectURL(file);
+        const isVideo = classifyType(file.type) === "video";
+
+        // Vlastní poster videa (snímek z 1/3 délky) — z lokálního souboru je
+        // spolehlivý; selhání je nefatální (fallback na Drive náhled).
+        let posterDriveFileId: string | null = null;
+        if (isVideo && onUploadPoster) {
+          try {
+            const blob = await captureVideoPoster(previewUrl);
+            const base64 = await blobToBase64(blob);
+            const res = await onUploadPoster(base64, `${file.name}.poster.jpg`);
+            if (res.ok && res.driveFileId) posterDriveFileId = res.driveFileId;
+          } catch {
+            /* poster je volitelný — pokračuj bez něj */
+          }
+        }
+
         done.push({
           name: file.name,
           driveFileId,
           mimeType: file.type,
           sizeBytes: file.size,
-          previewUrl: URL.createObjectURL(file),
-          mediaType: classifyType(file.type) === "video" ? "video" : "photo",
+          previewUrl,
+          mediaType: isVideo ? "video" : "photo",
+          posterDriveFileId,
         });
       } catch (e) {
         setErr((e as Error).message);

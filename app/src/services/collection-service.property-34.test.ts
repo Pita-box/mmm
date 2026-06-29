@@ -133,6 +133,7 @@ function baseMedia(id: string, status: MediaItem["status"], publishAt: Date | nu
     durationMs: null,
     createdAt: NOW,
     uploaderId: null,
+    posterDriveFileId: null,
   };
 }
 

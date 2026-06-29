@@ -2,6 +2,72 @@
 
 Záznamy chronologicky, nejnovější nahoře.
 
+## 2026-06-29 — Vlastní video thumbnaily (snímek z 1/3 délky)
+
+### Nové funkce / změny
+- `MediaLightbox`: u videí (uploader) přibyla v toolbaru ikona **ImagePlus** před tužkou — vygeneruje poster ze streamu (1/3) a uloží (`uploadPosterAction`+`setMediaPosterAction`), toast feedback.
+- `/admin/media` zjednodušeno: **smazány** komponenty `MediaUploadForm` (`media-upload-form.tsx`) a `AdminMediaList` (`media-list.tsx`) i jejich barrel exporty; `ModelOption` přesunut do `upload-wizard.tsx` (importy v `MediaLightbox`/`PreviewFeed` přesměrovány). Zůstává „Synchronizovat z Drive" + nové **`GenerateAllThumbnails`** — tlačítko „Generovat náhledy všech videí" (klient sekvenčně projde publikovaná videa, zachytí 1/3 snímek z proxy streamu, uloží poster; ukazuje průběh `x/n` a souhrn).
+### Nové funkce / změny
+- **Datový model:** `MediaItem.posterDriveFileId String?` (migrace `20260629160000_media_poster_drive_file`, aditivní, na živé Supabase).
+- `lib/video-poster.ts` (client): `captureVideoPoster(src, {atFraction=1/3,maxWidth=1024,quality})` — `<video>`→seek na 1/3→`<canvas>`→JPEG `Blob`; `blobToBase64`. Bez závislostí, funguje z lokálního souboru i z proxy `/api/stream` (same-origin, canvas není tainted).
+- `admin-actions.ts`: `uploadPosterAction(base64,name)` (Drive upload malého JPEG, projde limitem Server Actions), `setMediaPosterAction(mediaId, posterDriveFileId)` (uloží + smaže starý poster z Drive). `CreateMediaInput`/persist/finalize/`WizardUploadItem` nesou `posterDriveFileId`. `deleteMediaAction` maže i poster.
+- **Thumb route** (`/api/thumb/[token]`): video s `posterDriveFileId` → servíruje přímo náš poster (`streamFile`), fallback na Drive náhled.
+- **Auto při uploadu:** `UploadDropzone` po nahrání videa zachytí poster z lokálního souboru a nahraje ho (`onUploadPoster`); propsáno přes `UploadWizard`→finalize→persist. Wired v `/preview` popupu i `/upload`.
+- **Backfill existujících videí:** `AdminMediaList` má u publikovaných videí tlačítko „Vygenerovat/Přegenerovat náhled" — klient zachytí snímek z proxy streamu (1/3) a uloží poster (`uploadPosterAction`+`setMediaPosterAction`). `/admin/media` plní `streamUrl`/`mediaType`/`hasPoster`.
+
+### Pozn.
+- Poster z lokálního souboru je spolehlivý; backfill z proxy streamu u velkých MP4 bez faststart může být pomalejší (range), případně selže → admin zopakuje.
+- Ověřeno: tsc 0, lint čistý, 322 testů (+2 fixtury doplněny o `posterDriveFileId`). Build NEspuštěn (běží dev).
+
+## 2026-06-29 — Model detail: hero + avatar + štítky + admin edit/delete
+
+### Nové funkce / změny
+- `ModelDetail.tsx` přepsán na profilový layout (X/Twitter styl): **hero banner** + překrývající **avatar**, jméno, bio (`whitespace-pre-line`), **seznam štítků** (distinct hodnoty z Approved_Media modelu, rounded-pills).
+- **Admin** (role Admin): tužka → inline editace jména + bio (`updateModelProfileAction`); koš → potvrzovací dialog s volbou **a) smazat jen model** (média zůstanou, FK `onDelete: SetNull` jim vynuluje `modelId`) / **b) smazat model i média** (`deleteModelProfileAction` — média nejdřív z Drive idempotentně, pak z DB s kaskádou). Po smazání redirect na `/models`.
+- `models/[id]/page.tsx`: dopočítává cover (`media[0]`), avatar (`media[1] ?? media[0]`), distinct štítky (`tagValue` přes `mediaTags.some`), `canEdit = role Admin`; navázané server actions `onUpdate`/`onDelete`.
+- `admin-actions.ts`: `updateModelProfileAction` (uploader), `deleteModelProfileAction(modelId, withMedia)` (Admin).
+
+### Pozn.
+- Cover/avatar se berou z náhledů médií modelu (žádné nové schéma); bez médií → gradient placeholder.
+- Štítky se na profilu modelu zobrazují záměrně (explicitní požadavek), jinde zůstávají filter-only.
+- Ověřeno: tsc 0, lint čistý, 322 testů. Build NEspuštěn (běží dev).
+
+## 2026-06-29 — MembershipGate: rozmazaná masonry sample + admin výběr fotek
+
+### Nové funkce / změny
+- **Datový model:** `MembershipGateSample { mediaId @id, createdAt }` + relace `MediaItem.gateSample` (migrace `20260629140000_membership_gate_sample`, onDelete Cascade, aplikováno na živou Supabase).
+- `MembershipGate.tsx` přepsán na client komponentu: na pozadí **rozmazaná masonry** mřížka (`MasonryGrid` + `poolLoader`, stejně jako „Procházet vše") z reálných sample náhledů; **bez tmavého overlaye** (pozadí je blurred), **bez lightboxu** (`MasonryGrid` bez `onSelect`, `pointer-events-none`). Fallback `DemoBackdrop`, když admin nic nevybral.
+- `(app)/layout.tsx` při gatingu načte sample média (`membershipGateSample` → filtr `isApproved` → `toCardItem`) a předá je do gate.
+- **Admin sekce „Membership gate"** (`/admin/membership-gate`): admin vybírá z publikovaných médií, která se v gate ukážou. Mřížka thumbnailů (`GateSamplePicker`, client, optimistický toggle, červený rámeček + ✓). Akce `setGateSampleAction(mediaId, included)` (Admin-only, idempotentní, revaliduje layout). Přidán odkaz na admin rozcestník (ikona Lock).
+
+### Pozn.
+- Sample v gate filtruji na Approved_Media, aby `/api/thumb` thumbnaily fungovaly (jinak 404 → placeholder).
+- Ověřeno: tsc 0, lint čistý, 322 testů. Build NEspuštěn (běží dev).
+
+## 2026-06-29 — Členství: admin správa + server-side gating obsahu
+
+### Nové funkce / změny
+- **Datový model:** `User.membershipExpiresAt DateTime?` (migrace `20260629120000_user_membership_expiry`, aditivní nullable sloupec, aplikováno na živou Supabase přes `prisma db execute`).
+- `lib/membership.ts` → `isActiveMember({subscriptionStatus, membershipExpiresAt}, now)`: aktivní členství = `active` && (bez expirace nebo `expiry > now`). Čisté, +4 testy.
+- **/admin/users:** admin nastaví aktivní členství + volitelné datum expirace, nebo zruší. `setUserMembershipAction(userId, active, expiresAt)` (`admin-actions.ts`); `UsersOverview` má per-řádek membership badge + `<input type=date>` + Aktivovat/Zrušit. `AdminUserRow` rozšířen o `subscriptionStatus` + `membershipExpiresAt`.
+- **Gating obsahu (SECURITY):** `(app)/layout.tsx` spočítá členství z DB a pro roli `User` bez platného členství vyrenderuje **místo `{children}`** komponentu `MembershipGate` (rozmazané demo + výzva s Telegram CTA). Reálný obsah se na klienta vůbec nepošle → nejde obejít smazáním elementu z DOM (adblock/inspect). Výjimka `/settings` (správa účtu). Admin/Distributor gating neřeší.
+- `middleware.ts` propaguje cestu hlavičkou `x-pathname` na povolených stránkách (`NextResponse.next({request:{headers}})`), aby ji layout znal pro výjimku `/settings`.
+- `components/MembershipGate.tsx` — server komponenta, blur overlay + demo dlaždice + pricing/Telegram výzva.
+
+### Pozn.
+- „Registrace otevřená" = popis scénáře; nový účet má `subscriptionStatus inactive`, takže je rovnou gated, dokud admin nepřidělí členství. Žádný zvlášť flag.
+- Ověřeno: tsc 0, lint čistý, 322 testů (78 souborů). Build NEspuštěn (běží dev) — spustit při zastaveném dev.
+
+## 2026-06-29 — Collage dlaždice pro /models a /collections
+
+### Nové funkce / změny
+- `components/MediaCollageCard.tsx` — Pinterest-style dlaždice: collage z posledních max 3 náhledů (1 velký + 2, nebo 1/2 dle počtu), název a počet médií (česká pluralizace „soubor/soubory/souborů"). Náhledy přes proxy `/api/thumb/<token>`; rozbitý náhled → gradient placeholder (`onError`).
+- `services/model-service.ts` → `listProfilesWithPreview(now)` (`ProfilePreview`): název, `mediaCount` a `recentMediaIds` (max 3 Approved_Media, nejnovější dle `publishAt`).
+- `services/collection-service.ts` → `listCollectionsWithPreview(ownerId, now)` (`CollectionPreview`): totéž pro kolekce (filtruje `visibleMedia`).
+- `/models` a `/collections` přepnuty na collage mřížku (grid 1/2/3/4 sloupce); poster URL z `thumbUrlFor`. Na /collections zůstává create form + drobné „Smazat".
+- Smazán nepoužitý `components/ModelCard.tsx` (nahrazen collage dlaždicí).
+- Ověřeno: tsc 0, 318 testů zelených.
+
 ## 2026-06-29 — MediaPlayer: AbortError + preload + loading screen; Preview bez Hera
 
 ### Nové funkce / změny

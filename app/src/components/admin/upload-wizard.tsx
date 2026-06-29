@@ -14,8 +14,13 @@ import { FIXED_CATEGORIES, type TagCategory } from "@/lib/domain";
 import { AdminCard, Button } from "./admin-ui";
 import { UploadDropzone, type UploadedItem } from "./upload-dropzone";
 import { TagValueInput } from "./tag-value-input";
-import type { ModelOption } from "./media-upload-form";
 import type { WizardUploadItem } from "@/app/(app)/admin/admin-actions";
+
+/** Minimální tvar profilu modelu pro výběr v selectu. */
+export interface ModelOption {
+  readonly id: string;
+  readonly name: string;
+}
 
 type TagMap = Partial<Record<TagCategory, string[]>>;
 interface Meta {
@@ -32,6 +37,11 @@ export interface UploadWizardProps {
     name: string,
     mimeType: string,
   ) => Promise<{ ok: boolean; uploadUrl?: string; message?: string }>;
+  /** Nahrání vygenerovaného posteru videa na Drive (→ driveFileId). */
+  readonly onUploadPoster?: (
+    base64: string,
+    name: string,
+  ) => Promise<{ ok: boolean; driveFileId?: string; message?: string }>;
   readonly onFinalize: (
     items: readonly WizardUploadItem[],
     publish: boolean,
@@ -41,7 +51,7 @@ export interface UploadWizardProps {
 const SELECT_CLASS =
   "rounded-[var(--radius-lg)] border border-charcoal bg-[color:var(--color-graphite)] px-3 py-2 text-[length:var(--text-caption)] text-chalk-white focus:border-netflix-red focus:outline-none";
 
-export function UploadWizard({ models, tagSuggestions = {}, initialFiles, onCreateSession, onFinalize }: UploadWizardProps) {
+export function UploadWizard({ models, tagSuggestions = {}, initialFiles, onCreateSession, onUploadPoster, onFinalize }: UploadWizardProps) {
   const router = useRouter();
   const [items, setItems] = useState<UploadedItem[]>([]);
   const [metas, setMetas] = useState<Meta[]>([]);
@@ -93,6 +103,7 @@ export function UploadWizard({ models, tagSuggestions = {}, initialFiles, onCrea
         sizeBytes: it.sizeBytes,
         modelId: metas[i].modelId || null,
         tags: metas[i].tags,
+        posterDriveFileId: it.posterDriveFileId ?? null,
       }));
       const res = await onFinalize(payload, publish);
       if (res.ok) {
@@ -112,7 +123,7 @@ export function UploadWizard({ models, tagSuggestions = {}, initialFiles, onCrea
 
   return (
     <AdminCard title="Nahrát média" description="Přetáhněte více souborů, otagujte je a publikujte.">
-      <UploadDropzone onCreateSession={onCreateSession} onUploaded={onUploaded} initialFiles={initialFiles} />
+      <UploadDropzone onCreateSession={onCreateSession} onUploadPoster={onUploadPoster} onUploaded={onUploaded} initialFiles={initialFiles} />
 
       {result ? (
         <p role="status" className="mt-3 text-[length:var(--text-caption)] text-silver">

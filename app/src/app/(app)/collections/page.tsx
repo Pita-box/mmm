@@ -5,11 +5,12 @@
  * filtruje dle vlastníka). Nabízí vytvoření nové kolekce a smazání existující
  * přes server actions (přímé `form action`).
  */
-import Link from "next/link";
 import { Library, Plus, Trash2 } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { requireVisibleSection } from "@/lib/section-visibility";
 import { collectionService } from "@/services/collection-service";
+import { thumbUrlFor } from "@/lib/media-presentation";
+import { MediaCollageCard } from "@/components/MediaCollageCard";
 import { Field, TextInput, Button } from "@/components/admin";
 import {
   createCollectionAction,
@@ -19,7 +20,7 @@ import {
 export default async function CollectionsPage() {
   const principal = await requireSession();
   await requireVisibleSection("collections", principal.role);
-  const collections = await collectionService.listCollections(principal.userId);
+  const collections = await collectionService.listCollectionsWithPreview(principal.userId);
 
   return (
     <section className="flex flex-col gap-6">
@@ -54,28 +55,30 @@ export default async function CollectionsPage() {
       </form>
 
       {collections.length > 0 ? (
-        <ul className="flex flex-col divide-y divide-graphite">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {collections.map((collection) => (
-            <li
-              key={collection.id}
-              className="flex items-center justify-between gap-3 py-3"
-            >
-              <Link
+            <div key={collection.id} className="flex flex-col gap-2">
+              <MediaCollageCard
                 href={`/collections/${collection.id}`}
-                className="text-[length:var(--text-body)] text-chalk-white hover:text-netflix-red"
-              >
-                {collection.name}
-              </Link>
+                title={collection.name}
+                count={collection.mediaCount}
+                posters={collection.recentMediaIds
+                  .map((id) => thumbUrlFor(id, principal.userId))
+                  .filter((u): u is string => Boolean(u))}
+              />
               <form action={deleteCollectionAction}>
                 <input type="hidden" name="id" value={collection.id} />
-                <Button type="submit" variant="danger">
-                  <Trash2 aria-hidden size={16} />
+                <button
+                  type="submit"
+                  className="flex cursor-pointer items-center gap-1.5 text-[length:var(--text-caption)] text-[color:var(--color-ash)] transition-colors hover:text-[color:var(--color-netflix-red)]"
+                >
+                  <Trash2 aria-hidden size={14} />
                   Smazat
-                </Button>
+                </button>
               </form>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : (
         <p className="flex flex-col items-center gap-3 py-12 text-center text-[length:var(--text-body)] text-[color:var(--color-ash)]">
           <Library aria-hidden size={40} className="text-[color:var(--color-slate)]" />

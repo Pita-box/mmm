@@ -9,6 +9,7 @@ import { requireUploader } from "@/lib/session";
 import {
   createUploadSessionAction,
   finalizeUploadsAction,
+  uploadPosterAction,
 } from "../admin/admin-actions";
 
 export default async function UploadPage() {
@@ -27,6 +28,7 @@ export default async function UploadPage() {
       models={models}
       tagSuggestions={tagSuggestions}
       onCreateSession={createUploadSessionAction}
+      onUploadPoster={uploadPosterAction}
       onFinalize={finalizeUploadsAction}
     />
   );

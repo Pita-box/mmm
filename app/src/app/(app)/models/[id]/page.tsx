@@ -8,10 +8,15 @@
  */
 import { ModelDetail } from "@/components/ModelDetail";
 import { modelService } from "@/services/model-service";
+import { prisma } from "@/lib/prisma";
 import { isErr, isOk } from "@/lib/result";
 import { requireSession } from "@/lib/session";
 import { requireVisibleSection } from "@/lib/section-visibility";
 import { toCardItem } from "@/lib/media-presentation";
+import {
+  updateModelProfileAction,
+  deleteModelProfileAction,
+} from "../../admin/admin-actions";
 import { UserX } from "lucide-react";
 
 export default async function ModelDetailPage({
@@ -43,11 +48,45 @@ export default async function ModelDetailPage({
     ? gallery.value.map((item) => toCardItem(item, principal.userId, {}, now))
     : [];
 
+  // Distinct štítky z Approved_Media modelu (jen pro výpis na profilu).
+  const tagRows = await prisma.tagValue.findMany({
+    where: {
+      mediaTags: {
+        some: { media: { modelId: id, status: "published", publishAt: { lte: now } } },
+      },
+    },
+    orderBy: [{ category: "asc" }, { value: "asc" }],
+    select: { value: true },
+  });
+  const tags = tagRows.map((t) => t.value);
+
+  // Banner = nejnovější náhled, avatar = druhý (nebo stejný) pro vizuální odlišení.
+  const coverUrl = media[0]?.posterUrl;
+  const avatarUrl = media[1]?.posterUrl ?? media[0]?.posterUrl;
+
+  const canEdit = principal.role === "Admin";
+
+  async function onUpdate(values: { name: string; bio: string }) {
+    "use server";
+    return updateModelProfileAction(id, values);
+  }
+  async function onDelete(withMedia: boolean) {
+    "use server";
+    return deleteModelProfileAction(id, withMedia);
+  }
+
   return (
     <ModelDetail
+      modelId={id}
       name={profile.value.name}
       bio={profile.value.bio ?? ""}
+      coverUrl={coverUrl}
+      avatarUrl={avatarUrl}
+      tags={tags}
       media={media}
+      canEdit={canEdit}
+      onUpdate={onUpdate}
+      onDelete={onDelete}
     />
   );
 }

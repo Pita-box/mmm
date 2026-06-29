@@ -11,7 +11,9 @@
  * načtení uživatelů a změnu stavu (Auth_Service / Admin_Console backend) doplní
  * task 21.2 — `onToggleStatus` je zatím TODO stub.
  */
-import type { Role, AccountStatus } from "@/lib/domain";
+import { useState } from "react";
+import type { Role, AccountStatus, SubscriptionStatus } from "@/lib/domain";
+import { isActiveMember } from "@/lib/membership";
 import { AdminCard, Button, Badge } from "./admin-ui";
 
 /** Řádek přehledu uživatelů. */
@@ -20,6 +22,9 @@ export interface AdminUserRow {
   readonly email: string;
   readonly role: Role;
   readonly status: AccountStatus;
+  readonly subscriptionStatus: SubscriptionStatus;
+  /** ISO datum konce platnosti členství, nebo `null` (bez expirace / neaktivní). */
+  readonly membershipExpiresAt: string | null;
 }
 
 const ROLES: readonly Role[] = ["User", "Distributor", "Admin"];
@@ -40,6 +45,12 @@ export interface UsersOverviewProps {
     userId: string,
     role: Role,
   ) => void | Promise<void>;
+  /** Nastavení aktivního členství + volitelné expirace (ISO datum, nebo null). */
+  readonly onSetMembership?: (
+    userId: string,
+    active: boolean,
+    expiresAt: string | null,
+  ) => void | Promise<void>;
 }
 
 function RoleBadge({ role }: { readonly role: Role }) {
@@ -56,11 +67,73 @@ function StatusBadge({ status }: { readonly status: AccountStatus }) {
   );
 }
 
+/** Stav členství + ovládání (aktivace s volitelnou expirací / deaktivace). */
+function MembershipControl({
+  row,
+  onSetMembership,
+}: {
+  readonly row: AdminUserRow;
+  readonly onSetMembership?: UsersOverviewProps["onSetMembership"];
+}) {
+  // <input type="date"> chce YYYY-MM-DD; předvyplň existující expirací.
+  const [date, setDate] = useState(
+    row.membershipExpiresAt ? row.membershipExpiresAt.slice(0, 10) : "",
+  );
+  const member = isActiveMember({
+    subscriptionStatus: row.subscriptionStatus,
+    membershipExpiresAt: row.membershipExpiresAt ? new Date(row.membershipExpiresAt) : null,
+  });
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {member ? (
+        <Badge tone="positive">
+          Členství{row.membershipExpiresAt ? ` do ${row.membershipExpiresAt.slice(0, 10)}` : " ∞"}
+        </Badge>
+      ) : (
+        <Badge tone="neutral">Bez členství</Badge>
+      )}
+      <label className="sr-only" htmlFor={`exp-${row.id}`}>
+        Expirace členství {row.email}
+      </label>
+      <input
+        id={`exp-${row.id}`}
+        type="date"
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
+        title="Datum expirace (prázdné = bez expirace)"
+        className="rounded-[var(--radius-lg)] border border-graphite bg-[color:var(--color-deep-space)] px-2 py-1 text-[length:var(--text-caption)] text-chalk-white"
+      />
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={() => {
+          void onSetMembership?.(row.id, true, date ? new Date(date).toISOString() : null);
+        }}
+      >
+        Aktivovat
+      </Button>
+      {member && (
+        <Button
+          type="button"
+          variant="danger"
+          onClick={() => {
+            void onSetMembership?.(row.id, false, null);
+          }}
+        >
+          Zrušit
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export function UsersOverview({
   users = [],
   currentUserId,
   onToggleStatus,
   onChangeRole,
+  onSetMembership,
 }: UsersOverviewProps) {
   return (
     <AdminCard
@@ -80,47 +153,50 @@ export function UsersOverview({
             return (
               <li
                 key={user.id}
-                className="flex flex-wrap items-center justify-between gap-3 py-3"
+                className="flex flex-col gap-3 py-3"
               >
-                <div className="flex min-w-0 flex-col gap-1">
-                  <span className="truncate text-[length:var(--text-body)] text-chalk-white">
-                    {user.email}
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <RoleBadge role={user.role} />
-                    <StatusBadge status={user.status} />
-                  </span>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <span className="truncate text-[length:var(--text-body)] text-chalk-white">
+                      {user.email}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <RoleBadge role={user.role} />
+                      <StatusBadge status={user.status} />
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="sr-only" htmlFor={`role-${user.id}`}>
+                      Role uživatele {user.email}
+                    </label>
+                    <select
+                      id={`role-${user.id}`}
+                      value={user.role}
+                      disabled={isSelf}
+                      title={isSelf ? "Vlastní roli nelze měnit" : "Změnit roli"}
+                      onChange={(e) => {
+                        void onChangeRole?.(user.id, e.target.value as Role);
+                      }}
+                      className="rounded-[var(--radius-lg)] border border-graphite bg-[color:var(--color-deep-space)] px-2 py-1 text-[length:var(--text-caption)] text-chalk-white disabled:opacity-50"
+                    >
+                      {ROLES.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      type="button"
+                      variant={user.status === "active" ? "danger" : "secondary"}
+                      onClick={() => {
+                        void onToggleStatus?.(user.id, next);
+                      }}
+                    >
+                      {user.status === "active" ? "Zablokovat" : "Odblokovat"}
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <label className="sr-only" htmlFor={`role-${user.id}`}>
-                    Role uživatele {user.email}
-                  </label>
-                  <select
-                    id={`role-${user.id}`}
-                    value={user.role}
-                    disabled={isSelf}
-                    title={isSelf ? "Vlastní roli nelze měnit" : "Změnit roli"}
-                    onChange={(e) => {
-                      void onChangeRole?.(user.id, e.target.value as Role);
-                    }}
-                    className="rounded-[var(--radius-lg)] border border-graphite bg-[color:var(--color-deep-space)] px-2 py-1 text-[length:var(--text-caption)] text-chalk-white disabled:opacity-50"
-                  >
-                    {ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    type="button"
-                    variant={user.status === "active" ? "danger" : "secondary"}
-                    onClick={() => {
-                      void onToggleStatus?.(user.id, next);
-                    }}
-                  >
-                    {user.status === "active" ? "Zablokovat" : "Odblokovat"}
-                  </Button>
-                </div>
+                <MembershipControl row={user} onSetMembership={onSetMembership} />
               </li>
             );
           })}

@@ -1,82 +1,43 @@
 /**
- * Admin — nahrání média (task 21.2). Vykresluje `MediaUploadForm` s reálným
- * seznamem modelů a odeslání napojuje na `uploadMediaAction` (Drive upload +
- * perzistence + rollback, R5.1/R5.4/R5.6).
+ * Admin — média (task 21.2). Synchronizace z Drive + hromadné generování
+ * video náhledů (snímek z 1/3 délky). Nahrávání a správa jednotlivých médií
+ * probíhá jinde (popup „+" / `/upload`, editace v lightboxu).
  */
 import {
-  MediaUploadForm,
-  AdminMediaList,
   DriveImportButton,
-  type AdminMediaRow,
-  type ModelOption,
+  GenerateAllThumbnails,
+  type GenerateVideo,
 } from "@/components/admin";
 import { prisma } from "@/lib/prisma";
-import { modelService } from "@/services/model-service";
-import { tagService } from "@/services/tag-service";
 import { requireUploader } from "@/lib/session";
-import { canDeleteMedia } from "@/lib/permissions";
+import { streamingUrlFor } from "@/lib/media-presentation";
 import {
-  deleteMediaAction,
   importFromDriveAction,
-  createUploadSessionAction,
-  finalizeDriveUploadAction,
-  setMediaPublishedAction,
-  assignMediaModelAction,
-  addMediaTagAction,
-  removeMediaTagAction,
+  uploadPosterAction,
+  setMediaPosterAction,
 } from "../admin-actions";
 
 export default async function AdminMediaPage() {
   const principal = await requireUploader();
-  const profiles = await modelService.listProfiles();
-  const models: ModelOption[] = profiles.map((p) => ({ id: p.id, name: p.name }));
+  const now = new Date();
 
-  // Našeptávač: existující hodnoty štítků seskupené po kategoriích (plán 012).
-  const tagValues = await tagService.listValues();
-  const tagSuggestions: Record<string, string[]> = {};
-  for (const { category, value } of tagValues) {
-    (tagSuggestions[category] ??= []).push(value);
-  }
-
-  const media = await prisma.mediaItem.findMany({
+  // Publikovaná videa (proxy stream vyžaduje Approved_Media) pro hromadné náhledy.
+  const videos = await prisma.mediaItem.findMany({
+    where: { mediaType: "video", status: "published", publishAt: { lte: now } },
     orderBy: { createdAt: "desc" },
-    take: 50,
-    include: {
-      model: { select: { name: true } },
-      tags: { include: { tagValue: { select: { id: true, category: true, value: true } } } },
-    },
+    select: { id: true },
   });
-  const rows: AdminMediaRow[] = media.map((m) => ({
-    id: m.id,
-    label: `${m.model?.name ?? "Bez modelu"} · ${m.mediaType}`,
-    status: m.status,
-    canDelete: canDeleteMedia(principal.role, principal.userId, m),
-    modelId: m.modelId,
-    tags: m.tags.map((mt) => ({
-      id: mt.tagValue.id,
-      category: mt.tagValue.category,
-      value: mt.tagValue.value,
-    })),
-  }));
+  const videoList: GenerateVideo[] = videos
+    .map((v) => ({ id: v.id, streamUrl: streamingUrlFor(v.id, principal.userId, now) }))
+    .filter((v): v is GenerateVideo => Boolean(v.streamUrl));
 
   return (
     <div className="flex flex-col gap-8">
       <DriveImportButton onImport={importFromDriveAction} />
-      <MediaUploadForm
-        models={models}
-        tagSuggestions={tagSuggestions}
-        onCreateSession={createUploadSessionAction}
-        onFinalize={finalizeDriveUploadAction}
-      />
-      <AdminMediaList
-        rows={rows}
-        models={models}
-        tagSuggestions={tagSuggestions}
-        onDelete={deleteMediaAction}
-        onSetPublished={setMediaPublishedAction}
-        onAssignModel={assignMediaModelAction}
-        onAddTag={addMediaTagAction}
-        onRemoveTag={removeMediaTagAction}
+      <GenerateAllThumbnails
+        videos={videoList}
+        onUploadPoster={uploadPosterAction}
+        onSetPoster={setMediaPosterAction}
       />
     </div>
   );

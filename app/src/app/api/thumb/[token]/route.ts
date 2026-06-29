@@ -65,6 +65,22 @@ export async function GET(
     );
   }
 
+  // Video s vlastním posterem (snímek z 1/3 délky): servíruj přímo ten malý
+  // obrázek místo Drive náhledu (Drive u videí náhled občas nevygeneruje).
+  if (media.mediaType === "video" && media.posterDriveFileId) {
+    const poster = await driveStorage.streamFile(media.posterDriveFileId);
+    if (!isErr(poster)) {
+      return new NextResponse(poster.value.body, {
+        status: 200,
+        headers: {
+          "Content-Type": "image/jpeg",
+          "Cache-Control": "private, max-age=3600",
+        },
+      });
+    }
+    // Selhání → spadni na Drive náhled níže.
+  }
+
   // Náhled se vyzvedne server-side; klient dostane jen obrázkové bajty (R6.4).
   // Velikost dle DPR: ne-retina (dpr=1) → menší (úspora), jinak retina 1024.
   const maxSize = request.nextUrl?.searchParams?.get("dpr") === "1" ? 512 : 1024;

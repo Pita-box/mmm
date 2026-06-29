@@ -4,14 +4,14 @@
  * viditelnost stránek a oznamovací banner. Drátování odeslání = task 21.2.
  */
 export * from "./admin-ui";
-export * from "./media-upload-form";
 export * from "./upload-dropzone";
 export * from "./upload-wizard";
 export * from "./upload-modal";
 export * from "./drive-import-button";
+export * from "./generate-all-thumbnails";
 export * from "./model-profile-form";
 export * from "./users-overview";
-export * from "./media-list";
+export * from "./gate-sample-picker";
 export * from "./media-edit-panel";
 export * from "./tag-value-input";
 export * from "./tag-manager";

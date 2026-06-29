@@ -48,13 +48,21 @@ export default async function CollectionDetailPage({
   const media = itemsResult.value.map((item) =>
     toCardItem(item, principal.userId, {}, now),
   );
+  const count = media.length;
+  const countLabel =
+    count === 1 ? "1 soubor" : count >= 2 && count <= 4 ? `${count} soubory` : `${count} souborů`;
 
   return (
     <section className="flex flex-col gap-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-[length:var(--text-heading-sm)] font-black text-[color:var(--color-chalk-white)]">
-          {name}
-        </h1>
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[length:var(--text-heading-sm)] font-black text-[color:var(--color-chalk-white)]">
+            {name}
+          </h1>
+          <p className="mt-1 text-[length:var(--text-caption)] text-[color:var(--color-silver)]">
+            {countLabel}
+          </p>
+        </div>
         <Link href="/collections" className="text-[length:var(--text-caption)] text-silver hover:text-netflix-red">
           Zpět na kolekce
         </Link>

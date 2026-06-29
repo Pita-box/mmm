@@ -18,10 +18,11 @@ import { Carousel } from "./Carousel";
 import { MasonryGrid, poolLoader } from "./MasonryGrid";
 import { MediaLightbox } from "./MediaLightbox";
 import { UploadModal } from "./admin/upload-modal";
-import type { ModelOption } from "./admin/media-upload-form";
+import type { ModelOption } from "./admin/upload-wizard";
 import {
   createUploadSessionAction,
   finalizeUploadsAction,
+  uploadPosterAction,
 } from "@/app/(app)/admin/admin-actions";
 import type { MediaCardItem } from "./MediaCard";
 
@@ -179,6 +180,7 @@ export function PreviewFeed({
         tagSuggestions={tagSuggestions}
         initialFiles={droppedFiles}
         onCreateSession={createUploadSessionAction}
+        onUploadPoster={uploadPosterAction}
         onFinalize={finalizeUploadsAction}
       />
     </>
