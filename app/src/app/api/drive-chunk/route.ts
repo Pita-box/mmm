@@ -16,6 +16,9 @@ export const dynamic = "force-dynamic";
 
 const ALLOWED_PREFIX = "https://www.googleapis.com/upload/";
 
+/** Strop těla: chunk je 8 MB (resumable-upload), necháme rezervu na 16 MB. */
+const MAX_CHUNK_BYTES = 16 * 1024 * 1024;
+
 export async function PUT(request: NextRequest): Promise<Response> {
   const principal = await getSessionPrincipalReadOnly();
   if (principal === null || (principal.role !== "Admin" && principal.role !== "Distributor")) {
@@ -29,7 +32,16 @@ export async function PUT(request: NextRequest): Promise<Response> {
     return NextResponse.json({ error: "bad_upload_url" }, { status: 400 });
   }
 
+  // Strop velikosti: nejdřív dle hlavičky (ať se obří tělo nebufferuje), pak
+  // ověř skutečnou délku (hlavičku lze podvrhnout). Pořadí: auth → SSRF → velikost.
+  const declared = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declared) && declared > MAX_CHUNK_BYTES) {
+    return NextResponse.json({ error: "payload_too_large" }, { status: 413 });
+  }
   const body = Buffer.from(await request.arrayBuffer());
+  if (body.byteLength > MAX_CHUNK_BYTES) {
+    return NextResponse.json({ error: "payload_too_large" }, { status: 413 });
+  }
   let res: Response;
   try {
     res = await fetch(uploadUrl, {

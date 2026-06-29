@@ -2,6 +2,31 @@
 
 Záznamy chronologicky, nejnovější nahoře.
 
+## 2026-06-28 — Plán 014: sjednocení štítkovacího vstupu (branch audit)
+
+### Hotové tasky
+- Plán 014 — ověřeno (tsc 0, 317 testů, build 0, lint čistý).
+
+### Nové funkce / změny
+- `components/admin/tag-value-input.tsx` (`TagValueInput`) — jediná sdílená komponenta štítkového vstupu: Enter/čárka při psaní (+ vložení řetězce), `<datalist>` našeptávač, chipy `--radius-sm`. `onAdd(values[])` (rozdělené), `onRemove(value)`; dedupe/ukládání řeší rodič.
+- Nahrazeno na 3 místech: `media-edit-panel` (expanded — smazán interní `CategoryTagInput`), `upload-wizard` (smazán inline vstup + `drafts`/`addTag`), `media-upload-form` (smazán `TagCategoryInput`). `grep CategoryTagInput|TagCategoryInput` → 0.
+- Vedlejší oprava: `media-upload-form` teď má **comma-on-type** (dřív jen Enter) — automaticky díky sdílené komponentě.
+- `tag-value-input.test.tsx` — Enter přidá, čárka přidá hotovou část, ✕ odebere.
+
+## 2026-06-28 — Plán 013: drive-chunk proxy — test + strop těla (branch audit)
+
+### Hotové tasky
+- Plán 013 — ověřeno (tsc 0, 313 testů, build 0, lint bez chyb).
+
+### Nové funkce / změny
+- `/api/drive-chunk` strop velikosti: `MAX_CHUNK_BYTES = 16 MB` — odmítne 413 dle `content-length` (před bufferováním) i dle skutečné délky těla. Pořadí kontrol: auth → SSRF guard → velikost → fetch.
+- `app/src/app/api/drive-chunk/route.test.ts` — handler testy: 403 (ne-uploader/nepřihlášen), 400 (SSRF guard — cizí cíl), 413 (velké tělo), 308 → `{done:false}`, 200 → `{done:true,id}`; `fetch` na Google mockován.
+
+### Bug & fix (provozní, ne kód)
+- **Symptom:** `pnpm run build` občas selhal `Cannot find module './651.js'` z `.next/server/webpack-runtime.js`.
+- **Root cause:** zkorumpovaná/nekonzistentní `.next` cache (ne kód).
+- **Fix:** `rm -rf .next` + rebuild → EXIT 0. (Když build hlásí MODULE_NOT_FOUND z `.next`, smaž cache.)
+
 ## 2026-06-28 — Fix ostrých rohů (chybějící radius token) + batch „Uložit" + velký edit dialog
 
 ### Bug & fix

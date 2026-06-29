@@ -13,6 +13,7 @@ export * from "./model-profile-form";
 export * from "./users-overview";
 export * from "./media-list";
 export * from "./media-edit-panel";
+export * from "./tag-value-input";
 export * from "./tag-manager";
 export * from "./page-visibility-toggles";
 export * from "./notification-banner-form";

@@ -9,11 +9,11 @@
  */
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Plus, X, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { FIXED_CATEGORIES, type TagCategory } from "@/lib/domain";
-import { splitTagInput } from "@/services/tag-service";
 import { AdminCard, Button } from "./admin-ui";
 import { UploadDropzone, type UploadedItem } from "./upload-dropzone";
+import { TagValueInput } from "./tag-value-input";
 import type { ModelOption } from "./media-upload-form";
 import type { WizardUploadItem } from "@/app/(app)/admin/admin-actions";
 
@@ -46,7 +46,6 @@ export function UploadWizard({ models, tagSuggestions = {}, initialFiles, onCrea
   const [items, setItems] = useState<UploadedItem[]>([]);
   const [metas, setMetas] = useState<Meta[]>([]);
   const [cur, setCur] = useState(0);
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<string | null>(null);
 
@@ -59,25 +58,18 @@ export function UploadWizard({ models, tagSuggestions = {}, initialFiles, onCrea
     setMetas((prev) => prev.map((m, i) => (i === cur ? { ...m, ...patch } : m)));
   }
 
-  function addValuesToMeta(category: TagCategory, raw: string) {
-    const incoming = splitTagInput(raw);
-    if (incoming.length === 0) return;
+  function addValuesArr(category: TagCategory, vals: readonly string[]) {
     setMetas((prev) =>
       prev.map((m, i) => {
         if (i !== cur) return m;
         const existing = m.tags[category] ?? [];
         const next = [...existing];
-        for (const v of incoming) {
+        for (const v of vals) {
           if (!next.some((e) => e.toLowerCase() === v.toLowerCase())) next.push(v);
         }
         return { ...m, tags: { ...m.tags, [category]: next } };
       }),
     );
-  }
-
-  function addTag(category: TagCategory) {
-    addValuesToMeta(category, drafts[category] ?? "");
-    setDrafts((d) => ({ ...d, [category]: "" }));
   }
 
   function removeTag(category: TagCategory, value: string) {
@@ -177,69 +169,17 @@ export function UploadWizard({ models, tagSuggestions = {}, initialFiles, onCrea
               </select>
             </label>
 
-            {FIXED_CATEGORIES.map((category) => {
-              const values = meta.tags[category] ?? [];
-              const listId = `wiz-${category}`;
-              return (
-                <div key={category} className="flex flex-col gap-1">
-                  <span className="text-[length:var(--text-caption)] font-semibold text-silver">{category}</span>
-                  <div className="flex gap-2">
-                    <input
-                      className={`${SELECT_CLASS} flex-1`}
-                      list={listId}
-                      placeholder="napiš a stiskni Enter nebo čárku"
-                      value={drafts[category] ?? ""}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        // Čárka při psaní (i vložení řetězce) přidá hotové hodnoty hned.
-                        if (raw.includes(",")) {
-                          const parts = raw.split(",");
-                          const remainder = parts.pop() ?? "";
-                          addValuesToMeta(category, parts.join(","));
-                          setDrafts((d) => ({ ...d, [category]: remainder }));
-                        } else {
-                          setDrafts((d) => ({ ...d, [category]: raw }));
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          addTag(category);
-                        }
-                      }}
-                    />
-                    <datalist id={listId}>
-                      {(tagSuggestions[category] ?? []).map((s) => (
-                        <option key={s} value={s} />
-                      ))}
-                    </datalist>
-                    <Button type="button" variant="secondary" onClick={() => addTag(category)}>
-                      <Plus aria-hidden size={14} />
-                    </Button>
-                  </div>
-                  {values.length > 0 ? (
-                    <ul className="flex flex-wrap gap-2">
-                      {values.map((v) => (
-                        <li
-                          key={v}
-                          className="inline-flex items-center gap-1 rounded-[var(--radius-pills)] bg-charcoal px-2 py-0.5 text-[length:var(--text-caption)] text-chalk-white"
-                        >
-                          {v}
-                          <button
-                            type="button"
-                            aria-label={`Odebrat ${v}`}
-                            className="cursor-pointer p-0.5 hover:text-netflix-red"
-                            onClick={() => removeTag(category, v)}
-                          >
-                            <X aria-hidden size={12} />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-              );
-            })}
+            {FIXED_CATEGORIES.map((category) => (
+              <TagValueInput
+                key={`${cur}-${category}`}
+                label={category}
+                listId={`wiz-${category}`}
+                values={meta.tags[category] ?? []}
+                suggestions={tagSuggestions[category] ?? []}
+                onAdd={(vals) => addValuesArr(category, vals)}
+                onRemove={(value) => removeTag(category, value)}
+              />
+            ))}
 
             <Button type="button" variant="secondary" onClick={applyToAll} disabled={items.length < 2}>
               <Check aria-hidden size={14} /> Použít model a štítky na všechna

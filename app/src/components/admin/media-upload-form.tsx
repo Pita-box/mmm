@@ -15,13 +15,13 @@
  * task 21.2 — komponenta volá injektovaný `onSubmit` (TODO stub).
  */
 import { useState } from "react";
-import { Upload, Plus, X } from "lucide-react";
+import { Upload } from "lucide-react";
 import { FIXED_CATEGORIES, type TagCategory } from "@/lib/domain";
 import { validateUpload, MAX_UPLOAD_BYTES } from "@/services/media-service";
-import { MAX_TAG_VALUE_LENGTH, splitTagInput } from "@/services/tag-service";
 import { isErr } from "@/lib/result";
 import { uploadResumable } from "@/lib/resumable-upload";
 import { AdminCard, Field, TextInput, Button, Badge } from "./admin-ui";
+import { TagValueInput } from "./tag-value-input";
 
 /** Minimální tvar profilu modelu pro výběr v selectu. */
 export interface ModelOption {
@@ -64,86 +64,13 @@ export interface MediaUploadFormProps {
 
 const MAX_UPLOAD_GB = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024 * 1024));
 
-/** Vstup pro hodnoty jedné kategorie štítků — chips s přidáním a odebráním. */
-function TagCategoryInput({
-  category,
-  values,
-  onChange,
-  suggestions = [],
-}: {
-  readonly category: TagCategory;
-  readonly values: readonly string[];
-  readonly onChange: (next: string[]) => void;
-  readonly suggestions?: readonly string[];
-}) {
-  const [draft, setDraft] = useState("");
-  const inputId = `tag-${category.replace(/\s+/g, "-").toLowerCase()}`;
-  const listId = `${inputId}-list`;
-
-  function addValue() {
-    // Čárka odděluje víc hodnot: "daddy, bear" → 2 chipy (R7.2 UX, plán 012).
-    const incoming = splitTagInput(draft);
-    if (incoming.length === 0) return;
-    const next = [...values];
-    for (const v of incoming) {
-      if (!next.some((e) => e.toLowerCase() === v.toLowerCase())) next.push(v);
-    }
-    onChange(next);
-    setDraft("");
+/** Sloučí nové hodnoty do existujících (case-insensitive dedup). */
+function mergeValues(existing: readonly string[], incoming: readonly string[]): string[] {
+  const next = [...existing];
+  for (const v of incoming) {
+    if (!next.some((e) => e.toLowerCase() === v.toLowerCase())) next.push(v);
   }
-
-  function removeValue(value: string) {
-    onChange(values.filter((v) => v !== value));
-  }
-
-  return (
-    <Field label={category} htmlFor={inputId}>
-      <div className="flex gap-2">
-        <TextInput
-          id={inputId}
-          value={draft}
-          list={suggestions.length > 0 ? listId : undefined}
-          maxLength={MAX_TAG_VALUE_LENGTH}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addValue();
-            }
-          }}
-          placeholder={`Přidat do „${category}“ (víc oddělte čárkou)`}
-        />
-        {suggestions.length > 0 ? (
-          <datalist id={listId}>
-            {suggestions.map((s) => (
-              <option key={s} value={s} />
-            ))}
-          </datalist>
-        ) : null}
-        <Button type="button" variant="secondary" onClick={addValue}>
-          <Plus aria-hidden size={14} />
-          Přidat
-        </Button>
-      </div>
-      {values.length > 0 ? (
-        <ul className="mt-2 flex flex-wrap gap-2">
-          {values.map((value) => (
-            <li key={value}>
-              <button
-                type="button"
-                onClick={() => removeValue(value)}
-                className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-charcoal px-2 py-0.5 text-[length:var(--text-caption)] text-chalk-white hover:bg-netflix-red"
-                aria-label={`Odebrat ${value}`}
-              >
-                {value}
-                <X aria-hidden size={12} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </Field>
-  );
+  return next;
 }
 
 export function MediaUploadForm({ models = [], tagSuggestions = {}, onCreateSession, onFinalize }: MediaUploadFormProps) {
@@ -255,12 +182,14 @@ export function MediaUploadForm({ models = [], tagSuggestions = {}, onCreateSess
             Štítky <Badge tone="accent">6 fixních kategorií</Badge>
           </legend>
           {FIXED_CATEGORIES.map((category) => (
-            <TagCategoryInput
+            <TagValueInput
               key={category}
-              category={category}
+              label={category}
+              listId={`tag-${category.replace(/\s+/g, "-").toLowerCase()}-list`}
               values={tags[category] ?? []}
               suggestions={tagSuggestions[category] ?? []}
-              onChange={(next) => setCategoryValues(category, next)}
+              onAdd={(vals) => setCategoryValues(category, mergeValues(tags[category] ?? [], vals))}
+              onRemove={(value) => setCategoryValues(category, (tags[category] ?? []).filter((v) => v !== value))}
             />
           ))}
         </fieldset>

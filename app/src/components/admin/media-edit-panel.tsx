@@ -16,6 +16,7 @@ import { X, Plus, Save } from "lucide-react";
 import { FIXED_CATEGORIES } from "@/lib/domain";
 import { splitTagInput } from "@/services/tag-service";
 import { Button } from "./admin-ui";
+import { TagValueInput } from "./tag-value-input";
 
 export interface MediaTagChip {
   readonly id: string;
@@ -85,69 +86,6 @@ function TagChip({
   );
 }
 
-/** Vstup pro jednu kategorii: přidá štítek Enterem nebo čárkou při psaní. */
-function CategoryTagInput({
-  mediaId,
-  category,
-  chips,
-  suggestions,
-  onCommit,
-  onRemove,
-}: {
-  readonly mediaId: string;
-  readonly category: string;
-  readonly chips: readonly MediaTagChip[];
-  readonly suggestions: readonly string[];
-  readonly onCommit: (category: string, raw: string) => void;
-  readonly onRemove: (tagValueId: string) => void;
-}) {
-  const [draft, setDraft] = useState("");
-  const listId = `edit-${mediaId}-${category}`;
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-[length:var(--text-caption)] font-semibold text-silver">{category}</span>
-      {chips.length > 0 ? (
-        <ul className="flex flex-wrap gap-2">
-          {chips.map((c) => (
-            <TagChip key={c.id} chip={c} disabled={false} onRemove={() => onRemove(c.id)} />
-          ))}
-        </ul>
-      ) : null}
-      <input
-        aria-label={`Štítky — ${category}`}
-        className={FIELD_CLASS}
-        list={listId}
-        placeholder="napiš a stiskni Enter nebo čárku"
-        value={draft}
-        onChange={(e) => {
-          const raw = e.target.value;
-          if (raw.includes(",")) {
-            const parts = raw.split(",");
-            const remainder = parts.pop() ?? "";
-            onCommit(category, parts.join(","));
-            setDraft(remainder);
-          } else {
-            setDraft(raw);
-          }
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            onCommit(category, draft);
-            setDraft("");
-          }
-        }}
-      />
-      <datalist id={listId}>
-        {suggestions.map((s) => (
-          <option key={s} value={s} />
-        ))}
-      </datalist>
-    </div>
-  );
-}
-
 export function MediaEditPanel({
   mediaId,
   currentModelId,
@@ -175,18 +113,19 @@ export function MediaEditPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mediaId]);
 
-  // Přidá hodnoty do lokálního stavu (čárkou oddělené), dedup case-insensitive.
-  const addLocal = (cat: string, raw: string) => {
+  // Přidá hodnoty do lokálního stavu, dedup case-insensitive.
+  const addLocalValues = (cat: string, vals: readonly string[]) => {
     setLocalTags((prev) => {
       const next = [...prev];
-      for (const v of splitTagInput(raw)) {
+      for (const v of vals) {
         if (next.some((t) => t.category === cat && t.value.toLowerCase() === v.toLowerCase())) continue;
         next.push({ id: `tmp-${cat}-${v}-${Math.random().toString(36).slice(2)}`, category: cat, value: v });
       }
       return next;
     });
   };
-  const removeLocal = (id: string) => setLocalTags((prev) => prev.filter((t) => t.id !== id));
+  const removeLocalByValue = (cat: string, value: string) =>
+    setLocalTags((prev) => prev.filter((t) => !(t.category === cat && t.value === value)));
 
   // ── EXPANDED: lokální editace + uložit vše najednou ─────────────────────────
   // Server actions MUSÍ běžet sériově (Next nepodporuje paralelní dispatch →
@@ -248,14 +187,14 @@ export function MediaEditPanel({
         {errorLine}
         {modelSelect(setLocalModelId, localModelId)}
         {FIXED_CATEGORIES.map((cat) => (
-          <CategoryTagInput
+          <TagValueInput
             key={cat}
-            mediaId={mediaId}
-            category={cat}
-            chips={localTags.filter((t) => t.category === cat)}
+            label={cat}
+            listId={`edit-${mediaId}-${cat}`}
+            values={localTags.filter((t) => t.category === cat).map((t) => t.value)}
             suggestions={tagSuggestions[cat] ?? []}
-            onCommit={addLocal}
-            onRemove={removeLocal}
+            onAdd={(vals) => addLocalValues(cat, vals)}
+            onRemove={(value) => removeLocalByValue(cat, value)}
           />
         ))}
         <Button type="button" disabled={pending} onClick={save}>
