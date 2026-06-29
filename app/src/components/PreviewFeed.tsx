@@ -77,7 +77,9 @@ export function PreviewFeed({
   const [dragging, setDragging] = useState(false);
   const dragDepth = useRef(0);
   const loadPage = useMemo(() => poolLoader(media), [media]);
-  const rows = useMemo(() => groupByModel(media.slice(1)), [media]);
+  // Karusely modelů z VŠECH médií (ne slice(1)) — jinak nejnovější (hero)
+  // v modelové sekci chybí. Hero se může objevit i ve své řadě (Netflix-style).
+  const rows = useMemo(() => groupByModel(media), [media]);
 
   // Sdílený odkaz: otevři lightbox z ?m=<id> při načtení (bez navigace).
   useEffect(() => {

@@ -2,6 +2,17 @@
 
 Záznamy chronologicky, nejnovější nahoře.
 
+## 2026-06-28 — Fix ostrých rohů (chybějící radius token) + batch „Uložit" + velký edit dialog
+
+### Bug & fix
+- **Symptom:** notice toast (copy link), chipy a FAB měly ostré rohy.
+- **Root cause:** `globals.css` `@theme` nedefinoval `--radius-pills`/`--radius-full` → `rounded-[var(--radius-pills)]` spadlo na `0`.
+- **Fix:** doplněny `--radius-pills: 9999px` a `--radius-full: 9999px` do `@theme`; pravidlo zapsáno do skillu `design-system-netflix` (Border Radius). Chipy = `--radius-sm` (jemně zaoblené).
+
+### Nové funkce / změny
+- `MediaEditPanel` `expanded` (lightbox edit dialog): větší responzivní okno (`h-[80svh]`, šířka 92vw→420px→30svw, scroll-y), všech 6 kategorií najednou. Edituje se **lokálně** a uloží se vše najednou tlačítkem **Uložit** (`onSaved` → toast „Uloženo."). Štítek se přidá Enterem/čárkou okamžitě (lokální chip); temp id → reálné `tagValueId` po uložení. Žádný `router.refresh` (dřív ~5 s/štítek).
+- `addMediaTagAction` vrací `tagValueId`. Kompaktní režim (admin list) má okamžité optimistické ukládání.
+
 ## 2026-06-28 — Editace/sdílení/mazání média v lightboxu + system toast
 
 ### Nové funkce

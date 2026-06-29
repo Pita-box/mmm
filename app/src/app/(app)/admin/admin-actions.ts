@@ -326,7 +326,7 @@ export async function addMediaTagAction(
   mediaId: string,
   category: string,
   value: string,
-): Promise<ActionResult> {
+): Promise<{ ok: boolean; message?: string; tagValueId?: string }> {
   await requireUploader();
   const service = createTagService(prisma);
   const upserted = await service.upsertValue(category, value);
@@ -335,7 +335,7 @@ export async function addMediaTagAction(
   if (isErr(assigned)) return { ok: false, message: assigned.error.message };
   revalidatePath("/admin/media");
   revalidatePath("/");
-  return OK;
+  return { ok: true, tagValueId: upserted.value.id };
 }
 
 /** Odebere médiu hodnotu štítku (idempotentní). Uploader. */
@@ -357,6 +357,29 @@ export async function listTagValuesAction(): Promise<
 > {
   await requireUploader();
   return createTagService(prisma).listValues();
+}
+
+/** Přejmenování hodnoty štítku (správa štítků, admin). */
+export async function renameTagValueAction(
+  tagValueId: string,
+  value: string,
+): Promise<ActionResult> {
+  await requireAdmin();
+  const res = await createTagService(prisma).renameValue(tagValueId, value);
+  if (isErr(res)) return { ok: false, message: res.error.message };
+  revalidatePath("/admin/tags");
+  revalidatePath("/");
+  return OK;
+}
+
+/** Smazání hodnoty štítku (správa štítků, admin). Odebere ji i ze všech médií. */
+export async function deleteTagValueAction(tagValueId: string): Promise<ActionResult> {
+  await requireAdmin();
+  const res = await createTagService(prisma).deleteValue(tagValueId);
+  if (isErr(res)) return { ok: false, message: res.error.message };
+  revalidatePath("/admin/tags");
+  revalidatePath("/");
+  return OK;
 }
 
 /** Jedna položka k finalizaci z wizardu (soubor už na Drive). */

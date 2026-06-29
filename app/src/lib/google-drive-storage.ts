@@ -144,7 +144,7 @@ export function createGoogleDriveStorage(): DriveStorage {
       }
     },
 
-    async getThumbnail(driveFileId: string): Promise<Result<DriveThumbnailResult, DriveError>> {
+    async getThumbnail(driveFileId: string, maxSize = 1024): Promise<Result<DriveThumbnailResult, DriveError>> {
       try {
         const { auth, drive } = driveClient();
         const meta = await drive.files.get({
@@ -156,12 +156,15 @@ export function createGoogleDriveStorage(): DriveStorage {
         if (!link) {
           return err({ code: "not_found", message: "Drive nevrátil náhled souboru." });
         }
+        // Drive vrací malý náhled (=s220) → rozmazané. Nastav velikost dle DPR
+        // a zruš případný „-c" (cropped square), ať náhled není oříznutý.
+        const sized = link.replace(/=s\d+(-c)?$/, `=s${maxSize}`);
         const at = await auth.getAccessToken();
         const accessToken = typeof at === "string" ? at : at?.token;
         if (!accessToken) {
           return err({ code: "auth_failed", message: "Chybí Google access token." });
         }
-        const res = await fetch(link, {
+        const res = await fetch(sized, {
           headers: { authorization: `Bearer ${accessToken}` },
         });
         if (!res.ok || !res.body) {

@@ -3,7 +3,7 @@
 exports[`Netflix design tokeny > odpovídá uloženému snapshotu (MediaCard) 1`] = `
 <article
   aria-label="Video"
-  class="group block w-full text-left transition-transform duration-200 ease-out hover:scale-[1.03] focus-visible:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-netflix-red)]"
+  class="group block w-full text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-netflix-red)]"
 >
   <div
     class="relative w-full overflow-hidden rounded-2xl"
@@ -38,15 +38,6 @@ exports[`Netflix design tokeny > odpovídá uloženému snapshotu (MediaCard) 1`
             d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"
           />
         </svg>
-      </span>
-    </span>
-    <span
-      class="pointer-events-none absolute inset-x-0 bottom-0 flex flex-wrap gap-1 bg-gradient-to-t from-[color:var(--color-deep-space)]/80 to-transparent p-2"
-    >
-      <span
-        class="rounded-sm bg-[color:var(--color-charcoal)]/80 px-2 py-0.5 text-[length:var(--text-caption)] leading-none text-[color:var(--color-chalk-white)]"
-      >
-        Portrét
       </span>
     </span>
   </div>

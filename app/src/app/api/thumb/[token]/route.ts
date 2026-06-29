@@ -24,7 +24,6 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<{ token: string }> },
 ): Promise<Response> {
-  void request;
   // Hot path (mřížka karet) → relaci jen ověříme bez zápisu (plán 009).
   const principal = await getSessionPrincipalReadOnly();
   if (principal === null) {
@@ -67,7 +66,9 @@ export async function GET(
   }
 
   // Náhled se vyzvedne server-side; klient dostane jen obrázkové bajty (R6.4).
-  const thumb = await driveStorage.getThumbnail(media.driveFileId);
+  // Velikost dle DPR: ne-retina (dpr=1) → menší (úspora), jinak retina 1024.
+  const maxSize = request.nextUrl?.searchParams?.get("dpr") === "1" ? 512 : 1024;
+  const thumb = await driveStorage.getThumbnail(media.driveFileId, maxSize);
   if (isErr(thumb)) {
     const status = thumb.error.code === "not_found" ? 404 : 502;
     return NextResponse.json(

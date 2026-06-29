@@ -59,8 +59,8 @@ export function UploadWizard({ models, tagSuggestions = {}, initialFiles, onCrea
     setMetas((prev) => prev.map((m, i) => (i === cur ? { ...m, ...patch } : m)));
   }
 
-  function addTag(category: TagCategory) {
-    const incoming = splitTagInput(drafts[category] ?? "");
+  function addValuesToMeta(category: TagCategory, raw: string) {
+    const incoming = splitTagInput(raw);
     if (incoming.length === 0) return;
     setMetas((prev) =>
       prev.map((m, i) => {
@@ -73,6 +73,10 @@ export function UploadWizard({ models, tagSuggestions = {}, initialFiles, onCrea
         return { ...m, tags: { ...m.tags, [category]: next } };
       }),
     );
+  }
+
+  function addTag(category: TagCategory) {
+    addValuesToMeta(category, drafts[category] ?? "");
     setDrafts((d) => ({ ...d, [category]: "" }));
   }
 
@@ -183,9 +187,20 @@ export function UploadWizard({ models, tagSuggestions = {}, initialFiles, onCrea
                     <input
                       className={`${SELECT_CLASS} flex-1`}
                       list={listId}
-                      placeholder="hodnota (víc oddělte čárkou)"
+                      placeholder="napiš a stiskni Enter nebo čárku"
                       value={drafts[category] ?? ""}
-                      onChange={(e) => setDrafts((d) => ({ ...d, [category]: e.target.value }))}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        // Čárka při psaní (i vložení řetězce) přidá hotové hodnoty hned.
+                        if (raw.includes(",")) {
+                          const parts = raw.split(",");
+                          const remainder = parts.pop() ?? "";
+                          addValuesToMeta(category, parts.join(","));
+                          setDrafts((d) => ({ ...d, [category]: remainder }));
+                        } else {
+                          setDrafts((d) => ({ ...d, [category]: raw }));
+                        }
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();

@@ -89,6 +89,13 @@ The design system feels like the house lights dimming in a theater, creating an 
 | buttons | 16px |
 | imageCards | 32px |
 
+> **Implementační pravidlo (žádné ostré rohy):** každý `rounded-[var(--radius-*)]`
+> musí mít odpovídající token definovaný v `app/src/app/globals.css` (`@theme`).
+> Povinné tokeny: `--radius-sm: 12px`, `--radius-lg: 16px`, `--radius-2xl: 20px`,
+> `--radius-pills: 9999px`, `--radius-full: 9999px`. Nedefinovaný token spadne na
+> `0` = ostré rohy (typický bug u toastu/chipů/FAB). Chipy/štítky: `--radius-sm`
+> (jemně zaoblené, ne plná pilulka); toast/FAB/pills: `--radius-pills`.
+
 ### Layout
 
 - **Page max-width:** 1280px

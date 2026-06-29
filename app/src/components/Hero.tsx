@@ -23,7 +23,6 @@ export interface HeroProps {
 }
 
 export function Hero({ item, onWatch }: HeroProps) {
-  const tags = item.tags ?? [];
   const typeLabel = item.mediaType === "video" ? "Video" : "Foto";
 
   return (
@@ -55,19 +54,6 @@ export function Hero({ item, onWatch }: HeroProps) {
           <span className="text-[length:var(--text-caption)] font-medium uppercase tracking-wide text-[color:var(--color-silver)]">
             {typeLabel}
           </span>
-
-          {tags.length > 0 && (
-            <ul className="mt-4 flex flex-wrap gap-2">
-              {tags.map((tag) => (
-                <li
-                  key={tag}
-                  className="rounded-sm bg-[color:var(--color-charcoal)]/80 px-2 py-0.5 text-[length:var(--text-caption)] leading-none text-[color:var(--color-chalk-white)]"
-                >
-                  {tag}
-                </li>
-              ))}
-            </ul>
-          )}
 
           {onWatch ? (
             <button

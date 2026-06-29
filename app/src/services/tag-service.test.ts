@@ -107,6 +107,36 @@ describe("splitTagInput (plán 012)", () => {
   });
 });
 
+describe("renameValue / deleteValue (správa štítků)", () => {
+  it("renameValue odmítne kolizi s jinou hodnotou v kategorii", async () => {
+    const db = {
+      tagValue: {
+        findUnique: async ({ where }: { where: { id?: string; category_normalizedValue?: unknown } }) => {
+          if (where.id === "t1") return { id: "t1", category: "Category", value: "Old", normalizedValue: "old" };
+          if (where.category_normalizedValue) return { id: "t2", category: "Category", value: "New", normalizedValue: "new" };
+          return null;
+        },
+        update: async () => ({ id: "t1", category: "Category", value: "New", normalizedValue: "new" }),
+      },
+    } as unknown as PrismaClient;
+    const r = await createTagService(db).renameValue("t1", "New");
+    expect(isErr(r)).toBe(true);
+    if (isErr(r)) expect(r.error.code).toBe("validation");
+  });
+
+  it("deleteValue je idempotentní (i když delete vyhodí)", async () => {
+    const db = {
+      tagValue: {
+        delete: async () => {
+          throw new Error("not found");
+        },
+      },
+    } as unknown as PrismaClient;
+    const r = await createTagService(db).deleteValue("missing");
+    expect(isOk(r)).toBe(true);
+  });
+});
+
 describe("removeValueFromMedia (plán 011)", () => {
   it("smaže vazbu a je idempotentní (neexistující vazba není chyba)", async () => {
     let deleteCount = 0;

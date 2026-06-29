@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import type { PublicMediaItem } from "@/services/drive-connector";
 import { Play } from "lucide-react";
 
@@ -67,33 +70,45 @@ function PlayOverlay() {
  * zobrazuje play overlay, štítky jako chips a jemné hover zvětšení.
  */
 export function MediaCard({ item, onSelect }: MediaCardProps) {
-  const ratio =
-    item.width > 0 && item.height > 0 ? item.width / item.height : 1;
+  const hasRatio = item.width > 0 && item.height > 0;
   const isVideo = item.mediaType === "video";
   const label = isVideo ? "Video" : "Fotografie";
-  const tags = item.tags ?? [];
   const duration = formatDuration(item.durationMs);
+
+  // DPR-aware náhled: retina (default 2) → 1024, ne-retina (1) → 512 (úspora).
+  // Default 2 drží retina ostré bez druhého fetche; DPR1 se swapne po mountu.
+  const [dpr, setDpr] = useState(2);
+  useEffect(() => {
+    if ((window.devicePixelRatio || 1) <= 1) setDpr(1);
+  }, []);
+  const posterSrc = item.posterUrl ? `${item.posterUrl}?dpr=${dpr}` : undefined;
 
   const visual = (
     <div
       className="relative w-full overflow-hidden rounded-2xl"
-      style={{ aspectRatio: String(ratio), background: "var(--gradient-feature-card)" }}
+      style={{
+        ...(hasRatio ? { aspectRatio: String(item.width / item.height) } : {}),
+        background: "var(--gradient-feature-card)",
+      }}
     >
-      {item.posterUrl ? (
+      {posterSrc ? (
         // eslint-disable-next-line @next/next/no-img-element -- náhled jde přes proxy /api/thumb, ne přes next/image loader
         <img
-          src={item.posterUrl}
+          src={posterSrc}
           alt={label}
-          width={item.width || undefined}
-          height={item.height || undefined}
           loading="lazy"
           decoding="async"
-          className="h-full w-full object-cover"
+          // Známý poměr → object-cover sedí přesně (object-top jen pojistka proti
+          // uříznutí hlavy); neznámý poměr → přirozená výška, žádný ořez (masonry).
+          // Hover škáluje JEN obrázek; zaoblený kontejner zůstává statický (rohy OK).
+          className={`transition-transform duration-200 ease-out group-hover:scale-[1.03] group-focus-visible:scale-[1.03] ${
+            hasRatio ? "h-full w-full object-cover object-top" : "block h-auto w-full"
+          }`}
         />
       ) : (
         <span
           aria-hidden
-          className="absolute inset-0"
+          className={hasRatio ? "absolute inset-0" : "block aspect-[3/4] w-full"}
           style={{ background: "var(--gradient-feature-card)" }}
         />
       )}
@@ -105,24 +120,11 @@ export function MediaCard({ item, onSelect }: MediaCardProps) {
           {duration}
         </span>
       )}
-
-      {tags.length > 0 && (
-        <span className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-wrap gap-1 bg-gradient-to-t from-[color:var(--color-deep-space)]/80 to-transparent p-2">
-          {tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-sm bg-[color:var(--color-charcoal)]/80 px-2 py-0.5 text-[length:var(--text-caption)] leading-none text-[color:var(--color-chalk-white)]"
-            >
-              {tag}
-            </span>
-          ))}
-        </span>
-      )}
     </div>
   );
 
   const className =
-    "group block w-full text-left transition-transform duration-200 ease-out hover:scale-[1.03] focus-visible:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-netflix-red)]";
+    "group block w-full text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-netflix-red)]";
 
   if (onSelect) {
     return (

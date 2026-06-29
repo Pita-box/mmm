@@ -296,7 +296,7 @@ export interface DriveStorage {
    * který se nesmí stahovat jako celý soubor (plán 010). `driveFileId` ani Drive
    * doména nikdy neopustí server (R6.4).
    */
-  getThumbnail(driveFileId: string): Promise<Result<DriveThumbnailResult, DriveError>>;
+  getThumbnail(driveFileId: string, maxSize?: number): Promise<Result<DriveThumbnailResult, DriveError>>;
   /**
    * Vylistuje soubory v dané Drive složce (ingest z Drive, plán 007). Vrací jen
    * netrashed soubory v té složce; stránkování řeší implementace.

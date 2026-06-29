@@ -10,7 +10,7 @@
  * ponytail: scroll řeší nativní `overflow-x` + `scrollBy`; žádná virtualizace
  * ani vlastní drag — pás je krátký (jednotky až desítky položek).
  */
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { MediaCard, type MediaCardItem } from "./MediaCard";
 
@@ -25,6 +25,27 @@ export interface CarouselProps {
 
 export function Carousel({ title, media, onSelect }: CarouselProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const [overflow, setOverflow] = useState(false);
+  const [canPrev, setCanPrev] = useState(false);
+  const [canNext, setCanNext] = useState(false);
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const update = () => {
+      setOverflow(el.scrollWidth > el.clientWidth + 1);
+      setCanPrev(el.scrollLeft > 1);
+      setCanNext(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", update);
+      ro.disconnect();
+    };
+  }, [media]);
 
   if (media.length === 0) return null;
 
@@ -35,30 +56,40 @@ export function Carousel({ title, media, onSelect }: CarouselProps) {
     }
   }
 
+  const arrowBase =
+    "flex h-8 w-8 items-center justify-center rounded-sm bg-[color:var(--color-charcoal)]/80 text-[color:var(--color-chalk-white)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-chalk-white)]";
+  const arrowEnabled = "cursor-pointer hover:bg-[color:var(--color-netflix-red)]";
+  const arrowDisabled = "cursor-default opacity-40";
+
   return (
     <section className="mb-10">
       <div className="mb-3 flex items-center justify-between gap-4">
         <h2 className="text-[length:var(--text-heading-sm)] font-bold text-[color:var(--color-chalk-white)]">
           {title}
         </h2>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => scrollByDirection(-1)}
-            aria-label="Předchozí"
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm bg-[color:var(--color-charcoal)]/80 text-[color:var(--color-chalk-white)] transition-colors hover:bg-[color:var(--color-netflix-red)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-chalk-white)]"
-          >
-            <ChevronLeft aria-hidden size={20} />
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollByDirection(1)}
-            aria-label="Další"
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm bg-[color:var(--color-charcoal)]/80 text-[color:var(--color-chalk-white)] transition-colors hover:bg-[color:var(--color-netflix-red)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-chalk-white)]"
-          >
-            <ChevronRight aria-hidden size={20} />
-          </button>
-        </div>
+        {/* Šipky jen když je co scrollovat; na kraji disabled (bez hoveru). */}
+        {overflow && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => scrollByDirection(-1)}
+              disabled={!canPrev}
+              aria-label="Předchozí"
+              className={`${arrowBase} ${canPrev ? arrowEnabled : arrowDisabled}`}
+            >
+              <ChevronLeft aria-hidden size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollByDirection(1)}
+              disabled={!canNext}
+              aria-label="Další"
+              className={`${arrowBase} ${canNext ? arrowEnabled : arrowDisabled}`}
+            >
+              <ChevronRight aria-hidden size={20} />
+            </button>
+          </div>
+        )}
       </div>
 
       <div

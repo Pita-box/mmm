@@ -195,13 +195,13 @@ rychlý vstup do `/upload`.
 - Verifikace: `pnpm test` → vše zelené vč. nových.
 
 ## Done criteria (celý plán)
-- [ ] Slice 1: `splitTagInput`+test, `listValues`/`listTagValuesAction`, čárka+našeptávač v upload formu i edit panelu
-- [ ] Slice 2: `UploadDropzone` (bulk + drag&drop, per-soubor progress), `uploadResumable` sdílená v `lib/resumable-upload.ts`
-- [ ] Slice 3: `/upload` route (uploader-only) + `UploadWizard` (2 sloupce, Prev/Next, použít na všechna, publikovat/skrýt) + `finalizeUploadsAction`
-- [ ] Slice 4: role-gated „+ Nahrát" FAB z `/preview`
-- [ ] `pnpm exec tsc --noEmit` 0, `pnpm test` 0, `pnpm run build` 0, `pnpm run lint` 0
-- [ ] žádné zvednutí `serverActions.bodySizeLimit` (bajty jdou přímo na Drive)
-- [ ] `advisor-plans/README.md` řádek 012 aktualizován
+- [x] Slice 1: `splitTagInput`+test, `listValues`/`listTagValuesAction`, čárka+našeptávač v upload formu i edit panelu
+- [x] Slice 2: `UploadDropzone` (bulk + drag&drop, per-soubor progress), `uploadResumable` sdílená v `lib/resumable-upload.ts`
+- [x] Slice 3: `/upload` route (uploader-only) + `UploadWizard` (2 sloupce, Prev/Next, použít na všechna, publikovat/skrýt) + `finalizeUploadsAction`
+- [x] Slice 4: role-gated „+ Nahrát" FAB z `/preview`
+- [x] `pnpm exec tsc --noEmit` 0, `pnpm test` 0, `pnpm run build` 0, `pnpm run lint` 0
+- [x] žádné zvednutí `serverActions.bodySizeLimit` (bajty jdou přes proxy route po chuncích, ne přímo)
+- [x] `advisor-plans/README.md` řádek 012 aktualizován
 
 ## STOP conditions
 - Živé `MediaUploadForm`/`admin-actions`/`tag-service` nevypadají jako výňatky
@@ -219,3 +219,57 @@ rychlý vstup do `/upload`.
 - Reviewer ať ověří `requireUploader` na `/upload` i na `finalizeUploadsAction`,
   a že FAB na `/preview` nevidí role `User`.
 - Našeptávač přes `<datalist>` je MVP; fulltext/četnost hodnot je budoucí vylepšení.
+
+---
+
+## Skutečně postaveno — odchylky a rozšíření oproti plánu (2026-06-28)
+
+Plán 012 byl postaven v plném rozsahu (slice 1–4, vše ověřeno: tsc 0, 305 testů,
+build 0, lint 0). Během stavění a navazujících iterací vznikly tyto **odchylky a
+rozšíření oproti původnímu textu plánu**:
+
+### Odchylky od plánu
+- **Upload bajty NEJDOU přímo na Drive z prohlížeče.** Plán předpokládal přímý
+  resumable PUT browser→Google. Realita: CORS to blokuje („Failed to fetch").
+  Řešení: nová proxy route `app/src/app/api/drive-chunk/route.ts` (Node),
+  přepošle chunk (8 MB) na Google session URL. SSRF guard (jen
+  `https://www.googleapis.com/upload/`), jen Admin/Distributor. `uploadResumable`
+  (`lib/resumable-upload.ts`) teď mluví s proxy (`{done,id}`), ne přímo s Googlem.
+  Bajty tedy jdou serverem **po chuncích** (ne celý soubor) — Done criteria
+  „bajty přímo na Drive" upraveno na „přes proxy po chuncích".
+- **Vstup z `/preview` je popup (modal), ne jen FAB→/upload.** Primární je
+  `UploadModal` (`components/admin/upload-modal.tsx`) obalující tentýž
+  `UploadWizard` 1:1. FAB otevírá popup; stránka `/upload` zůstává. Navíc nav
+  položka „Nahrát" (uploader-only) jako vždy-viditelná pojistka.
+- **Drag & drop kdekoliv na `/preview`**, ne jen v dropzone: window listenery
+  v `PreviewFeed` (overlay během tažení ve velikosti popupu, drop otevře popup s
+  těmi soubory přes `initialFiles`). Jen pro uploadery.
+- **FAB podoba:** kruhové „+", glassmorphism + hover, `z-[60]` nad toastem
+  (původně červené „Nahrát" s textem `z-40`, které toast překrýval).
+
+### Bug fixy během stavění
+- **Duplikace při uploadu** (z 1 souboru „vytvořeno 2"): dev StrictMode spouštěl
+  `initialFiles` efekt 2× + drop na dropzone bublal na window. Fix: ref guard v
+  `UploadDropzone` (dávka jen jednou) + `stopPropagation`.
+- **Popup ořez:** modal scrolluje jako celek (`min-h-full items-center`),
+  vycentrovaný / s paddingem → zaoblené rohy vždy vidět.
+
+### Rozšíření MIMO plán 012 (navazující požadavky)
+- **Editace/sdílení/mazání média přímo v lightboxu** (`MediaLightbox`): toolbar
+  vpravo nahoře — tužka (edit kategorie/štítky + Skrýt, jen uploader), sdílet
+  (copy `/?m=<id>`, všechny role), koš (delete, jen uploader). Edit panel se
+  odkryje až po kliknutí na tužku. Využívá `MediaEditPanel` + akce z plánu 011.
+- **Kompletní smazání vč. Google Drive:** `deleteMediaAction` maže nejdřív z
+  Drive, pak z DB (aby „Synchronizovat z Drive" nemohla re-import);
+  `driveStorage.deleteFile` idempotentní (404 = ok).
+- **Sdílený odkaz `/?m=<id>` bez navigace:** lightbox drží URL přes
+  `history.replaceState`; načtení s `?m=` otevře médium; nepřihlášený → middleware
+  redirect na `/signin` s `callbackUrl` vč. query (oprava `lib/access-response.ts`).
+- **`SystemToast`** (`components/SystemToast.tsx`) — centrovaný dole, glass,
+  auto-dismiss; „Link is copied! Ready to share." po kopii odkazu.
+- **`MediaCardItem.editTags`** (id+kategorie+hodnota) plněné pro uploadery v
+  `(app)/page.tsx` (potřeba pro editaci štítků v lightboxu).
+
+> Tyto rozšíření nemají vlastní plán (vznikly jako přímé build požadavky); jsou
+> zaznamenané v `plans/build-journal.md` (2026-06-28). Případný budoucí audit je
+> může zpětně formalizovat.

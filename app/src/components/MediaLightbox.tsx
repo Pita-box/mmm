@@ -58,7 +58,6 @@ export function MediaLightbox({
   tagSuggestions = {},
 }: MediaLightboxProps) {
   const [pending, startTransition] = useTransition();
-  const [actionError, setActionError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -91,18 +90,18 @@ export function MediaLightbox({
   const runAction = (action: () => Promise<{ ok: boolean; message?: string }>) => {
     startTransition(async () => {
       const res = await action();
-      // Server akce revaliduje "/" → preview se obnoví sama.
-      setActionError(res.ok ? null : res.message ?? "Akce se nezdařila.");
+      // Server akce revaliduje "/" → preview se obnoví sama; chybu ukaž v toastu.
+      if (!res.ok) setToast(res.message ?? "Akce se nezdařila.");
     });
   };
 
   const handleDelete = () => {
-    if (!window.confirm("Smazat médium? Odstraní se z webu, databáze i z Google Drive.")) {
+    if (!window.confirm("Smazat médium? Odstraní se z celého systému.")) {
       return;
     }
     startTransition(async () => {
       const res = await deleteMediaAction(item.id);
-      if (!res.ok) setActionError(res.message ?? "Smazání selhalo.");
+      if (!res.ok) setToast(res.message ?? "Smazání selhalo.");
       else onClose();
     });
   };
@@ -236,23 +235,19 @@ export function MediaLightbox({
         <div
           onClick={(event) => event.stopPropagation()}
           style={glassBorder}
-          className="absolute right-4 top-16 z-20 flex max-h-[80vh] w-80 max-w-[92vw] flex-col gap-3 overflow-y-auto rounded-2xl border bg-[color:var(--color-deep-space)]/70 p-4 backdrop-blur-md"
+          className="absolute right-4 top-1/2 z-20 flex h-[80svh] w-[92vw] -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-2xl border bg-[color:var(--color-deep-space)]/70 p-5 backdrop-blur-md sm:w-[420px] lg:w-[30svw] lg:min-w-[440px]"
         >
-          {actionError ? (
-            <p role="alert" className="text-[length:var(--text-caption)] text-netflix-red">
-              {actionError}
-            </p>
-          ) : null}
-
           <MediaEditPanel
             mediaId={item.id}
             currentModelId={item.modelId}
             models={models}
             tags={item.editTags ?? []}
             tagSuggestions={tagSuggestions}
+            expanded
             onAssignModel={assignMediaModelAction}
             onAddTag={addMediaTagAction}
             onRemoveTag={removeMediaTagAction}
+            onSaved={() => setToast("Uloženo.")}
           />
 
           <Button

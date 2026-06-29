@@ -142,6 +142,15 @@ export interface TagService {
   ): Promise<Result<void, TagError>>;
   /** Všechny existující hodnoty (pro našeptávač), seřazené dle kategorie+hodnoty. */
   listValues(): Promise<{ category: string; value: string }[]>;
+  /** Hodnoty s ID pro správu (přejmenování/mazání), seřazené. */
+  listValuesWithId(): Promise<{ id: string; category: string; value: string }[]>;
+  /**
+   * Přejmenuje hodnotu štítku (1..100 po trim). Kolize s jinou hodnotou ve
+   * stejné kategorii (case-insensitive) je odmítnuta. (R7.2/7.3)
+   */
+  renameValue(tagValueId: string, raw: string): Promise<Result<TagValue, TagError>>;
+  /** Smaže hodnotu štítku (idempotentní); MediaTag vazby uklidí FK cascade. */
+  deleteValue(tagValueId: string): Promise<Result<void, TagError>>;
 }
 
 const INVALID_CATEGORY: TagError = {
@@ -217,6 +226,46 @@ export function createTagService(prisma: PrismaClient): TagService {
         select: { category: true, value: true },
         orderBy: [{ category: "asc" }, { value: "asc" }],
       });
+    },
+
+    listValuesWithId() {
+      return prisma.tagValue.findMany({
+        select: { id: true, category: true, value: true },
+        orderBy: [{ category: "asc" }, { value: "asc" }],
+      });
+    },
+
+    async renameValue(tagValueId, raw) {
+      const validated = validateTagValue(raw);
+      if (isErr(validated)) return validated;
+      const { value, normalizedValue } = validated.value;
+
+      const existing = await prisma.tagValue.findUnique({ where: { id: tagValueId } });
+      if (existing === null) return err(TAG_VALUE_NOT_FOUND);
+
+      // Kolize s jinou hodnotou ve stejné kategorii (case-insensitive) → odmítnout.
+      const clash = await prisma.tagValue.findUnique({
+        where: { category_normalizedValue: { category: existing.category, normalizedValue } },
+      });
+      if (clash !== null && clash.id !== tagValueId) {
+        return err({
+          code: "validation",
+          field: "value",
+          message: "Hodnota už v této kategorii existuje.",
+        });
+      }
+
+      const updated = await prisma.tagValue.update({
+        where: { id: tagValueId },
+        data: { value, normalizedValue },
+      });
+      return ok(updated);
+    },
+
+    async deleteValue(tagValueId) {
+      // Idempotentní: neexistující = ok. MediaTag vazby uklidí FK cascade.
+      await prisma.tagValue.delete({ where: { id: tagValueId } }).catch(() => {});
+      return ok();
     },
   };
 }
