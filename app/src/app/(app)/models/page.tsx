@@ -10,12 +10,15 @@ import { MediaCollageCard } from "@/components/MediaCollageCard";
 import { modelService } from "@/services/model-service";
 import { requireSession } from "@/lib/session";
 import { requireVisibleSection } from "@/lib/section-visibility";
+import { membershipGate } from "@/lib/membership-gate";
 import { thumbUrlFor } from "@/lib/media-presentation";
 import { Users } from "lucide-react";
 
 export default async function ModelsPage() {
   const principal = await requireSession();
   await requireVisibleSection("models", principal.role);
+  const gate = await membershipGate(principal);
+  if (gate) return gate;
   const profiles = await modelService.listProfilesWithPreview();
 
   return (

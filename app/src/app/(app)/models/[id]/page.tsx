@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { isErr, isOk } from "@/lib/result";
 import { requireSession } from "@/lib/session";
 import { requireVisibleSection } from "@/lib/section-visibility";
+import { membershipGate } from "@/lib/membership-gate";
 import { toCardItem } from "@/lib/media-presentation";
 import {
   updateModelProfileAction,
@@ -26,6 +27,8 @@ export default async function ModelDetailPage({
 }) {
   const principal = await requireSession();
   await requireVisibleSection("models", principal.role);
+  const gate = await membershipGate(principal);
+  if (gate) return gate;
   const { id } = await params;
   const now = new Date();
 

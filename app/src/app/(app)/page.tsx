@@ -11,12 +11,15 @@ import type { ModelOption } from "@/components/admin";
 import { previewOrder } from "@/services/media-service";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
+import { membershipGate } from "@/lib/membership-gate";
 import { toCardItem } from "@/lib/media-presentation";
 import { modelService } from "@/services/model-service";
 import { tagService } from "@/services/tag-service";
 
 export default async function Preview() {
   const principal = await requireSession();
+  const gate = await membershipGate(principal);
+  if (gate) return gate;
   const now = new Date();
   const canUpload = principal.role === "Admin" || principal.role === "Distributor";
 

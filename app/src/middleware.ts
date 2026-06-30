@@ -13,7 +13,6 @@
  * (R1.1, R1.2, R1.4, R1.5, R3.3, R21.4, R21.5).
  */
 import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
 import { evaluateAccess, SESSION_COOKIE } from "@/lib/access-context";
 import { accessDecisionToResponse } from "@/lib/access-response";
 
@@ -24,13 +23,6 @@ export async function middleware(request: NextRequest): Promise<Response> {
     rawCookie: request.cookies.get(SESSION_COOKIE)?.value,
     // hiddenSections se v Edge nečtou z DB — viz enforceAccess (Node) v route handlerech.
   });
-  // Povolené stránky: propaguj cestu hlavičkou, aby ji layout znal pro
-  // server-side membership gating (výjimka /settings). Edge-safe.
-  if (decision.outcome === "allow") {
-    const headers = new Headers(request.headers);
-    headers.set("x-pathname", pathname);
-    return NextResponse.next({ request: { headers } });
-  }
   return accessDecisionToResponse(decision, request);
 }
 

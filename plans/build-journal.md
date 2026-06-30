@@ -2,6 +2,19 @@
 
 Záznamy chronologicky, nejnovější nahoře.
 
+## 2026-06-29 — Plán 015: membership gating per-page (fix bypass)
+
+### Hotové tasky
+- Plán 015 (advisor) — ověřeno (tsc 0, 323 testů, lint 0; review PASS). Necommitnuto.
+
+### Bug & fix
+- **Symptom:** membership gate šel obejít — ne-člen po načtení `/settings` a kliknutí na `<Link>` na `/` dostal reálný obsah.
+- **Root cause:** gating byl ve sdíleném `(app)/layout.tsx`; Next.js App Router při soft-navigaci layout znovu nevyhodnocuje (načte jen segment stránky), takže gate decision z layoutu se nepřepočítal.
+- **Fix:** gating přesunut **per-page** — `lib/membership-gate.tsx` `membershipGate(principal)` (staff short-circuit, jinak živá kontrola z DB → vrátí `<MembershipGate>` nebo null), voláno hned po `requireSession()` v 6 user-facing stránkách (`page`, `search`, `models`, `models/[id]`, `collections`, `collections/[id]`). Stránky se re-renderují při každé navigaci → neobejitelné. Gate odebrán z layoutu, `x-pathname` z middleware. `/settings` + uploader/admin stránky negatovány.
+
+### Nové funkce
+- `lib/membership-gate.tsx` (`membershipGate`) + `membership-gate.test.ts` (staff short-circuit bez DB).
+
 ## 2026-06-29 — Vlastní video thumbnaily (snímek z 1/3 délky)
 
 ### Nové funkce / změny

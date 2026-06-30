@@ -8,6 +8,7 @@
 import { Library, Plus, Trash2 } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { requireVisibleSection } from "@/lib/section-visibility";
+import { membershipGate } from "@/lib/membership-gate";
 import { collectionService } from "@/services/collection-service";
 import { thumbUrlFor } from "@/lib/media-presentation";
 import { MediaCollageCard } from "@/components/MediaCollageCard";
@@ -20,6 +21,8 @@ import {
 export default async function CollectionsPage() {
   const principal = await requireSession();
   await requireVisibleSection("collections", principal.role);
+  const gate = await membershipGate(principal);
+  if (gate) return gate;
   const collections = await collectionService.listCollectionsWithPreview(principal.userId);
 
   return (

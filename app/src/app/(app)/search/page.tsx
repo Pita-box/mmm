@@ -13,11 +13,14 @@ import { toPublicMedia } from "@/services/drive-connector";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { requireVisibleSection } from "@/lib/section-visibility";
+import { membershipGate } from "@/lib/membership-gate";
 import { streamingUrlFor } from "@/lib/media-presentation";
 
 export default async function SearchPage() {
   const principal = await requireSession();
   await requireVisibleSection("search", principal.role);
+  const gate = await membershipGate(principal);
+  if (gate) return gate;
   const now = new Date();
 
   const rows = await prisma.mediaItem.findMany({
