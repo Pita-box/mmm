@@ -21,7 +21,6 @@ import type { AccountStatus, Role } from "@/lib/domain";
 import { canDeleteMedia } from "@/lib/permissions";
 import {
   createMediaService,
-  validateUpload,
   classifyType,
 } from "@/services/media-service";
 import { createTagService } from "@/services/tag-service";
@@ -92,11 +91,12 @@ export async function deleteModelProfileAction(
     if (withMedia) {
       const items = await prisma.mediaItem.findMany({
         where: { modelId },
-        select: { driveFileId: true },
+        select: { driveFileId: true, posterDriveFileId: true },
       });
       for (const it of items) {
         // idempotentní (404 = ok); případné selhání nebrání smazání záznamů.
         await driveStorage.deleteFile(it.driveFileId);
+        if (it.posterDriveFileId) await driveStorage.deleteFile(it.posterDriveFileId);
       }
       await prisma.$transaction([
         prisma.mediaItem.deleteMany({ where: { modelId } }),
@@ -116,63 +116,6 @@ export async function deleteModelProfileAction(
 
 // ─── Upload média ───────────────────────────────────────────────────────────
 
-/** Hodnoty pro upload (kompatibilní s `MediaUploadForm.onSubmit`). */
-export interface UploadMediaInput {
-  readonly file: File;
-  /** Profil modelu, nebo `null` — přiřazení k modelu je nepovinné. */
-  readonly modelId: string | null;
-  readonly tags: Partial<Record<TagCategory, string[]>>;
-  readonly publishAt: string | null;
-}
-
-/**
- * Upload média: nahraje soubor na Drive a teprve poté vytvoří Media_Item.
- * Selže-li perzistence po úspěšném uploadu, soubor se z Drive kompenzačně
- * smaže (rollback) — nikdy nevznikne osiřelý záznam ani osiřelý soubor
- * (R5.1, R5.4, R5.6).
- */
-export async function uploadMediaAction(
-  input: UploadMediaInput,
-): Promise<ActionResult> {
-  const principal = await requireUploader();
-
-  const meta = { mimeType: input.file.type, sizeBytes: input.file.size };
-  const validated = validateUpload(meta);
-  if (isErr(validated)) return { ok: false, message: validated.error.message };
-
-  if (classifyType(input.file.type) === null) {
-    return { ok: false, message: "Nepodporovaný formát souboru." };
-  }
-
-  // Drive upload (R5.1). Selhání/timeout/auth → žádný záznam (R5.4, R5.6).
-  const bytes = Buffer.from(await input.file.arrayBuffer());
-  const uploaded = await driveStorage.upload(bytes, {
-    mimeType: input.file.type,
-    name: input.file.name,
-  });
-  if (isErr(uploaded)) return { ok: false, message: uploaded.error.message };
-
-  return persistMediaWithTags({
-    driveFileId: uploaded.value.driveFileId,
-    modelId: input.modelId,
-    mimeType: input.file.type,
-    sizeBytes: input.file.size,
-    publishAt: input.publishAt ? new Date(input.publishAt) : null,
-    tags: input.tags,
-    uploaderId: principal.userId,
-  });
-}
-
-/** Vstup pro finalizaci resumable uploadu (Approach B): soubor je už na Drive. */
-export interface FinalizeUploadInput {
-  readonly driveFileId: string;
-  readonly mimeType: string;
-  readonly sizeBytes: number;
-  readonly modelId: string | null;
-  readonly tags: Partial<Record<TagCategory, string[]>>;
-  readonly publishAt: string | null;
-}
-
 /**
  * Vytvoří resumable upload session (Approach B, plán 007). Klient pak nahraje
  * soubor po částech PŘÍMO do Googlu (bajty nejdou přes server → obejde 1MB limit
@@ -189,29 +132,6 @@ export async function createUploadSessionAction(
   const res = await driveStorage.createResumableSession({ name, mimeType });
   if (isErr(res)) return { ok: false, message: res.error.message };
   return { ok: true, uploadUrl: res.value.uploadUrl };
-}
-
-/**
- * Finalizace resumable uploadu (Approach B): soubor už je na Drive (klient ho
- * nahrál přes session), tady jen vznikne `Media_Item` + štítky (atomicky, s
- * kompenzačním smazáním souboru při selhání). R5.1/R5.4/R5.6.
- */
-export async function finalizeDriveUploadAction(
-  input: FinalizeUploadInput,
-): Promise<ActionResult> {
-  const principal = await requireUploader();
-  if (classifyType(input.mimeType) === null) {
-    return { ok: false, message: "Nepodporovaný formát souboru." };
-  }
-  return persistMediaWithTags({
-    driveFileId: input.driveFileId,
-    modelId: input.modelId,
-    mimeType: input.mimeType,
-    sizeBytes: input.sizeBytes,
-    publishAt: input.publishAt ? new Date(input.publishAt) : null,
-    tags: input.tags,
-    uploaderId: principal.userId,
-  });
 }
 
 /** Vstup sdílené perzistence média + štítků. */
@@ -232,8 +152,7 @@ interface PersistMediaInput {
 /**
  * Sdílené uložení Media_Item + štítků v jedné transakci; při selhání rollback +
  * kompenzační smazání souboru z Drive (žádný osiřelý záznam ani soubor, R5.4/5.6).
- * Sdílí ji `uploadMediaAction` (server upload) i `finalizeDriveUploadAction`
- * (resumable upload — soubor už na Drive je).
+ * Používá ji upload wizard při finalizaci souborů, které už jsou na Drive.
  */
 async function persistMediaWithTags(input: PersistMediaInput): Promise<ActionResult> {
   try {

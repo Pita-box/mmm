@@ -2,6 +2,26 @@
 
 Záznamy chronologicky, nejnovější nahoře.
 
+## 2026-07-01 — Plán 017: odstranit mrtvé upload akce po odebrání upload formuláře
+
+### Hotové tasky
+- Plán 017 (advisor) — ověřeno (tsc 0, 318 testů, lint 0). Připraveno ke společnému commitu s plánem 016.
+
+### Bug & fix
+- **Symptom:** v `admin-actions.ts` zůstaly exportované server actions pro starý single-file upload flow, který už UI nepoužívá.
+- **Root cause:** po odstranění `MediaUploadForm` a staré finalize cesty zůstal v souboru mrtvý kód: `uploadMediaAction`, `finalizeDriveUploadAction` a jejich vstupní typy.
+- **Fix:** odstraněny obě nepoužívané akce i jejich typy; `admin-actions.ts` teď nechává jen podporovanou resumable/wizard cestu (`createUploadSessionAction` + `finalizeUploadsAction`). Zároveň uklizen import `validateUpload`, doc comment u `persistMediaWithTags` a smazán obsolete integrační test staré upload cesty.
+
+## 2026-06-29 — Plán 016: mazat video postery při mazání modelu i médií
+
+### Hotové tasky
+- Plán 016 (advisor) — ověřeno (tsc 0, 323 testů, lint 0; review PASS). Necommitnuto.
+
+### Bug & fix
+- **Symptom:** „Smazat model i média" nechávalo na Google Drive osiřelé poster JPEGy.
+- **Root cause:** `deleteModelProfileAction(withMedia=true)` mazal jen `driveFileId`, ne `posterDriveFileId`.
+- **Fix:** `findMany` selectuje i `posterDriveFileId`; ve smyčce se po hlavním souboru smaže i poster (`if (it.posterDriveFileId) deleteFile(...)`), dle vzoru `deleteMediaAction`. (`admin-actions.ts`.)
+
 ## 2026-06-29 — Plán 015: membership gating per-page (fix bypass)
 
 ### Hotové tasky
