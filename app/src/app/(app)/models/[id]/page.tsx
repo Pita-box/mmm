@@ -14,6 +14,7 @@ import { requireSession } from "@/lib/session";
 import { requireVisibleSection } from "@/lib/section-visibility";
 import { membershipGate } from "@/lib/membership-gate";
 import { thumbUrlFor, toCardItem } from "@/lib/media-presentation";
+import { tagService } from "@/services/tag-service";
 import {
   updateModelProfileAction,
   deleteModelProfileAction,
@@ -85,6 +86,15 @@ export default async function ModelDetailPage({
     ?? media[0]?.posterUrl;
 
   const canEdit = principal.role === "Admin";
+  const canUpload = principal.role === "Admin" || principal.role === "Distributor";
+  const uploadModel = { id, name: profile.value.name };
+  const uploadTagSuggestions: Record<string, string[]> = {};
+  if (canUpload) {
+    const tagValues = await tagService.listValues();
+    for (const { category, value } of tagValues) {
+      (uploadTagSuggestions[category] ??= []).push(value);
+    }
+  }
 
   async function onUpdate(values: {
     name: string;
@@ -120,6 +130,9 @@ export default async function ModelDetailPage({
       tags={tags}
       media={media}
       canEdit={canEdit}
+      canUpload={canUpload}
+      uploadModel={uploadModel}
+      uploadTagSuggestions={uploadTagSuggestions}
       onUpdate={onUpdate}
       onDelete={onDelete}
     />

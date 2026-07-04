@@ -33,6 +33,10 @@ export interface UploadWizardProps {
   readonly tagSuggestions?: Partial<Record<string, string[]>>;
   /** Externě dropnuté soubory (drop na /preview) — předají se do dropzone. */
   readonly initialFiles?: readonly File[] | null;
+  /** Předvybraný model pro všechny nově nahrané položky. */
+  readonly initialModelId?: string | null;
+  /** Zamkne výběr modelu na `initialModelId`. */
+  readonly lockModelSelection?: boolean;
   readonly onCreateSession: (
     name: string,
     mimeType: string,
@@ -51,17 +55,30 @@ export interface UploadWizardProps {
 const SELECT_CLASS =
   "rounded-[var(--radius-lg)] border border-charcoal bg-[color:var(--color-graphite)] px-3 py-2 text-[length:var(--text-caption)] text-chalk-white focus:border-netflix-red focus:outline-none";
 
-export function UploadWizard({ models, tagSuggestions = {}, initialFiles, onCreateSession, onUploadPoster, onFinalize }: UploadWizardProps) {
+export function UploadWizard({
+  models,
+  tagSuggestions = {},
+  initialFiles,
+  initialModelId = null,
+  lockModelSelection = false,
+  onCreateSession,
+  onUploadPoster,
+  onFinalize,
+}: UploadWizardProps) {
   const router = useRouter();
   const [items, setItems] = useState<UploadedItem[]>([]);
   const [metas, setMetas] = useState<Meta[]>([]);
   const [cur, setCur] = useState(0);
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<string | null>(null);
+  const lockedModel = models.find((model) => model.id === initialModelId) ?? null;
 
   function onUploaded(uploaded: UploadedItem[]) {
     setItems((prev) => [...prev, ...uploaded]);
-    setMetas((prev) => [...prev, ...uploaded.map(() => ({ modelId: "", tags: {} as TagMap }))]);
+    setMetas((prev) => [
+      ...prev,
+      ...uploaded.map(() => ({ modelId: initialModelId ?? "", tags: {} as TagMap })),
+    ]);
   }
 
   function patchCur(patch: Partial<Meta>) {
@@ -164,21 +181,30 @@ export function UploadWizard({ models, tagSuggestions = {}, initialFiles, onCrea
 
           {/* Pravý sloupec: model + štítky */}
           <div className="flex flex-col gap-4">
-            <label className="flex flex-col gap-1 text-[length:var(--text-caption)] text-silver">
-              Model
-              <select
-                className={SELECT_CLASS}
-                value={meta.modelId}
-                onChange={(e) => patchCur({ modelId: e.target.value })}
-              >
-                <option value="">— bez modelu —</option>
-                {models.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {lockModelSelection && lockedModel ? (
+              <label className="flex flex-col gap-1 text-[length:var(--text-caption)] text-silver">
+                Model
+                <div className={`${SELECT_CLASS} cursor-default opacity-90`}>
+                  {lockedModel.name}
+                </div>
+              </label>
+            ) : (
+              <label className="flex flex-col gap-1 text-[length:var(--text-caption)] text-silver">
+                Model
+                <select
+                  className={SELECT_CLASS}
+                  value={meta.modelId}
+                  onChange={(e) => patchCur({ modelId: e.target.value })}
+                >
+                  <option value="">— bez modelu —</option>
+                  {models.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
 
             {FIXED_CATEGORIES.map((category) => (
               <TagValueInput

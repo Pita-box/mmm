@@ -448,7 +448,7 @@ export function MediaLightbox({
         <div
           onClick={(event) => event.stopPropagation()}
           style={glassBorder}
-          className="absolute right-4 top-1/2 z-20 flex h-[80svh] w-[92vw] -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-2xl border bg-[color:var(--color-deep-space)]/70 p-5 backdrop-blur-md sm:w-[420px] lg:w-[30svw] lg:min-w-[440px]"
+          className="absolute right-4 top-1/2 z-20 flex max-h-[90vh] h-[80svh] w-[92vw] -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-2xl border bg-[color:var(--color-deep-space)]/70 p-5 backdrop-blur-md sm:w-[420px] lg:w-[30svw] lg:min-w-[440px]"
         >
           <MediaEditPanel
             mediaId={mediaId}

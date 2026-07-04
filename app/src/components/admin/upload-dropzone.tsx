@@ -13,6 +13,7 @@ import { validateUpload, classifyType, MAX_UPLOAD_BYTES } from "@/services/media
 import { isErr } from "@/lib/result";
 import { uploadResumable } from "@/lib/resumable-upload";
 import { captureVideoPoster, blobToBase64 } from "@/lib/video-poster";
+import { applyPhotoWatermark } from "@/lib/photo-watermark";
 
 export interface UploadedItem {
   readonly name: string;
@@ -73,16 +74,22 @@ export function UploadDropzone({ onCreateSession, onUploadPoster, onUploaded, in
         continue;
       }
       try {
-        const session = await onCreateSession(file.name, file.type);
+        const mediaType = classifyType(file.type);
+        const uploadFile =
+          mediaType === "photo"
+            ? await applyPhotoWatermark(file)
+            : file;
+
+        const session = await onCreateSession(uploadFile.name, uploadFile.type);
         if (!session.ok || !session.uploadUrl) {
           setErr(session.message ?? "Nepodařilo se zahájit nahrávání.");
           continue;
         }
-        const driveFileId = await uploadResumable(session.uploadUrl, file, (pct) =>
+        const driveFileId = await uploadResumable(session.uploadUrl, uploadFile, (pct) =>
           setItems((prev) => prev.map((p, idx) => (idx === i ? { ...p, pct } : p))),
         );
-        const previewUrl = URL.createObjectURL(file);
-        const isVideo = classifyType(file.type) === "video";
+        const previewUrl = URL.createObjectURL(uploadFile);
+        const isVideo = mediaType === "video";
 
         // Vlastní poster videa (snímek z 1/3 délky) — z lokálního souboru je
         // spolehlivý; selhání je nefatální (fallback na Drive náhled).
@@ -99,10 +106,10 @@ export function UploadDropzone({ onCreateSession, onUploadPoster, onUploaded, in
         }
 
         done.push({
-          name: file.name,
+          name: uploadFile.name,
           driveFileId,
-          mimeType: file.type,
-          sizeBytes: file.size,
+          mimeType: uploadFile.type,
+          sizeBytes: uploadFile.size,
           previewUrl,
           mediaType: isVideo ? "video" : "photo",
           posterDriveFileId,

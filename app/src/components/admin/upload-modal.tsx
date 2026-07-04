@@ -39,7 +39,7 @@ export function UploadModal({ open, onClose, ...wizard }: UploadModalProps) {
     >
       <div className="flex min-h-full items-center justify-center p-4 sm:p-8">
         <div
-          className="relative w-full max-w-3xl"
+          className="relative w-full max-w-3xl max-h-[90vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           <button
@@ -50,7 +50,9 @@ export function UploadModal({ open, onClose, ...wizard }: UploadModalProps) {
           >
             <X aria-hidden size={18} />
           </button>
-          <UploadWizard {...wizard} />
+          <div className="max-h-[90vh] overflow-y-auto">
+            <UploadWizard {...wizard} />
+          </div>
         </div>
       </div>
     </div>

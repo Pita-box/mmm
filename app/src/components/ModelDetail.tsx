@@ -11,7 +11,7 @@
  * Admin navíc: tužka (inline editace jména + bio) a Smazat s volbou
  *  a) smazat jen model (média zůstanou), b) smazat model i média.
  */
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ImageOff, Pencil, Trash2, Save, X, Images } from "lucide-react";
 import ReactCrop, {
@@ -20,11 +20,14 @@ import ReactCrop, {
   type PercentCrop,
 } from "react-image-crop";
 import { BrowsableGrid } from "./BrowsableGrid";
+import { ModelDetailUpload } from "./ModelDetailUpload";
 import { ProfileAvatarImage } from "./ProfileAvatarImage";
 import { Button, TextInput, TextArea, Field } from "./admin/admin-ui";
+import type { ModelOption } from "./admin/upload-wizard";
 import type { MediaCardItem } from "./MediaCard";
 import {
   defaultProfileAvatarPercentCrop,
+  normalizeProfileAvatarPercentCrop,
   profileAvatarPercentCropFromStored,
   profileAvatarStoredFromPercentCrop,
 } from "@/lib/profile-avatar";
@@ -32,6 +35,7 @@ import {
 type ActionResult = { ok: boolean; message?: string };
 
 const DEFAULT_COVER_FOCUS_Y = 50;
+const LIBRARY_PAGE_SIZE = 12;
 
 function clampPercent(value: number, fallback = DEFAULT_COVER_FOCUS_Y): number {
   if (!Number.isFinite(value)) return fallback;
@@ -62,6 +66,11 @@ export interface ModelDetailProps {
   readonly media: readonly MediaCardItem[];
   /** Admin → zobrazí editaci a mazání. */
   readonly canEdit?: boolean;
+  /** Admin/Distributor → upload média přímo do tohoto modelu. */
+  readonly canUpload?: boolean;
+  /** Fixní model pro upload z detailu. */
+  readonly uploadModel?: ModelOption;
+  readonly uploadTagSuggestions?: Partial<Record<string, string[]>>;
   readonly onUpdate?: (values: {
     name: string;
     bio: string;
@@ -90,6 +99,9 @@ export function ModelDetail({
   tags,
   media,
   canEdit = false,
+  canUpload = false,
+  uploadModel,
+  uploadTagSuggestions = {},
   onUpdate,
   onDelete,
 }: ModelDetailProps) {
@@ -118,6 +130,8 @@ export function ModelDetail({
   const [error, setError] = useState<string | null>(null);
   const [coverError, setCoverError] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [coverLibraryPage, setCoverLibraryPage] = useState(0);
+  const [avatarLibraryPage, setAvatarLibraryPage] = useState(0);
 
   const hasMedia = media.length > 0;
   const hasBio = bio.trim().length > 0;
@@ -163,6 +177,24 @@ export function ModelDetail({
     },
     currentAvatarMetrics,
   );
+  const coverLibraryPages = Math.max(1, Math.ceil(photoMedia.length / LIBRARY_PAGE_SIZE));
+  const avatarLibraryPages = Math.max(1, Math.ceil(photoMedia.length / LIBRARY_PAGE_SIZE));
+  const visibleCoverLibraryItems = photoMedia.slice(
+    coverLibraryPage * LIBRARY_PAGE_SIZE,
+    (coverLibraryPage + 1) * LIBRARY_PAGE_SIZE,
+  );
+  const visibleAvatarLibraryItems = photoMedia.slice(
+    avatarLibraryPage * LIBRARY_PAGE_SIZE,
+    (avatarLibraryPage + 1) * LIBRARY_PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    if (!coverEditorOpen && !avatarEditorOpen && !confirmOpen) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [coverEditorOpen, avatarEditorOpen, confirmOpen]);
 
   const buildDefaultCrop = (width: number, height: number) =>
     centerCrop(
@@ -179,25 +211,30 @@ export function ModelDetail({
       height,
     );
 
+  const resolveAvatarCropForItem = (item: MediaCardItem | undefined) => {
+    if (!item) return undefined;
+    if (item.id === initialAvatarMediaId) {
+      return profileAvatarPercentCropFromStored(
+        {
+          avatarCropX: initialAvatarCropX,
+          avatarCropY: initialAvatarCropY,
+          avatarZoom: initialAvatarZoom,
+        },
+        { width: item.width, height: item.height },
+      );
+    }
+    return buildDefaultCrop(item.width, item.height);
+  };
+
   const openAvatarEditor = () => {
     setEditOpen(false);
     setCoverEditorOpen(false);
     const mediaItem = initialAvatarItem;
     setDraftAvatarMediaId(mediaItem?.id ?? null);
-    setDraftAvatarCrop(
-      mediaItem
-        ? profileAvatarPercentCropFromStored(
-            {
-              avatarCropX: initialAvatarCropX,
-              avatarCropY: initialAvatarCropY,
-              avatarZoom: initialAvatarZoom,
-            },
-            { width: mediaItem.width, height: mediaItem.height },
-          )
-        : undefined,
-    );
+    setDraftAvatarCrop(resolveAvatarCropForItem(mediaItem));
     setAvatarError(null);
     setAvatarTab("edit");
+    setAvatarLibraryPage(0);
     setAvatarEditorOpen(true);
   };
 
@@ -213,6 +250,7 @@ export function ModelDetail({
     );
     setCoverError(null);
     setCoverTab("edit");
+    setCoverLibraryPage(0);
     setCoverEditorOpen(true);
   };
 
@@ -451,7 +489,7 @@ export function ModelDetail({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="flex w-full max-w-5xl flex-col gap-5 rounded-[var(--radius-2xl)] border border-graphite bg-[color:var(--color-deep-space)] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+            className="flex w-full max-w-5xl max-h-[90vh] flex-col gap-5 overflow-hidden rounded-[var(--radius-2xl)] border border-graphite bg-[color:var(--color-deep-space)] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -495,7 +533,8 @@ export function ModelDetail({
               </button>
             </div>
 
-            <div className="flex flex-col gap-5">
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              <div className="flex flex-col gap-5">
               {coverTab === "edit" ? (
                 <div className="flex flex-col gap-4">
                   <div className="rounded-[var(--radius-2xl)] bg-[color:var(--color-graphite)] p-3">
@@ -567,7 +606,7 @@ export function ModelDetail({
                     >
                       Auto
                     </button>
-                    {photoMedia.map((item) => (
+                    {visibleCoverLibraryItems.map((item) => (
                       <button
                         key={item.id}
                         type="button"
@@ -596,6 +635,33 @@ export function ModelDetail({
                       </button>
                     ))}
                   </div>
+                  {coverLibraryPages > 1 ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[length:var(--text-caption)] text-[color:var(--color-silver)]">
+                        Strana {coverLibraryPage + 1} / {coverLibraryPages}
+                      </span>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={coverLibraryPage === 0}
+                          onClick={() => setCoverLibraryPage((page) => Math.max(0, page - 1))}
+                        >
+                          Předchozí
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={coverLibraryPage >= coverLibraryPages - 1}
+                          onClick={() =>
+                            setCoverLibraryPage((page) => Math.min(coverLibraryPages - 1, page + 1))
+                          }
+                        >
+                          Další
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
                   {photoMedia.length === 0 ? (
                     <p className="text-[length:var(--text-caption)] text-[color:var(--color-ash)]">
                       Tento model zatím nemá žádnou publikovanou fotku, kterou by šlo použít jako cover.
@@ -603,6 +669,7 @@ export function ModelDetail({
                   ) : null}
                 </div>
               )}
+              </div>
             </div>
 
             {coverError ? (
@@ -634,7 +701,7 @@ export function ModelDetail({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="flex w-full max-w-4xl flex-col gap-5 rounded-[var(--radius-2xl)] border border-graphite bg-[color:var(--color-deep-space)] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+            className="flex w-full max-w-4xl max-h-[90vh] flex-col gap-5 overflow-hidden rounded-[var(--radius-2xl)] border border-graphite bg-[color:var(--color-deep-space)] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -678,12 +745,14 @@ export function ModelDetail({
               </button>
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_240px]">
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_240px]">
               {avatarTab === "edit" ? (
                 <div className="flex flex-col gap-4">
                   <div className="mx-auto w-full max-w-[520px] rounded-[var(--radius-2xl)] bg-[color:var(--color-graphite)] p-3">
                     {draftAvatarImageUrl && draftAvatarCrop ? (
                       <ReactCrop
+                        key={draftAvatarMediaId ?? "auto-avatar"}
                         crop={draftAvatarCrop}
                         onChange={(_, percentCrop) => setDraftAvatarCrop(percentCrop)}
                         aspect={1}
@@ -698,6 +767,16 @@ export function ModelDetail({
                           src={draftAvatarImageUrl}
                           alt={name}
                           className="max-h-[520px] w-full rounded-[var(--radius-xl)] object-contain"
+                          onLoad={(event) => {
+                            const { naturalWidth, naturalHeight } = event.currentTarget;
+                            if (!naturalWidth || !naturalHeight) return;
+                            setDraftAvatarCrop((currentCrop) =>
+                              normalizeProfileAvatarPercentCrop(
+                                currentCrop ?? resolveAvatarCropForItem(draftAvatarItem),
+                                { width: naturalWidth, height: naturalHeight },
+                              ),
+                            );
+                          }}
                         />
                       </ReactCrop>
                     ) : (
@@ -722,21 +801,7 @@ export function ModelDetail({
                       type="button"
                       onClick={() => {
                         setDraftAvatarMediaId(autoAvatarItem?.id ?? null);
-                        setDraftAvatarCrop(
-                          autoAvatarItem
-                            ? profileAvatarPercentCropFromStored(
-                                {
-                                  avatarCropX: initialAvatarCropX,
-                                  avatarCropY: initialAvatarCropY,
-                                  avatarZoom: initialAvatarZoom,
-                                },
-                                {
-                                  width: autoAvatarItem.width,
-                                  height: autoAvatarItem.height,
-                                },
-                              )
-                            : undefined,
-                        );
+                        setDraftAvatarCrop(resolveAvatarCropForItem(autoAvatarItem));
                         setAvatarTab("edit");
                       }}
                       className={`flex aspect-square items-center justify-center rounded-[var(--radius-xl)] border text-[length:var(--text-caption)] transition-colors ${
@@ -747,25 +812,14 @@ export function ModelDetail({
                     >
                       Auto
                     </button>
-                    {photoMedia.map((item) => (
+                    {visibleAvatarLibraryItems.map((item) => (
                       <button
                         key={item.id}
                         type="button"
                         aria-pressed={draftAvatarMediaId === item.id}
                         onClick={() => {
                           setDraftAvatarMediaId(item.id);
-                          setDraftAvatarCrop(
-                            item.id === initialAvatarMediaId
-                              ? profileAvatarPercentCropFromStored(
-                                  {
-                                    avatarCropX: initialAvatarCropX,
-                                    avatarCropY: initialAvatarCropY,
-                                    avatarZoom: initialAvatarZoom,
-                                  },
-                                  { width: item.width, height: item.height },
-                                )
-                              : buildDefaultCrop(item.width, item.height),
-                          );
+                          setDraftAvatarCrop(resolveAvatarCropForItem(item));
                           setAvatarTab("edit");
                         }}
                         className={`aspect-square overflow-hidden rounded-[var(--radius-xl)] border transition-colors ${
@@ -783,6 +837,33 @@ export function ModelDetail({
                       </button>
                     ))}
                   </div>
+                  {avatarLibraryPages > 1 ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[length:var(--text-caption)] text-[color:var(--color-silver)]">
+                        Strana {avatarLibraryPage + 1} / {avatarLibraryPages}
+                      </span>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={avatarLibraryPage === 0}
+                          onClick={() => setAvatarLibraryPage((page) => Math.max(0, page - 1))}
+                        >
+                          Předchozí
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={avatarLibraryPage >= avatarLibraryPages - 1}
+                          onClick={() =>
+                            setAvatarLibraryPage((page) => Math.min(avatarLibraryPages - 1, page + 1))
+                          }
+                        >
+                          Další
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
                   {photoMedia.length === 0 ? (
                     <p className="text-[length:var(--text-caption)] text-[color:var(--color-ash)]">
                       Tento model zatím nemá žádnou publikovanou fotku, kterou by šlo použít jako avatar.
@@ -818,6 +899,7 @@ export function ModelDetail({
                   </p>
                 ) : null}
               </aside>
+              </div>
             </div>
 
             <div className="flex gap-2">
@@ -842,6 +924,13 @@ export function ModelDetail({
         </p>
       )}
 
+      {canUpload && uploadModel ? (
+        <ModelDetailUpload
+          model={uploadModel}
+          tagSuggestions={uploadTagSuggestions}
+        />
+      ) : null}
+
       {/* Potvrzení smazání s volbou rozsahu. */}
       {canEdit && confirmOpen && (
         <div
@@ -854,7 +943,7 @@ export function ModelDetail({
           <div
             onClick={(e) => e.stopPropagation()}
             style={{ borderColor: "color-mix(in oklab, var(--color-chalk-white) 15%, transparent)" }}
-            className="flex w-full max-w-md flex-col gap-4 rounded-[var(--radius-2xl)] border bg-[color:var(--color-deep-space)] p-6"
+            className="flex w-full max-w-md max-h-[90vh] flex-col gap-4 overflow-y-auto rounded-[var(--radius-2xl)] border bg-[color:var(--color-deep-space)] p-6"
           >
             <h2 className="text-[length:var(--text-subheading)] font-bold text-[color:var(--color-chalk-white)]">
               Smazat model „{name}&quot;?
