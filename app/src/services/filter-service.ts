@@ -62,6 +62,9 @@ export interface FilterCategoryMenu {
   readonly values: string[];
 }
 
+/** Režim filtrování napříč kategoriemi: strict AND nebo broad OR. */
+export type FilterMode = "and" | "or";
+
 // ─── Normalizace ────────────────────────────────────────────────────────────────
 
 /** Trim + lower; shodné s `normalizedValue` štítků (case-insensitive porovnání). */
@@ -86,6 +89,7 @@ export function apply<T extends FilterableMediaView>(
   selection: FilterSelection,
   pool: readonly T[],
   now: Date,
+  mode: FilterMode = "and",
 ): T[] {
   const approved = visibleMedia(pool, now);
 
@@ -102,14 +106,17 @@ export function apply<T extends FilterableMediaView>(
     ]),
   );
 
-  return approved.filter((media) =>
-    activeCategories.every((category) => {
+  return approved.filter((media) => {
+    const matchesCategory = (category: TagCategory) => {
       const selected = selectedByCategory.get(category)!;
       return media.tags.some(
         (tag) => tag.category === category && selected.has(normalizeTag(tag.value)),
       );
-    }),
-  );
+    };
+    return mode === "or"
+      ? activeCategories.some(matchesCategory)
+      : activeCategories.every(matchesCategory);
+  });
 }
 
 // ─── Nabídka filtrů ──────────────────────────────────────────────────────────────

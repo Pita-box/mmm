@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * MediaCollageCard — dlaždice pro /models a /collections.
+ * MediaCollageCard — kolážová dlaždice pro přehled médií.
  *
  * Pinterest-style collage z posledních (max 3) náhledů + název a počet médií.
  * Náhledy jdou výhradně přes proxy `/api/thumb/<token>` (R6.4); rozbitý náhled
@@ -11,9 +11,9 @@ import Link from "next/link";
 import { useState } from "react";
 
 export interface MediaCollageCardProps {
-  /** Cíl odkazu (detail modelu / kolekce). */
+  /** Cíl odkazu. */
   readonly href: string;
-  /** Název modelu / kolekce. */
+  /** Název položky. */
   readonly title: string;
   /** Počet médií. */
   readonly count: number;

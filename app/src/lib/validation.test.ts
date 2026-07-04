@@ -6,7 +6,6 @@ import {
   validateModelName,
   validateBio,
   validateNotificationText,
-  validateCollectionName,
   validateProfileField,
   isValidUrl,
 } from "./validation";
@@ -128,28 +127,6 @@ describe("validateNotificationText — délka 0/1/500/501", () => {
       validateNotificationText(
         "x".repeat(LENGTH_BOUNDS.notificationText.max + 1),
       ),
-    ).toBe(false);
-  });
-});
-
-describe("validateCollectionName — délka 1/100", () => {
-  it("odmítne prázdné (délka 0)", () => {
-    expect(validateCollectionName("")).toBe(false);
-  });
-
-  it("přijme minimální délku 1", () => {
-    expect(validateCollectionName("x")).toBe(true);
-  });
-
-  it("přijme maximální délku 100", () => {
-    expect(
-      validateCollectionName("x".repeat(LENGTH_BOUNDS.collectionName.max)),
-    ).toBe(true);
-  });
-
-  it("odmítne délku 101 (nad maximem)", () => {
-    expect(
-      validateCollectionName("x".repeat(LENGTH_BOUNDS.collectionName.max + 1)),
     ).toBe(false);
   });
 });

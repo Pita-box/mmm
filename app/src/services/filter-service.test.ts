@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   apply,
   buildFilterMenu,
+  type FilterMode,
   type FilterableMediaView,
   type MediaTagView,
   type TagValueView,
@@ -75,6 +76,19 @@ describe("apply", () => {
       NOW,
     );
     expect(result).toEqual([match]);
+  });
+
+  it("supports OR across categories when requested", () => {
+    const matchHair = approved([{ category: "Hair color", value: "blonde" }]);
+    const matchClothes = approved([{ category: "Clothes", value: "dress" }]);
+    const noMatch = approved([{ category: "Body type", value: "athletic" }]);
+    const result = apply(
+      { "Hair color": ["blonde"], Clothes: ["dress"] },
+      [matchHair, matchClothes, noMatch],
+      NOW,
+      "or" satisfies FilterMode,
+    );
+    expect(result).toEqual([matchHair, matchClothes]);
   });
 
   it("matches values case- and whitespace-insensitively", () => {

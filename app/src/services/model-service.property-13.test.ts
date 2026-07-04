@@ -33,7 +33,12 @@ function createFakePrisma(): PrismaClient {
         id: `m${++seq}`,
         name: data.name,
         bio: data.bio,
+        coverMediaId: null,
+        coverFocusY: null,
         profileMediaId: null,
+        avatarCropX: null,
+        avatarCropY: null,
+        avatarZoom: null,
         createdAt: new Date(),
       };
       store.set(profile.id, { ...profile });

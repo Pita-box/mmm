@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "postinstall": "prisma generate",
     "lint": "next lint",
     "test": "vitest --run",
     "test:ci": "PBT_FULL=1 vitest --run",
@@ -22,7 +23,8 @@
     "next": "^15.1.6",
     "prisma": "6.19.3",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-image-crop": "^11.1.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

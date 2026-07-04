@@ -223,6 +223,7 @@ export function PreviewFeed({
 
       <MediaLightbox
         item={selected}
+        sequence={media}
         onClose={() => setSelected(null)}
         canEdit={canUpload}
         models={models}

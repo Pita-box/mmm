@@ -24,7 +24,6 @@ export interface SectionVisibility {
 export const MANAGEABLE_SECTIONS: readonly Omit<SectionVisibility, "hidden">[] = [
   { sectionKey: "search", label: "Search" },
   { sectionKey: "models", label: "Models" },
-  { sectionKey: "collections", label: "Collections" },
   { sectionKey: "settings", label: "Settings" },
 ] as const;
 

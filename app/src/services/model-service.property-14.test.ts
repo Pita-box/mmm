@@ -46,7 +46,12 @@ function makeFakePrisma(seed: ModelProfile[] = []): FakePrisma {
           id: `gen-${nextId++}`,
           name: data.name,
           bio: data.bio,
+          coverMediaId: null,
+          coverFocusY: null,
           profileMediaId: null,
+          avatarCropX: null,
+          avatarCropY: null,
+          avatarZoom: null,
           createdAt: new Date("2025-01-01T00:00:00Z"),
         };
         store.push(created);
@@ -131,7 +136,12 @@ describe("Property 14: Neplatný vstup profilu zachová původní stav", () => {
             id: "p-1",
             name: origName,
             bio: origBio,
+            coverMediaId: null,
+            coverFocusY: null,
             profileMediaId: null,
+            avatarCropX: null,
+            avatarCropY: null,
+            avatarZoom: null,
             createdAt: new Date("2025-01-01T00:00:00Z"),
           };
           const prisma = makeFakePrisma([original]);

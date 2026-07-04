@@ -12,7 +12,7 @@
  * jako ambient pozadí, zavírací „X" vlevo nahoře. Zavírá Esc / klik na pozadí /
  * tlačítko; po dobu otevření zamkne scroll. Stav (které médium) drží rodič.
  */
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { X, Trash2, EyeOff, Pencil, Share2, ChevronLeft, ChevronRight, ImagePlus } from "lucide-react";
 import type { MediaCardItem } from "./MediaCard";
 import { MediaPlayer } from "./MediaPlayer";
@@ -30,6 +30,10 @@ import {
   uploadPosterAction,
   setMediaPosterAction,
 } from "@/app/(app)/admin/admin-actions";
+import {
+  issueStreamingUrlAction,
+  issueStreamingUrlsAction,
+} from "@/app/(app)/media-actions";
 import { DRIVE_DOMAINS } from "@/lib/drive-domains";
 
 export interface MediaLightboxProps {
@@ -45,6 +49,8 @@ export interface MediaLightboxProps {
   /** Navigace na předchozí/další médium (undefined = na kraji / nedostupné). */
   readonly onPrev?: () => void;
   readonly onNext?: () => void;
+  /** Celé pořadí médií pro preload následujících fotek. */
+  readonly sequence?: readonly MediaCardItem[];
 }
 
 /** Velikostní limit média ve viewportu (fit) — výška i šířka. */
@@ -64,11 +70,17 @@ export function MediaLightbox({
   tagSuggestions = {},
   onPrev,
   onNext,
+  sequence = [],
 }: MediaLightboxProps) {
   const [pending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [genLoading, setGenLoading] = useState(false);
+  const [streamUrl, setStreamUrl] = useState("");
+  const [imageLoading, setImageLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const refreshSeq = useRef(0);
+  const preloadedUrls = useRef(new Map<string, string>());
 
   useEffect(() => {
     if (!item) return;
@@ -91,12 +103,98 @@ export function MediaLightbox({
     setEditOpen(false);
   }, [item?.id]);
 
+  useEffect(() => {
+    const cachedUrl = item?.id ? preloadedUrls.current.get(item.id) : undefined;
+    setStreamUrl(cachedUrl ?? item?.thumbnailUrl ?? "");
+    setImageLoading(item?.mediaType === "photo");
+    setLoadFailed(false);
+  }, [item?.id, item?.thumbnailUrl, item?.mediaType]);
+
+  const selectedMediaId = item?.id;
+  const selectedMediaType = item?.mediaType;
+
+  useEffect(() => {
+    if (!selectedMediaId) return;
+    let active = true;
+    const seq = ++refreshSeq.current;
+
+    void issueStreamingUrlAction(selectedMediaId).then((res) => {
+      if (!active || refreshSeq.current !== seq || !res.ok || !res.url) return;
+      setStreamUrl(res.url);
+      setImageLoading(selectedMediaType === "photo");
+      setLoadFailed(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedMediaId, selectedMediaType]);
+
+  useEffect(() => {
+    if (!selectedMediaId || sequence.length === 0) return;
+    const currentIndex = sequence.findIndex((entry) => entry.id === selectedMediaId);
+    if (currentIndex < 0) return;
+
+    const nextPhotoIds = sequence
+      .slice(currentIndex + 1)
+      .filter((entry) => entry.mediaType === "photo")
+      .map((entry) => entry.id)
+      .filter((id) => !preloadedUrls.current.has(id))
+      .slice(0, 3);
+
+    if (nextPhotoIds.length === 0) return;
+
+    let active = true;
+    void issueStreamingUrlsAction(nextPhotoIds).then((res) => {
+      if (!active || !res.ok || !res.urls) return;
+      for (const [mediaId, preloadUrl] of Object.entries(res.urls)) {
+        preloadedUrls.current.set(mediaId, preloadUrl);
+        const probe = new Image();
+        probe.decoding = "async";
+        probe.src = preloadUrl;
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedMediaId, sequence]);
+
   if (!item) return null;
 
-  const url = item.thumbnailUrl ?? "";
+  const mediaId = item.id;
+  const url = streamUrl;
   const safe = url.length > 0 && !isDriveLink(url);
   const isVideo = item.mediaType === "video";
   const mediaShadow = { boxShadow: "0 10px 50px rgba(0, 0, 0, 0.6)" };
+  const imageAspectRatio =
+    item.width > 0 && item.height > 0 ? `${item.width} / ${item.height}` : "1 / 1";
+
+  const refreshStreamUrl = () => {
+    const seq = ++refreshSeq.current;
+    setImageLoading(!isVideo);
+    return issueStreamingUrlAction(mediaId).then((res) => {
+      if (refreshSeq.current !== seq || !res.ok || !res.url) {
+        setImageLoading(false);
+        return false;
+      }
+      setStreamUrl(res.url);
+      setLoadFailed(false);
+      return true;
+    });
+  };
+
+  const handleImageError = () => {
+    if (loadFailed) {
+      setImageLoading(false);
+      setToast("Médium se nepodařilo načíst. Zkuste to znovu.");
+      return;
+    }
+    setLoadFailed(true);
+    void refreshStreamUrl().then((ok) => {
+      if (!ok) setToast("Médium se nepodařilo načíst. Zkuste to znovu.");
+    });
+  };
 
   const runAction = (action: () => Promise<{ ok: boolean; message?: string }>) => {
     startTransition(async () => {
@@ -111,7 +209,7 @@ export function MediaLightbox({
       return;
     }
     startTransition(async () => {
-      const res = await deleteMediaAction(item.id);
+      const res = await deleteMediaAction(mediaId);
       if (!res.ok) setToast(res.message ?? "Smazání selhalo.");
       else onClose();
     });
@@ -124,9 +222,9 @@ export function MediaLightbox({
     try {
       const blob = await captureVideoPoster(url);
       const base64 = await blobToBase64(blob);
-      const up = await uploadPosterAction(base64, `${item.id}.poster.jpg`);
+      const up = await uploadPosterAction(base64, `${mediaId}.poster.jpg`);
       if (!up.ok || !up.driveFileId) throw new Error(up.message ?? "Nahrání náhledu selhalo.");
-      const set = await setMediaPosterAction(item.id, up.driveFileId);
+      const set = await setMediaPosterAction(mediaId, up.driveFileId);
       if (!set.ok) throw new Error(set.message ?? "Uložení náhledu selhalo.");
       setToast("Náhled vygenerován.");
     } catch (e) {
@@ -137,7 +235,7 @@ export function MediaLightbox({
   };
 
   const handleShare = () => {
-    const shareUrl = `${window.location.origin}/?m=${item.id}`;
+    const shareUrl = `${window.location.origin}/?m=${mediaId}`;
     navigator.clipboard
       ?.writeText(shareUrl)
       .then(() => setToast("Link is copied! Ready to share."))
@@ -230,7 +328,14 @@ export function MediaLightbox({
         onClick={(event) => event.stopPropagation()}
         className="relative z-[1] flex items-center justify-center"
       >
-        {!safe ? (
+        {!safe && imageLoading && !isVideo ? (
+          <div className="flex items-center justify-center rounded-2xl bg-[color:var(--color-deep-space)] px-10 py-10">
+            <span
+              aria-label="Načítání média"
+              className="h-10 w-10 animate-spin rounded-full border-2 border-[color:var(--color-chalk-white)]/25 border-t-[color:var(--color-netflix-red)]"
+            />
+          </div>
+        ) : !safe ? (
           <p className="rounded-2xl bg-[color:var(--color-graphite)] px-6 py-4 text-[length:var(--text-body)] text-[color:var(--color-silver)]">
             Médium nelze zobrazit.
           </p>
@@ -242,15 +347,44 @@ export function MediaLightbox({
             className={FIT}
           />
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element -- proxy Streaming_URL, ne next/image
-          <img
-            src={url}
-            alt=""
-            draggable={false}
-            onContextMenu={(event) => event.preventDefault()}
-            style={mediaShadow}
-            className={`${FIT} rounded-2xl object-contain`}
-          />
+          <div className="relative">
+            <div
+              style={
+                imageLoading
+                  ? {
+                      aspectRatio: imageAspectRatio,
+                      maxWidth: "92vw",
+                      maxHeight: "88vh",
+                      ...mediaShadow,
+                    }
+                  : mediaShadow
+              }
+              className={`relative overflow-hidden rounded-2xl bg-[color:var(--color-deep-space)] ${
+                imageLoading ? "h-auto w-[min(92vw,88vh)]" : "inline-flex"
+              }`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- proxy Streaming_URL, ne next/image */}
+              <img
+                src={url}
+                alt=""
+                draggable={false}
+                onLoad={() => setImageLoading(false)}
+                onError={handleImageError}
+                onContextMenu={(event) => event.preventDefault()}
+                className={`${FIT} h-auto w-auto object-contain transition-opacity duration-200 ${
+                  imageLoading ? "opacity-0" : "opacity-100"
+                }`}
+              />
+            </div>
+            {imageLoading ? (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-[color:var(--color-deep-space)]/45 backdrop-blur-sm">
+                <span
+                  aria-label="Načítání média"
+                  className="h-10 w-10 animate-spin rounded-full border-2 border-[color:var(--color-chalk-white)]/25 border-t-[color:var(--color-netflix-red)]"
+                />
+              </div>
+            ) : null}
+          </div>
         )}
       </div>
 
@@ -317,7 +451,7 @@ export function MediaLightbox({
           className="absolute right-4 top-1/2 z-20 flex h-[80svh] w-[92vw] -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-2xl border bg-[color:var(--color-deep-space)]/70 p-5 backdrop-blur-md sm:w-[420px] lg:w-[30svw] lg:min-w-[440px]"
         >
           <MediaEditPanel
-            mediaId={item.id}
+            mediaId={mediaId}
             currentModelId={item.modelId}
             models={models}
             tags={item.editTags ?? []}
@@ -333,7 +467,7 @@ export function MediaLightbox({
             type="button"
             variant="secondary"
             disabled={pending}
-            onClick={() => runAction(() => setMediaPublishedAction(item.id, false))}
+            onClick={() => runAction(() => setMediaPublishedAction(mediaId, false))}
           >
             <EyeOff aria-hidden size={14} />
             Skrýt

@@ -71,6 +71,21 @@ body {
   font-family: var(--font-netflix-sans);
 }
 
+.avatar-crop {
+  width: 100%;
+  max-height: 520px;
+}
+
+.avatar-crop .ReactCrop__crop-selection {
+  border-radius: 28px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+}
+
+.avatar-crop .ReactCrop__drag-handle {
+  background-color: var(--color-chalk-white);
+  border: 1px solid var(--color-deep-space);
+}
+
 /* Vstupní animace toast oznámení (pravý dolní roh). */
 @keyframes toast-in {
   from {

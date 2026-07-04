@@ -19,14 +19,20 @@ import { driveStorage } from "@/lib/drive";
 import { FIXED_CATEGORIES, type TagCategory } from "@/lib/domain";
 import type { AccountStatus, Role } from "@/lib/domain";
 import { canDeleteMedia } from "@/lib/permissions";
+import { normalizeStoredProfileAvatarCrop } from "@/lib/profile-avatar";
 import {
   createMediaService,
   classifyType,
+  isApproved,
 } from "@/services/media-service";
 import { createTagService } from "@/services/tag-service";
-import { modelService } from "@/services/model-service";
+import { modelService, validateProfileInput } from "@/services/model-service";
 import { pageVisibilityService } from "@/services/page-visibility-service";
 import { notificationService } from "@/services/notification-service";
+import {
+  buildTelegramUploadCaption,
+  createTelegramBroadcastService,
+} from "@/services/telegram-broadcast-service";
 
 /** Sjednocený výsledek admin akce pro UI (úspěch / chybová hláška). */
 export interface ActionResult {
@@ -35,6 +41,11 @@ export interface ActionResult {
 }
 
 const OK: ActionResult = { ok: true };
+
+function clampPercent(value: number, fallback = 50): number {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.min(100, Math.max(0, value));
+}
 
 /** Interní signál pro rollback uploadu uvnitř transakce (nese hlášku pro UI). */
 class UploadAbort extends Error {}
@@ -60,17 +71,127 @@ export async function createModelProfileAction(values: {
 /** Editace profilu modelu (jméno + bio). Uploader (Admin i Distributor). */
 export async function updateModelProfileAction(
   modelId: string,
-  values: { name: string; bio: string },
+  values: {
+    name: string;
+    bio: string;
+    coverMediaId?: string | null;
+    coverFocusY?: number | null;
+    profileMediaId?: string | null;
+    avatarCropX?: number | null;
+    avatarCropY?: number | null;
+    avatarZoom?: number | null;
+  },
 ): Promise<ActionResult> {
   await requireUploader();
-  const result = await modelService.updateProfile(modelId, {
-    name: values.name,
-    bio: values.bio,
+  const validated = validateProfileInput({ name: values.name, bio: values.bio });
+  if (isErr(validated)) return { ok: false, message: validated.error.message };
+
+  const profile = await prisma.modelProfile.findUnique({
+    where: { id: modelId },
+    select: {
+      id: true,
+      coverMediaId: true,
+      coverFocusY: true,
+      profileMediaId: true,
+      avatarCropX: true,
+      avatarCropY: true,
+      avatarZoom: true,
+    },
   });
-  if (isErr(result)) return { ok: false, message: result.error.message };
+  if (!profile) return { ok: false, message: "Profil modelu nebyl nalezen." };
+
+  const hasCoverUpdate = "coverMediaId" in values || "coverFocusY" in values;
+  const hasAvatarUpdate =
+    "profileMediaId" in values ||
+    "avatarCropX" in values ||
+    "avatarCropY" in values ||
+    "avatarZoom" in values;
+
+  let coverMediaId = profile.coverMediaId;
+  let coverFocusY = profile.coverFocusY;
+  if (hasCoverUpdate) {
+    coverMediaId =
+      typeof values.coverMediaId === "string" && values.coverMediaId.trim().length > 0
+        ? values.coverMediaId
+        : null;
+    if (coverMediaId) {
+      const now = new Date();
+      const media = await prisma.mediaItem.findFirst({
+        where: {
+          id: coverMediaId,
+          modelId,
+          mediaType: "photo",
+          status: "published",
+          publishAt: { lte: now },
+        },
+        select: { id: true },
+      });
+      if (!media) {
+        return {
+          ok: false,
+          message: "Cover fotka musí vycházet z publikované fotky přiřazené k tomuto modelu.",
+        };
+      }
+      coverFocusY = clampPercent(values.coverFocusY ?? 50);
+    } else {
+      coverFocusY = null;
+    }
+  }
+
+  let profileMediaId = profile.profileMediaId;
+  let crop = {
+    avatarCropX: profile.avatarCropX,
+    avatarCropY: profile.avatarCropY,
+    avatarZoom: profile.avatarZoom,
+  };
+  if (hasAvatarUpdate) {
+    profileMediaId =
+      typeof values.profileMediaId === "string" && values.profileMediaId.trim().length > 0
+        ? values.profileMediaId
+        : null;
+    let profileMediaMetrics: { width: number; height: number } | null = null;
+    if (profileMediaId) {
+      const now = new Date();
+      const media = await prisma.mediaItem.findFirst({
+        where: {
+          id: profileMediaId,
+          modelId,
+          mediaType: "photo",
+          status: "published",
+          publishAt: { lte: now },
+        },
+        select: { id: true, width: true, height: true },
+      });
+      if (!media) {
+        return {
+          ok: false,
+          message: "Profilový avatar musí vycházet z publikované fotky přiřazené k tomuto modelu.",
+        };
+      }
+      profileMediaMetrics = { width: media.width, height: media.height };
+    }
+    crop = profileMediaMetrics
+      ? normalizeStoredProfileAvatarCrop(values, profileMediaMetrics)
+      : { avatarCropX: null, avatarCropY: null, avatarZoom: null };
+  }
+
+  await prisma.modelProfile.update({
+    where: { id: modelId },
+    data: {
+      name: values.name,
+      bio: values.bio,
+      coverMediaId,
+      coverFocusY,
+      profileMediaId,
+      avatarCropX: crop.avatarCropX,
+      avatarCropY: crop.avatarCropY,
+      avatarZoom: crop.avatarZoom,
+    },
+  });
   revalidatePath("/admin/models");
   revalidatePath("/models");
   revalidatePath(`/models/${modelId}`);
+  revalidatePath("/search");
   return OK;
 }
 
@@ -149,12 +270,25 @@ interface PersistMediaInput {
   readonly publish?: boolean;
 }
 
+interface PersistMediaResult extends ActionResult {
+  readonly mediaId?: string;
+}
+
+const telegramBroadcastService = createTelegramBroadcastService({
+  storage: driveStorage,
+  config: {
+    botToken: process.env.MMM_TELEGRAM_BOT_TOKEN,
+    chatId: process.env.MMM_TELEGRAM_CHAT_ID,
+  },
+});
+
 /**
  * Sdílené uložení Media_Item + štítků v jedné transakci; při selhání rollback +
  * kompenzační smazání souboru z Drive (žádný osiřelý záznam ani soubor, R5.4/5.6).
  * Používá ji upload wizard při finalizaci souborů, které už jsou na Drive.
  */
-async function persistMediaWithTags(input: PersistMediaInput): Promise<ActionResult> {
+async function persistMediaWithTags(input: PersistMediaInput): Promise<PersistMediaResult> {
+  let createdMediaId: string | undefined;
   try {
     await prisma.$transaction(async (tx) => {
       const txClient = tx as unknown as PrismaClient;
@@ -173,6 +307,7 @@ async function persistMediaWithTags(input: PersistMediaInput): Promise<ActionRes
         posterDriveFileId: input.posterDriveFileId ?? null,
       });
       if (isErr(created)) throw new UploadAbort(created.error.message);
+      createdMediaId = created.value.id;
 
       // Wizard „uložit skryté" (plán 012): médium vznikne, ale skryjeme ho.
       if (input.publish === false) {
@@ -205,7 +340,58 @@ async function persistMediaWithTags(input: PersistMediaInput): Promise<ActionRes
 
   revalidatePath("/admin/media");
   revalidatePath("/");
+  return { ok: true, mediaId: createdMediaId };
+}
+
+async function notifyTelegramAboutUpload(input: {
+  readonly driveFileId: string;
+  readonly mimeType: string;
+  readonly modelId: string | null;
+}): Promise<ActionResult> {
+  const model = input.modelId
+    ? await prisma.modelProfile.findUnique({
+        where: { id: input.modelId },
+        select: { name: true },
+      })
+    : null;
+  const sent = await telegramBroadcastService.sendMedia({
+    driveFileId: input.driveFileId,
+    mimeType: input.mimeType,
+    caption: buildTelegramUploadCaption({
+      mimeType: input.mimeType,
+      modelName: model?.name,
+    }),
+  });
+  if (isErr(sent)) {
+    return {
+      ok: false,
+      message: sent.error.message,
+    };
+  }
   return OK;
+}
+
+async function notifyTelegramAboutUploads(
+  items: readonly {
+    driveFileId: string;
+    mimeType: string;
+    modelId: string | null;
+  }[],
+): Promise<{ failed: number; lastError?: string }> {
+  let failed = 0;
+  let lastError: string | undefined;
+  for (const item of items) {
+    const telegram = await notifyTelegramAboutUpload(item);
+    if (!telegram.ok) {
+      failed++;
+      lastError = telegram.message;
+      console.error("Telegram broadcast failed for upload", {
+        driveFileId: item.driveFileId,
+        message: telegram.message,
+      });
+    }
+  }
+  return { failed, lastError };
 }
 
 // ─── Import z Google Drive (plán 007) ────────────────────────────────────────
@@ -224,6 +410,10 @@ export async function importFromDriveAction(): Promise<ActionResult> {
   }
   const listed = await driveStorage.listFiles(folderId);
   if (isErr(listed)) return { ok: false, message: listed.error.message };
+  const importStartedAt = new Date();
+  const importableDriveFileIds = listed.value
+    .filter((f) => classifyType(f.mimeType) !== null)
+    .map((f) => f.driveFileId);
 
   const service = createMediaService(prisma);
   const imported = await service.importFromDrive(listed.value, principal.userId);
@@ -236,11 +426,30 @@ export async function importFromDriveAction(): Promise<ActionResult> {
   );
   if (isErr(removed)) return { ok: false, message: removed.error.message };
 
+  let telegramFailed = 0;
+  let telegramError: string | undefined;
+  if (imported.value.imported > 0 && importableDriveFileIds.length > 0) {
+    const newRows = await prisma.mediaItem.findMany({
+      where: {
+        driveFileId: { in: importableDriveFileIds },
+        createdAt: { gte: importStartedAt },
+        status: "published",
+      },
+      select: { driveFileId: true, mimeType: true, modelId: true },
+    });
+    const telegram = await notifyTelegramAboutUploads(newRows);
+    telegramFailed = telegram.failed;
+    telegramError = telegram.lastError;
+  }
+
   revalidatePath("/admin/media");
   revalidatePath("/");
   return {
     ok: true,
-    message: `Naimportováno ${imported.value.imported}, přeskočeno ${imported.value.skipped}, odebráno ${removed.value.removed}.`,
+    message:
+      telegramFailed > 0
+        ? `Naimportováno ${imported.value.imported}, přeskočeno ${imported.value.skipped}, odebráno ${removed.value.removed}. Telegram neodeslal ${telegramFailed} položek. ${telegramError ?? ""}`.trim()
+        : `Naimportováno ${imported.value.imported}, přeskočeno ${imported.value.skipped}, odebráno ${removed.value.removed}.`,
   };
 }
 
@@ -255,8 +464,39 @@ export async function setMediaPublishedAction(
   await requireUploader();
   const service = createMediaService(prisma);
   if (published) {
-    const res = await service.publishNow(mediaId);
+    const now = new Date();
+    const before = await prisma.mediaItem.findUnique({
+      where: { id: mediaId },
+      select: {
+        driveFileId: true,
+        mimeType: true,
+        modelId: true,
+        status: true,
+        publishAt: true,
+      },
+    });
+    const res = await service.publishNow(mediaId, now);
     if (isErr(res)) return { ok: false, message: res.error.message };
+    if (before && !isApproved(before, now)) {
+      const telegram = await notifyTelegramAboutUpload({
+        driveFileId: before.driveFileId,
+        mimeType: before.mimeType,
+        modelId: before.modelId,
+      });
+      if (!telegram.ok) {
+        console.error("Telegram broadcast failed for manual publish", {
+          mediaId,
+          driveFileId: before.driveFileId,
+          message: telegram.message,
+        });
+        revalidatePath("/admin/media");
+        revalidatePath("/");
+        return {
+          ok: true,
+          message: `Médium bylo publikováno, ale Telegram oznámení selhalo. ${telegram.message ?? ""}`.trim(),
+        };
+      }
+    }
   } else {
     const res = await service.hide(mediaId);
     if (isErr(res)) return { ok: false, message: res.error.message };
@@ -383,7 +623,9 @@ export async function finalizeUploadsAction(
   const principal = await requireUploader();
   let created = 0;
   let failed = 0;
+  let telegramFailed = 0;
   let lastError: string | undefined;
+  let lastTelegramError: string | undefined;
   for (const item of items) {
     if (classifyType(item.mimeType) === null) {
       failed++;
@@ -401,7 +643,24 @@ export async function finalizeUploadsAction(
       posterDriveFileId: item.posterDriveFileId ?? null,
       publish,
     });
-    if (res.ok) created++;
+    if (res.ok) {
+      created++;
+      if (publish) {
+        const telegram = await notifyTelegramAboutUpload({
+          driveFileId: item.driveFileId,
+          mimeType: item.mimeType,
+          modelId: item.modelId,
+        });
+        if (!telegram.ok) {
+          telegramFailed++;
+          lastTelegramError = telegram.message;
+          console.error("Telegram broadcast failed for upload", {
+            driveFileId: item.driveFileId,
+            message: telegram.message,
+          });
+        }
+      }
+    }
     else {
       failed++;
       lastError = res.message;
@@ -413,7 +672,12 @@ export async function finalizeUploadsAction(
     ok: failed === 0,
     created,
     failed,
-    message: failed > 0 ? `Vytvořeno ${created}, selhalo ${failed}. ${lastError ?? ""}`.trim() : undefined,
+    message:
+      failed > 0
+        ? `Vytvořeno ${created}, selhalo ${failed}. ${lastError ?? ""}`.trim()
+        : telegramFailed > 0
+          ? `Vytvořeno ${created}. Telegram neodeslal ${telegramFailed} položek. ${lastTelegramError ?? ""}`.trim()
+          : undefined,
   };
 }
 

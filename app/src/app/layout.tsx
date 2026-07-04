@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import "react-image-crop/dist/ReactCrop.css";
 import "./globals.css";
 
 const inter = Inter({

@@ -9,22 +9,17 @@ import type { MediaError } from "@/lib/errors";
  *
  * Pokrývají EXAMPLE/EDGE kritéria, která property testy (7.2–7.7) neřeší:
  *  - ruční publikace povýší naplánované médium na publikované (R8.3),
- *  - smazání je trvalé (hard-delete) a uklidí členství v kolekcích (R9.4),
+ *  - smazání je trvalé (hard-delete) a odstraní záznam média (R9.4),
  *  - operace nad neexistujícím id vrací chybu `not_found` (R9.5).
  *
  * Místo běžící databáze používáme ručně psaný in-memory fake PrismaClient
  * (fake, nikoli mock — drží reálné záznamy a vynucuje stejné chování jako DB
  * pro použité metody). Drží se konvence repozitáře (viz InMemoryAuthRepository).
  * Implementuje pouze metody, které Media_Service skutečně volá:
- * mediaItem.{findUnique,create,update,delete}, collectionItem.deleteMany, $transaction.
+ * mediaItem.{findUnique,create,update,delete}.
  */
 
 // ─── Ručně psaný in-memory fake PrismaClient ─────────────────────────────────
-
-interface CollectionItemRow {
-  collectionId: string;
-  mediaId: string;
-}
 
 /** Sestaví MediaItem se sensible defaulty; přepíše pole z `over`. */
 function makeMediaRow(over: Partial<MediaItem> & { id: string }): MediaItem {
@@ -48,7 +43,6 @@ function makeMediaRow(over: Partial<MediaItem> & { id: string }): MediaItem {
 
 class FakePrisma {
   private readonly media = new Map<string, MediaItem>();
-  private collectionItems: CollectionItemRow[] = [];
   private seq = 0;
 
   /** Testovací seed — vloží médium přímo do úložiště. */
@@ -56,22 +50,9 @@ class FakePrisma {
     this.media.set(row.id, makeMediaRow(row));
   }
 
-  /** Testovací seed — vloží vazbu kolekce↔médium. */
-  seedCollectionItem(row: CollectionItemRow): void {
-    this.collectionItems.push(row);
-  }
-
   /** Introspekce pro asserty. */
   hasMedia(id: string): boolean {
     return this.media.has(id);
-  }
-
-  collectionItemsFor(mediaId: string): CollectionItemRow[] {
-    return this.collectionItems.filter((c) => c.mediaId === mediaId);
-  }
-
-  get allCollectionItems(): readonly CollectionItemRow[] {
-    return this.collectionItems;
   }
 
   readonly mediaItem = {
@@ -107,22 +88,6 @@ class FakePrisma {
       return existing;
     },
   };
-
-  readonly collectionItem = {
-    deleteMany: async ({ where }: { where: { mediaId: string } }): Promise<{ count: number }> => {
-      const before = this.collectionItems.length;
-      this.collectionItems = this.collectionItems.filter((c) => c.mediaId !== where.mediaId);
-      return { count: before - this.collectionItems.length };
-    },
-  };
-
-  /**
-   * Media_Service předává pole již zavolaných Promisů (operace se spustí při
-   * jejich vytvoření); $transaction je jen sekvenčně/atomicky odčeká.
-   */
-  async $transaction<T>(operations: readonly Promise<T>[]): Promise<T[]> {
-    return Promise.all(operations);
-  }
 }
 
 function makeService() {
@@ -163,27 +128,19 @@ describe("publishNow — ruční publikace (R8.3)", () => {
   });
 });
 
-// ─── R9.4 — smazání je trvalé a uklidí kolekce ───────────────────────────────
+// ─── R9.4 — smazání je trvalé ────────────────────────────────────────────────
 
-describe("delete — trvalé smazání + úklid kolekcí (R9.4)", () => {
-  it("odstraní záznam i jeho členství ve všech kolekcích, ostatní vazby ponechá", async () => {
+describe("delete — trvalé smazání (R9.4)", () => {
+  it("odstraní záznam média a ostatní média ponechá", async () => {
     const { prisma, svc } = makeService();
     prisma.seedMedia({ id: "m1", status: "published", publishAt: NOW });
     prisma.seedMedia({ id: "m2", status: "published", publishAt: NOW });
-    prisma.seedCollectionItem({ collectionId: "c1", mediaId: "m1" });
-    prisma.seedCollectionItem({ collectionId: "c2", mediaId: "m1" });
-    prisma.seedCollectionItem({ collectionId: "c1", mediaId: "m2" });
 
     const result = await svc.delete("m1");
 
     expect(isOk(result)).toBe(true);
-    // Hard-delete: záznam už v úložišti není.
     expect(prisma.hasMedia("m1")).toBe(false);
-    // Úklid: žádná vazba na smazané médium nezůstala.
-    expect(prisma.collectionItemsFor("m1")).toHaveLength(0);
-    // Vazby ostatních médií zůstaly nedotčené.
-    expect(prisma.collectionItemsFor("m2")).toHaveLength(1);
-    expect(prisma.allCollectionItems).toHaveLength(1);
+    expect(prisma.hasMedia("m2")).toBe(true);
   });
 
   it("hide nesmaže médium, jen změní stav", async () => {

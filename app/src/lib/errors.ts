@@ -66,14 +66,6 @@ export type ModelError =
   | ValidationError
   | { readonly code: "not_found"; readonly message: string };
 
-/** Chyby Collection_Service (R14). */
-export type CollectionError =
-  | ValidationError
-  | { readonly code: "not_found"; readonly message: string }
-  | { readonly code: "forbidden"; readonly message: string }
-  | { readonly code: "media_not_approved"; readonly message: string }
-  | { readonly code: "item_not_in_collection"; readonly message: string };
-
 /** Chyby Notification_Service (R17.3). */
 export type NotificationError = ValidationError;
 

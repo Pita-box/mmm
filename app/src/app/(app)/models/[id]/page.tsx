@@ -13,7 +13,7 @@ import { isErr, isOk } from "@/lib/result";
 import { requireSession } from "@/lib/session";
 import { requireVisibleSection } from "@/lib/section-visibility";
 import { membershipGate } from "@/lib/membership-gate";
-import { toCardItem } from "@/lib/media-presentation";
+import { thumbUrlFor, toCardItem } from "@/lib/media-presentation";
 import {
   updateModelProfileAction,
   deleteModelProfileAction,
@@ -63,13 +63,39 @@ export default async function ModelDetailPage({
   });
   const tags = tagRows.map((t) => t.value);
 
-  // Banner = nejnovější náhled, avatar = druhý (nebo stejný) pro vizuální odlišení.
-  const coverUrl = media[0]?.posterUrl;
-  const avatarUrl = media[1]?.posterUrl ?? media[0]?.posterUrl;
+  const photoMedia = media.filter(
+    (item) => item.mediaType === "photo" && typeof item.posterUrl === "string",
+  );
+  const autoCoverItem = photoMedia[0];
+  const currentCoverItem = profile.value.coverMediaId
+    ? photoMedia.find((item) => item.id === profile.value.coverMediaId)
+    : autoCoverItem;
+  const autoAvatarItem = photoMedia[1] ?? photoMedia[0];
+  const currentAvatarItem = profile.value.profileMediaId
+    ? photoMedia.find((item) => item.id === profile.value.profileMediaId)
+    : autoAvatarItem;
+  const coverUrl = currentCoverItem?.posterUrl ?? media[0]?.posterUrl;
+  const avatarUrl = currentAvatarItem?.posterUrl
+    ?? (
+      profile.value.profileMediaId
+        ? thumbUrlFor(profile.value.profileMediaId, principal.userId, now)
+        : undefined
+    )
+    ?? media[1]?.posterUrl
+    ?? media[0]?.posterUrl;
 
   const canEdit = principal.role === "Admin";
 
-  async function onUpdate(values: { name: string; bio: string }) {
+  async function onUpdate(values: {
+    name: string;
+    bio: string;
+    coverMediaId?: string | null;
+    coverFocusY?: number | null;
+    profileMediaId?: string | null;
+    avatarCropX?: number | null;
+    avatarCropY?: number | null;
+    avatarZoom?: number | null;
+  }) {
     "use server";
     return updateModelProfileAction(id, values);
   }
@@ -85,6 +111,12 @@ export default async function ModelDetailPage({
       bio={profile.value.bio ?? ""}
       coverUrl={coverUrl}
       avatarUrl={avatarUrl}
+      initialCoverMediaId={profile.value.coverMediaId}
+      initialCoverFocusY={profile.value.coverFocusY}
+      initialAvatarMediaId={profile.value.profileMediaId}
+      initialAvatarCropX={profile.value.avatarCropX}
+      initialAvatarCropY={profile.value.avatarCropY}
+      initialAvatarZoom={profile.value.avatarZoom}
       tags={tags}
       media={media}
       canEdit={canEdit}

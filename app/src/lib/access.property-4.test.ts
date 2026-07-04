@@ -18,7 +18,7 @@ import type { AccountStatus, Role } from "./domain";
 // Validates: Requirements 1.6, 15.3, 15.4
 
 /** Chráněné, neveřejné, ne-admin a ne-API stránkové cesty bez klíče skryté sekce. */
-const PROTECTED_PAGE_PATHS = ["/", "/search", "/models", "/settings", "/collections"];
+const PROTECTED_PAGE_PATHS = ["/", "/search", "/models", "/settings"];
 
 const NOW = new Date("2026-06-22T12:00:00.000Z");
 

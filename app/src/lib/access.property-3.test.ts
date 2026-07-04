@@ -44,8 +44,8 @@ const adminPathArb: fc.Arbitrary<string> = fc.oneof(
 /** Neadministrátorské chráněné cesty (ne veřejné, ne /admin, ne API admin). */
 const nonAdminProtectedPathArb: fc.Arbitrary<string> = fc.oneof(
   fc.constant("/"),
-  fc.constantFrom("/models", "/search", "/collections", "/settings"),
-  fc.constantFrom("models", "search", "collections", "settings").chain((base) =>
+  fc.constantFrom("/models", "/search", "/settings"),
+  fc.constantFrom("models", "search", "settings").chain((base) =>
     segmentArb.map((s) => `/${base}/${s}`),
   ),
   fc.constantFrom("api/media", "api/filter").chain((base) =>

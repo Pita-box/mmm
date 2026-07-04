@@ -67,9 +67,8 @@ model User {
   lockedUntil         DateTime?
   createdAt           DateTime           @default(now())
 
-  sessions     Session[]
-  collections  Collection[]
-  subscription Subscription?
+  sessions      Session[]
+  subscription  Subscription?
   uploadedMedia MediaItem[]  @relation("UploadedMedia")
 }
 
@@ -90,7 +89,18 @@ model ModelProfile {
   id             String   @id @default(uuid())
   name           String
   bio            String?
+  /// Vybraná cover fotka modelu (zdroj hero banneru); musí být jednou z jeho fotek.
+  coverMediaId   String?
+  /// Vertikální focus coveru v procentech 0–100.
+  coverFocusY    Float?
+  /// Vybraná profilová fotka modelu (zdroj avataru); musí být jednou z jeho fotek.
   profileMediaId String?
+  /// Horizontální fokus avataru v procentech 0–100.
+  avatarCropX    Float?
+  /// Vertikální fokus avataru v procentech 0–100.
+  avatarCropY    Float?
+  /// Přiblížení avataru; 1 = bez zoomu.
+  avatarZoom     Float?
   createdAt      DateTime @default(now())
 
   media MediaItem[]
@@ -118,7 +128,6 @@ model MediaItem {
   model           ModelProfile?    @relation(fields: [modelId], references: [id], onDelete: SetNull)
   uploader        User?            @relation("UploadedMedia", fields: [uploaderId], references: [id], onDelete: SetNull)
   tags            MediaTag[]
-  collectionItems CollectionItem[]
   gateSample      MembershipGateSample?
 
   @@index([modelId])
@@ -150,31 +159,6 @@ model MediaTag {
 
   @@id([mediaId, tagValueId])
   @@index([tagValueId])
-}
-
-/// Privátní kolekce; přístupná pouze ownerId (R14.4).
-model Collection {
-  id        String   @id @default(uuid())
-  ownerId   String
-  name      String
-  createdAt DateTime @default(now())
-
-  owner User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  items CollectionItem[]
-
-  @@index([ownerId])
-}
-
-/// Vazba kolekce ↔ médium (M:N). Při smazání média je vazba odstraněna (R9.3).
-model CollectionItem {
-  collectionId String
-  mediaId      String
-
-  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  media      MediaItem  @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-
-  @@id([collectionId, mediaId])
-  @@index([mediaId])
 }
 
 /// Výběr médií zobrazených jako „sample" náhledy v MembershipGate (admin volí).

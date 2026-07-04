@@ -18,7 +18,6 @@ import {
   Clapperboard,
   Search,
   Users,
-  Bookmark,
   Shield,
   UploadCloud,
   type LucideIcon,
@@ -49,7 +48,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { label: "Preview", href: "/", icon: Clapperboard, sectionKey: null },
   { label: "Search", href: "/search", icon: Search, sectionKey: "search" },
   { label: "Models", href: "/models", icon: Users, sectionKey: "models" },
-  { label: "Collections", href: "/collections", icon: Bookmark, sectionKey: "collections" },
   { label: "Nahrát", href: "/upload", icon: UploadCloud, sectionKey: null, adminOnly: true },
   { label: "Admin", href: "/admin", icon: Shield, sectionKey: "admin", adminOnly: true },
 ] as const;

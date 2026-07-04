@@ -26,6 +26,7 @@ export function BrowsableGrid({ media }: BrowsableGridProps) {
       <MasonryGrid loadPage={loadPage} onSelect={setSelected} />
       <MediaLightbox
         item={selected}
+        sequence={media}
         onClose={() => setSelected(null)}
         onPrev={(() => {
           const i = selected ? media.findIndex((m) => m.id === selected.id) : -1;

@@ -185,10 +185,10 @@ export interface MediaService {
     uploaderId?: string | null,
   ): Promise<Result<{ imported: number; skipped: number }, MediaError>>;
   /**
-   * Sync mazání (plán 007): smaže `MediaItem`y, jejichž `driveFileId` UŽ NENÍ
-   * v dané množině (soubor zmizel z Drive). Bezpečnostní pojistka: prázdná
-   * množina = no-op (nikdy hromadně nesmaže vše kvůli chybě/špatné složce).
-   * Tagy a členství v kolekcích se uklidí přes FK cascade.
+ * Sync mazání (plán 007): smaže `MediaItem`y, jejichž `driveFileId` UŽ NENÍ
+ * v dané množině (soubor zmizel z Drive). Bezpečnostní pojistka: prázdná
+ * množina = no-op (nikdy hromadně nesmaže vše kvůli chybě/špatné složce).
+ * Tagy a další navázané záznamy se uklidí přes FK cascade.
    */
   removeMissing(
     driveFileIds: readonly string[],
@@ -327,12 +327,7 @@ export function createMediaService(prisma: PrismaClient): MediaService {
       const item = await prisma.mediaItem.findUnique({ where: { id } });
       if (item === null) return err(NOT_FOUND);
 
-      // Hard-delete + úklid kolekcí (R9.2, R9.3): odstraníme členství ve všech
-      // kolekcích a poté samotný záznam, atomicky v jedné transakci.
-      await prisma.$transaction([
-        prisma.collectionItem.deleteMany({ where: { mediaId: id } }),
-        prisma.mediaItem.delete({ where: { id } }),
-      ]);
+      await prisma.mediaItem.delete({ where: { id } });
       return ok();
     },
   };

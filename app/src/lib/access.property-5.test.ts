@@ -21,7 +21,6 @@ describe("Property 5: Platební režim je deterministicky odvozen z přepínače
       "/",
       "/search",
       "/models",
-      "/collections",
       "/settings",
     );
     const subscriptionStatus = fc.constantFrom<SubscriptionStatus>(

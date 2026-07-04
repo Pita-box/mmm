@@ -14,7 +14,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { requireVisibleSection } from "@/lib/section-visibility";
 import { membershipGate } from "@/lib/membership-gate";
-import { streamingUrlFor } from "@/lib/media-presentation";
+import { streamingUrlFor, thumbUrlFor } from "@/lib/media-presentation";
 
 export default async function SearchPage() {
   const principal = await requireSession();
@@ -25,8 +25,24 @@ export default async function SearchPage() {
 
   const rows = await prisma.mediaItem.findMany({
     where: { status: "published", publishAt: { lte: now } },
+    orderBy: [{ publishAt: "desc" }, { createdAt: "desc" }],
     include: { model: true, tags: { include: { tagValue: true } } },
   });
+  const profileMediaIds = Array.from(
+    new Set(
+      rows
+        .map((row) => row.model?.profileMediaId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
+    ),
+  );
+  const profileMedia =
+    profileMediaIds.length > 0
+      ? await prisma.mediaItem.findMany({
+          where: { id: { in: profileMediaIds } },
+          select: { id: true, width: true, height: true },
+        })
+      : [];
+  const profileMediaById = new Map(profileMedia.map((item) => [item.id, item]));
 
   const pool: SearchMediaItem[] = rows.map((row) => ({
     ...toPublicMedia(row),
@@ -36,19 +52,23 @@ export default async function SearchPage() {
       value: t.tagValue.value,
     })),
     thumbnailUrl: streamingUrlFor(row.id, principal.userId, now),
+    posterUrl: thumbUrlFor(row.id, principal.userId, now),
+    profileAvatarUrl: row.model?.profileMediaId
+      ? thumbUrlFor(row.model.profileMediaId, principal.userId, now)
+      : undefined,
+    profileAvatarCropX: row.model?.avatarCropX ?? null,
+    profileAvatarCropY: row.model?.avatarCropY ?? null,
+    profileAvatarZoom: row.model?.avatarZoom ?? null,
+    profileAvatarWidth: row.model?.profileMediaId
+      ? (profileMediaById.get(row.model.profileMediaId)?.width ?? null)
+      : null,
+    profileAvatarHeight: row.model?.profileMediaId
+      ? (profileMediaById.get(row.model.profileMediaId)?.height ?? null)
+      : null,
   }));
 
   return (
     <section className="flex flex-col gap-[var(--spacing-32)]">
-      <header>
-        <h1 className="text-[length:var(--text-heading-sm)] font-black text-[color:var(--color-chalk-white)]">
-          Search
-        </h1>
-        <p className="mt-[var(--spacing-8)] text-[length:var(--text-body)] text-[color:var(--color-silver)]">
-          Hledejte kombinací filtrů — vyberte hodnoty napříč kategoriemi.
-        </p>
-      </header>
-
       <SearchBrowser pool={pool} />
     </section>
   );

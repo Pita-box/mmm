@@ -8,9 +8,9 @@
  *
  * Délkové meze odpovídají akceptačním kritériím v requirements.md:
  *   e-mail 5–254, heslo 8–128, jméno modelu 1–100, bio 0–1000,
- *   text oznámení 1–500, název kolekce 1–100, pole profilu 1–255.
+ *   text oznámení 1–500, pole profilu 1–255.
  *
- * _Requirements: 2.1, 2.7, 4.1, 4.2, 4.3, 14.6, 17.3, 18.2, 19.3_
+ * _Requirements: 2.1, 2.7, 4.1, 4.2, 4.3, 17.3, 18.2, 19.3_
  */
 
 /** Délkové meze (inkluzivní) pro jednotlivá pole. Jediný zdroj pravdy. */
@@ -20,7 +20,6 @@ export const LENGTH_BOUNDS = {
   modelName: { min: 1, max: 100 },
   bio: { min: 0, max: 1000 },
   notificationText: { min: 1, max: 500 },
-  collectionName: { min: 1, max: 100 },
   profileField: { min: 1, max: 255 },
 } as const;
 
@@ -72,15 +71,6 @@ export function validateNotificationText(text: string): boolean {
     text,
     LENGTH_BOUNDS.notificationText.min,
     LENGTH_BOUNDS.notificationText.max,
-  );
-}
-
-/** Název kolekce: délka 1–100 (R14.6). */
-export function validateCollectionName(name: string): boolean {
-  return isLengthInRange(
-    name,
-    LENGTH_BOUNDS.collectionName.min,
-    LENGTH_BOUNDS.collectionName.max,
   );
 }
 
