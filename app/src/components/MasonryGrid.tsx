@@ -140,9 +140,14 @@ export function MasonryGrid({ loadPage, onSelect }: MasonryGridProps) {
         style={{ columnCount: columns, columnGap: "var(--spacing-16)" }}
         aria-busy={status === "loading"}
       >
-        {items.map((item) => (
+        {items.map((item, index) => (
           <div key={item.id} className="mb-4 break-inside-avoid">
-            <MediaCard item={item} onSelect={onSelect} />
+            <MediaCard
+              item={item}
+              onSelect={onSelect}
+              imageLoading={index < columns * 2 ? "eager" : "lazy"}
+              imageFetchPriority={index < columns * 2 ? "high" : "auto"}
+            />
           </div>
         ))}
       </div>

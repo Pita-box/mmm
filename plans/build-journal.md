@@ -2,6 +2,88 @@
 
 Záznamy chronologicky, nejnovější nahoře.
 
+## 2026-07-05 — Telegram Phase 3: Gallery summary message + community pings do General
+
+### Hotové tasky
+- Po publikaci / nahrání médií do Telegram vlákna `Gallery` teď bot pošle i krátké textové shrnutí počtu nových médií.
+- Cron endpoint nově umí během dne poslat až 3 community zprávy do vlákna `General`, vybrané náhodně z tvého vlastního message poolu v `.env`.
+
+### Nové funkce / změny
+- `telegram-community-service.ts`
+  - přidán builder textu typu `Bylo přidáno 4 nová média na webu.`;
+  - přidán parser pro `TELEGRAM_GENERAL_RANDOM_MESSAGES` (`|||` nebo nové řádky);
+  - přidána jednoduchá logika pro 3 denní sloty community pingů.
+- `admin-actions.ts`
+  - po úspěšném odeslání nových médií do `Gallery` odešle i textový summary count;
+  - funguje pro bulk upload, import z Drive i ruční publikaci jednotlivého média.
+- `/api/cron/scheduler`
+  - kromě stávajícího publish scheduleru nově zkusí poslat i community ping do `General`;
+  - stav odeslaných slotů ukládá bez nové migrace do `AppConfig` pod denními klíči, takže tentýž slot v daný den neodešle dvakrát.
+- `.env.example`
+  - doplněna proměnná `TELEGRAM_GENERAL_RANDOM_MESSAGES`.
+
+## 2026-07-05 — Telegram Phase 2: auto-ack ve vláknech Suggestions a Request
+
+### Hotové tasky
+- Telegram bot rozšířen o lehké auto-odpovědi ve vláknech `Suggestions` a `Request`.
+- Ověřeno: cílené testy 13/13, `CI=true pnpm build` 0, `CI=true pnpm exec tsc --noEmit` 0.
+
+### Nové funkce / změny
+- `telegram-bot-service.ts`
+  - bot nově rozpozná běžnou user zprávu ve vlákně `Suggestions` a odpoví potvrzením + krátkou strukturou, co doplnit (`co chceš změnit`, `proč je to užitečné`, `screenshot/example`);
+  - bot nově rozpozná běžnou user zprávu ve vlákně `Request` a odpoví potvrzením + šablonou (`který model/content`, `reference`, `priorita`);
+  - bot ignoruje zprávy od jiných botů / vlastní bot zprávy, aby nevznikla reply smyčka.
+- `api/webhooks/telegram`
+  - route nově používá `TELEGRAM_THREAD_SUGGESTIONS` a `TELEGRAM_THREAD_REQUEST` pro thread-aware reply logiku.
+
+### Pozn.
+- `General` zůstává v této fázi low-noise: auto reply jen pro `/start` a `/help`.
+- `Gallery` zůstává systémový broadcast thread bez user reply logiky.
+
+## 2026-07-05 — Telegram Phase 1: Gallery thread + `/start` a `/help`
+
+### Hotové tasky
+- Phase 1 Telegram integrace hotová: broadcast nových médií jde do vlákna `Gallery`; bot nově umí reagovat na `/start` a `/help` přes webhook.
+- Ověřeno: cílené testy 8/8, `CI=true pnpm build` 0, `CI=true pnpm exec tsc --noEmit` 0.
+
+### Nové funkce / změny
+- `telegram-broadcast-service.ts`
+  - přidána podpora `message_thread_id` pro posílání do konkrétního vlákna Telegram skupiny;
+  - přidána lehká helper vrstva `sendMessage(...)` pro textové odpovědi bota bez nahrávání média.
+- `admin-actions.ts`
+  - existující notifikace o nově publikovaných / nahraných médiích nově používají `TELEGRAM_THREAD_GALLERY`, takže broadcast chodí přímo do vlákna **Gallery**.
+- nová route `/api/webhooks/telegram`
+  - zpracuje příchozí Telegram update;
+  - bot odpoví na `/start` a `/help`;
+  - odpověď jde do stejného chatu / vlákna a jako reply na původní zprávu.
+- `telegram-bot-service.ts`
+  - minimální Phase 1 command routing pro `/start` a `/help`;
+  - welcome/help text vysvětluje rozdělení vláken: `General`, `Gallery`, `Suggestions`, `Request`.
+- `.env.example`
+  - doplněny `TELEGRAM_THREAD_GENERAL`, `TELEGRAM_THREAD_GALLERY`, `TELEGRAM_THREAD_SUGGESTIONS`, `TELEGRAM_THREAD_REQUEST`.
+
+### Pozn.
+- `Suggestions` a `Request` jsou v Phase 1 zatím jen připravené konfiguračně; bot do nich zatím pasivně nezasahuje.
+- Aktivace v provozu vyžaduje nastavit Telegram webhook na `/api/webhooks/telegram`.
+
+## 2026-07-04 — Model detail popup polish: viewport cap, interní scroll, stránkování knihovny a fix avatar cropu
+
+### Hotové tasky
+- Dokončen polish popupů na detailu modelu a oprava avatar crop workflow při výběru jiné fotky z knihovny.
+- Ověřeno: `CI=true pnpm build` 0, `CI=true pnpm exec tsc --noEmit` 0.
+
+### Nové funkce / změny
+- `ModelDetail.tsx`:
+  - popupy **Cover fotka**, **Profilová fotka** a potvrzení smazání mají `max-h-[90vh]` a dlouhý obsah scrolluje **uvnitř dialogu**, ne na stránce pod ním;
+  - při otevřeném cover/avatar/delete popupu se zamkne `document.body` scroll;
+  - záložka **Vybrat z nahraných** pro cover i avatar nově stránkuje knihovnu médií po 12 položkách (`Předchozí` / `Další`) místo renderu všech fotek najednou.
+- `UploadModal` a pravý edit panel v `MediaLightbox` dostaly stejnou viewport ochranu (`max-height` + interní scroll), aby dlouhý obsah nepřetékal mimo obrazovku.
+
+### Bug & fix
+- **Symptom:** v editoru profilové fotky fungoval crop jen pro aktuální avatar; po výběru jiné fotky z `Vybrat z nahraných` byl vidět jen crosshair bez funkčního crop boxu.
+- **Root cause:** `ReactCrop` po přepnutí na jiné médium nepřebral spolehlivě novou inicializaci crop stavu podle konkrétní fotky a jejích reálných rozměrů.
+- **Fix:** avatar crop initialization byla sjednocena do helperu pro zvolenou fotku; `ReactCrop` se při změně zdrojového média remountuje přes `key` a po `img.onload` se crop normalizuje podle skutečných `naturalWidth` / `naturalHeight`. Výsledkem je plně funkční resize/drag crop i pro nově vybranou fotku z knihovny.
+
 ## 2026-07-01 — Plán 017: odstranit mrtvé upload akce po odebrání upload formuláře
 
 ### Hotové tasky

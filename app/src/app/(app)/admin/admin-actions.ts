@@ -29,6 +29,7 @@ import { createTagService } from "@/services/tag-service";
 import { modelService, validateProfileInput } from "@/services/model-service";
 import { pageVisibilityService } from "@/services/page-visibility-service";
 import { notificationService } from "@/services/notification-service";
+import { buildTelegramGallerySummaryMessage } from "@/services/telegram-community-service";
 import {
   buildTelegramUploadCaption,
   createTelegramBroadcastService,
@@ -279,6 +280,7 @@ const telegramBroadcastService = createTelegramBroadcastService({
   config: {
     botToken: process.env.MMM_TELEGRAM_BOT_TOKEN,
     chatId: process.env.MMM_TELEGRAM_CHAT_ID,
+    defaultThreadId: process.env.TELEGRAM_THREAD_GALLERY,
   },
 });
 
@@ -377,7 +379,8 @@ async function notifyTelegramAboutUploads(
     mimeType: string;
     modelId: string | null;
   }[],
-): Promise<{ failed: number; lastError?: string }> {
+) : Promise<{ sent: number; failed: number; lastError?: string }> {
+  let sent = 0;
   let failed = 0;
   let lastError: string | undefined;
   for (const item of items) {
@@ -389,9 +392,27 @@ async function notifyTelegramAboutUploads(
         driveFileId: item.driveFileId,
         message: telegram.message,
       });
+    } else {
+      sent++;
     }
   }
-  return { failed, lastError };
+  return { sent, failed, lastError };
+}
+
+async function notifyTelegramGallerySummary(count: number): Promise<ActionResult> {
+  if (count <= 0) return OK;
+  const sent = await telegramBroadcastService.sendMessage({
+    chatId: process.env.MMM_TELEGRAM_CHAT_ID ?? "",
+    threadId: process.env.TELEGRAM_THREAD_GALLERY,
+    text: buildTelegramGallerySummaryMessage(count),
+  });
+  if (isErr(sent)) {
+    return {
+      ok: false,
+      message: sent.error.message,
+    };
+  }
+  return OK;
 }
 
 // ─── Import z Google Drive (plán 007) ────────────────────────────────────────
@@ -440,6 +461,17 @@ export async function importFromDriveAction(): Promise<ActionResult> {
     const telegram = await notifyTelegramAboutUploads(newRows);
     telegramFailed = telegram.failed;
     telegramError = telegram.lastError;
+    if (telegram.sent > 0) {
+      const summary = await notifyTelegramGallerySummary(telegram.sent);
+      if (!summary.ok) {
+        telegramFailed++;
+        telegramError = summary.message;
+        console.error("Telegram gallery summary failed for import", {
+          sent: telegram.sent,
+          message: summary.message,
+        });
+      }
+    }
   }
 
   revalidatePath("/admin/media");
@@ -494,6 +526,20 @@ export async function setMediaPublishedAction(
         return {
           ok: true,
           message: `Médium bylo publikováno, ale Telegram oznámení selhalo. ${telegram.message ?? ""}`.trim(),
+        };
+      }
+      const summary = await notifyTelegramGallerySummary(1);
+      if (!summary.ok) {
+        console.error("Telegram gallery summary failed for manual publish", {
+          mediaId,
+          driveFileId: before.driveFileId,
+          message: summary.message,
+        });
+        revalidatePath("/admin/media");
+        revalidatePath("/");
+        return {
+          ok: true,
+          message: `Médium bylo publikováno, ale Telegram textové oznámení selhalo. ${summary.message ?? ""}`.trim(),
         };
       }
     }
@@ -626,6 +672,7 @@ export async function finalizeUploadsAction(
   let telegramFailed = 0;
   let lastError: string | undefined;
   let lastTelegramError: string | undefined;
+  let telegramSent = 0;
   for (const item of items) {
     if (classifyType(item.mimeType) === null) {
       failed++;
@@ -658,12 +705,25 @@ export async function finalizeUploadsAction(
             driveFileId: item.driveFileId,
             message: telegram.message,
           });
+        } else {
+          telegramSent++;
         }
       }
     }
     else {
       failed++;
       lastError = res.message;
+    }
+  }
+  if (publish && telegramSent > 0) {
+    const summary = await notifyTelegramGallerySummary(telegramSent);
+    if (!summary.ok) {
+      telegramFailed++;
+      lastTelegramError = summary.message;
+      console.error("Telegram gallery summary failed for finalize uploads", {
+        sent: telegramSent,
+        message: summary.message,
+      });
     }
   }
   revalidatePath("/admin/media");

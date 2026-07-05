@@ -137,4 +137,34 @@ describe("createTelegramBroadcastService", () => {
       expect.objectContaining({ method: "POST" }),
     );
   });
+
+  it("sends text messages without drive storage", async () => {
+    const fetchFn: typeof fetch = vi.fn(async (_url: URL | RequestInfo, init?: RequestInit) => {
+      expect(init?.body).toBe(
+        JSON.stringify({
+          chat_id: "-100123",
+          text: "Hello",
+          message_thread_id: 77,
+        }),
+      );
+      return new Response("ok", { status: 200 });
+    });
+
+    const service = createTelegramBroadcastService({
+      config: { botToken: "bot-token", chatId: "-100123", defaultThreadId: 77 },
+      fetchFn,
+    });
+
+    const result = await service.sendMessage({
+      chatId: "-100123",
+      text: "Hello",
+      threadId: 77,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(fetchFn).toHaveBeenCalledWith(
+      "https://api.telegram.org/botbot-token/sendMessage",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
 });

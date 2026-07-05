@@ -42,6 +42,9 @@ export interface MediaCardProps {
   readonly item: MediaCardItem;
   /** Volitelná akce při výběru karty (otevření detailu / přehrávače). */
   readonly onSelect?: (item: MediaCardItem) => void;
+  /** Priorita načítání náhledu pro první, nejdůležitější karty ve viewportu. */
+  readonly imageLoading?: "eager" | "lazy";
+  readonly imageFetchPriority?: "high" | "low" | "auto";
 }
 
 /** Centrovaný play overlay pro video média. */
@@ -69,7 +72,12 @@ function PlayOverlay() {
  * při dokreslení náhledu rozložení neposouvá (CLS ≤ 0,1, R12.3). U videa
  * zobrazuje play overlay, štítky jako chips a jemné hover zvětšení.
  */
-export function MediaCard({ item, onSelect }: MediaCardProps) {
+export function MediaCard({
+  item,
+  onSelect,
+  imageLoading = "lazy",
+  imageFetchPriority = "auto",
+}: MediaCardProps) {
   const hasRatio = item.width > 0 && item.height > 0;
   const isVideo = item.mediaType === "video";
   const label = isVideo ? "Video" : "Fotografie";
@@ -97,7 +105,8 @@ export function MediaCard({ item, onSelect }: MediaCardProps) {
         <img
           src={posterSrc}
           alt={label}
-          loading="lazy"
+          loading={imageLoading}
+          fetchPriority={imageFetchPriority}
           decoding="async"
           onError={() => setImgError(true)}
           // Známý poměr → object-cover sedí přesně (object-top jen pojistka proti

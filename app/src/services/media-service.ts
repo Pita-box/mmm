@@ -130,10 +130,17 @@ export function visibleMedia<T extends MediaItemView>(items: readonly T[], now: 
  * Pohled Preview: Approved_Media seřazená sestupně podle času zveřejnění (R10.1).
  * Vstup se nemutuje.
  */
-export function previewOrder<T extends MediaItemView>(items: readonly T[], now: Date): T[] {
+export function previewOrder<T extends MediaItemView & { readonly createdAt?: Date | null }>(
+  items: readonly T[],
+  now: Date,
+): T[] {
   return visibleMedia(items, now).sort((a, b) => {
     // publishAt je u Approved_Media vždy nenulové (zaručeno isApproved).
-    return b.publishAt!.getTime() - a.publishAt!.getTime();
+    const publishDiff = b.publishAt!.getTime() - a.publishAt!.getTime();
+    if (publishDiff !== 0) return publishDiff;
+    const createdA = a.createdAt?.getTime() ?? 0;
+    const createdB = b.createdAt?.getTime() ?? 0;
+    return createdB - createdA;
   });
 }
 

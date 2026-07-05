@@ -183,7 +183,13 @@ export function createModelService(prisma: PrismaClient): ModelService {
       });
       if (profile === null) return err(PROFILE_NOT_FOUND); // R13.6
       // Galerie obsahuje výhradně Approved_Media (R13.4); ostatní stavy se vynechají.
-      return ok(visibleMedia(profile.media, now));
+      return ok(
+        visibleMedia(profile.media, now).sort((a, b) => {
+          const publishDiff = b.publishAt!.getTime() - a.publishAt!.getTime();
+          if (publishDiff !== 0) return publishDiff;
+          return b.createdAt.getTime() - a.createdAt.getTime();
+        }),
+      );
     },
 
     async assignMedia(mediaId, modelId) {

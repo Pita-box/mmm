@@ -16,11 +16,26 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createScheduler } from "@/services/scheduler";
+import {
+  buildTelegramGeneralPingDayKey,
+  parseTelegramGeneralRandomMessages,
+  pickRandomTelegramGeneralMessage,
+  resolveDueTelegramGeneralPingSlot,
+} from "@/services/telegram-community-service";
+import { createTelegramBroadcastService } from "@/services/telegram-broadcast-service";
 
 // Prisma a node:crypto vyžadují Node.js runtime (ne Edge).
 export const runtime = "nodejs";
 // Plánovací běh nesmí být cachován ani staticky vyhodnocen.
 export const dynamic = "force-dynamic";
+
+const telegramService = createTelegramBroadcastService({
+  config: {
+    botToken: process.env.MMM_TELEGRAM_BOT_TOKEN,
+    chatId: process.env.MMM_TELEGRAM_CHAT_ID,
+    defaultThreadId: process.env.TELEGRAM_THREAD_GENERAL,
+  },
+});
 
 /** Porovná dvě tajemství v konstantním čase (zabrání timing útoku). */
 function secretsMatch(provided: string, expected: string): boolean {
@@ -41,6 +56,56 @@ function extractSecret(request: Request): string | null {
   return headerSecret && headerSecret.length > 0 ? headerSecret : null;
 }
 
+async function maybeSendTelegramGeneralPing(now: Date): Promise<boolean> {
+  const chatId = process.env.MMM_TELEGRAM_CHAT_ID?.trim();
+  const threadId = process.env.TELEGRAM_THREAD_GENERAL?.trim();
+  if (!chatId || !threadId) return false;
+
+  const messages = parseTelegramGeneralRandomMessages(
+    process.env.TELEGRAM_GENERAL_RANDOM_MESSAGES,
+  );
+  if (messages.length === 0) return false;
+
+  const dayKey = buildTelegramGeneralPingDayKey(now);
+  const keys = [0, 1, 2].map((slot) => `telegram_general_ping_${dayKey}_slot_${slot}`);
+  const existing = await prisma.appConfig.findMany({
+    where: { key: { in: keys } },
+    select: { key: true, value: true },
+  });
+  const existingKeys = new Set(
+    existing.filter((row) => row.value).map((row) => row.key),
+  );
+  const dueSlot = resolveDueTelegramGeneralPingSlot({
+    now,
+    sentSlots: keys.map((key) => existingKeys.has(key)),
+  });
+  if (dueSlot === null) return false;
+
+  const text = pickRandomTelegramGeneralMessage(messages);
+  if (!text) return false;
+
+  const sent = await telegramService.sendMessage({
+    chatId,
+    threadId,
+    text,
+  });
+  if (!sent.ok) {
+    console.error("Telegram general ping failed", {
+      slot: dueSlot,
+      dayKey,
+      message: sent.error.message,
+    });
+    return false;
+  }
+
+  await prisma.appConfig.upsert({
+    where: { key: keys[dueSlot] },
+    update: { value: true },
+    create: { key: keys[dueSlot], value: true },
+  });
+  return true;
+}
+
 async function handle(request: Request): Promise<NextResponse> {
   const expected = process.env.CRON_SECRET;
   if (!expected || expected.length === 0) {
@@ -59,10 +124,12 @@ async function handle(request: Request): Promise<NextResponse> {
   }
 
   try {
-    const result = await createScheduler(prisma).runScheduler(new Date());
+    const now = new Date();
+    const result = await createScheduler(prisma).runScheduler(now);
+    const generalPingSent = await maybeSendTelegramGeneralPing(now);
     // runScheduler vrací Result<…, never> — vždy úspěch.
     const promoted = result.ok ? result.value.promoted : 0;
-    return NextResponse.json({ promoted }, { status: 200 });
+    return NextResponse.json({ promoted, generalPingSent }, { status: 200 });
   } catch {
     return NextResponse.json(
       { error: "scheduler_failed", message: "Běh plánovače selhal." },
