@@ -12,6 +12,14 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "MMMRED",
   description: "Privátní streamovací platforma autorských kolekcí.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "64x64" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: ["/favicon.ico"],
+    apple: [{ url: "/apple-icon", sizes: "180x180" }],
+  },
 };
 
 export default function RootLayout({
