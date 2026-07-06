@@ -243,6 +243,7 @@ export function toPublicMedia(item: MediaItemRecord): PublicMediaItem {
 export interface DriveUploadMeta {
   readonly mimeType: string;
   readonly name: string;
+  readonly folderId?: string | null;
 }
 
 /** Metadata existujícího souboru na Drive (pro ingest z Drive složky, plán 007). */
@@ -257,6 +258,8 @@ export interface DriveFileMeta {
   readonly height?: number;
   /** Délka videa v ms z `videoMediaMetadata.durationMillis` (null u fotek). */
   readonly durationMs?: number | null;
+  /** Parent složka souboru na Drive; pomáhá při sync mapování na model. */
+  readonly parentFolderId?: string | null;
 }
 
 /**
@@ -302,6 +305,12 @@ export interface DriveStorage {
    * netrashed soubory v té složce; stránkování řeší implementace.
    */
   listFiles(folderId: string): Promise<Result<DriveFileMeta[], DriveError>>;
+  listFilesRecursive(folderId: string): Promise<Result<DriveFileMeta[], DriveError>>;
+  ensureFolder(
+    name: string,
+    parentFolderId: string,
+  ): Promise<Result<{ driveFolderId: string }, DriveError>>;
+  moveFileToFolder(driveFileId: string, folderId: string): Promise<Result<void, DriveError>>;
   /**
    * Vytvoří resumable upload session (plán 007 — Approach B): vrátí `uploadUrl`,
    * na který klient nahraje soubor po částech PŘÍMO do Googlu (bajty nejdou přes
@@ -342,6 +351,15 @@ export function createStubDriveStorage(): DriveStorage {
       return err(notConfigured);
     },
     async listFiles() {
+      return err(notConfigured);
+    },
+    async listFilesRecursive() {
+      return err(notConfigured);
+    },
+    async ensureFolder() {
+      return err(notConfigured);
+    },
+    async moveFileToFolder() {
       return err(notConfigured);
     },
     async createResumableSession() {

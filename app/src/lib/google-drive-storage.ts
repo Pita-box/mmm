@@ -30,6 +30,7 @@ import { ok, err, type Result } from "@/lib/result";
 import type { DriveStorage, DriveUploadMeta, DriveStreamResult, DriveFileMeta, DriveThumbnailResult } from "@/services/drive-connector";
 
 const UPLOAD_TIMEOUT_MS = 120_000;
+const DRIVE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
 
 function driveClient() {
   const auth = new google.auth.OAuth2(
@@ -45,6 +46,34 @@ function isTimeout(e: unknown): boolean {
   const code = (e as { code?: string })?.code;
   const msg = (e as { message?: string })?.message ?? "";
   return code === "ECONNABORTED" || /timeout/i.test(msg);
+}
+
+function mapDriveFileMeta(file: {
+  id?: string | null;
+  name?: string | null;
+  mimeType?: string | null;
+  size?: string | number | null;
+  parents?: string[] | null;
+  imageMediaMetadata?: { width?: number | null; height?: number | null } | null;
+  videoMediaMetadata?: {
+    width?: number | null;
+    height?: number | null;
+    durationMillis?: string | number | null;
+  } | null;
+}): DriveFileMeta | null {
+  if (!file.id || !file.mimeType) return null;
+  const img = file.imageMediaMetadata;
+  const vid = file.videoMediaMetadata;
+  return {
+    driveFileId: file.id,
+    name: file.name ?? file.id,
+    mimeType: file.mimeType,
+    sizeBytes: Number(file.size ?? 0) || 0,
+    width: vid?.width ?? img?.width ?? 0,
+    height: vid?.height ?? img?.height ?? 0,
+    durationMs: vid?.durationMillis ? Number(vid.durationMillis) || null : null,
+    parentFolderId: file.parents?.[0] ?? null,
+  };
 }
 
 export function createGoogleDriveStorage(): DriveStorage {
@@ -67,13 +96,12 @@ export function createGoogleDriveStorage(): DriveStorage {
     ): Promise<Result<{ driveFileId: string }, DriveError>> {
       try {
         const { drive } = driveClient();
+        const parentFolderId = meta.folderId ?? process.env.GDRIVE_ROOT_FOLDER_ID ?? undefined;
         const res = await drive.files.create(
           {
             requestBody: {
               name: meta.name,
-              parents: process.env.GDRIVE_ROOT_FOLDER_ID
-                ? [process.env.GDRIVE_ROOT_FOLDER_ID]
-                : undefined,
+              parents: parentFolderId ? [parentFolderId] : undefined,
             },
             media: { mimeType: meta.mimeType, body: Readable.from(file) },
             fields: "id",
@@ -194,7 +222,7 @@ export function createGoogleDriveStorage(): DriveStorage {
           const res = await drive.files.list({
             q: `'${folderId}' in parents and trashed = false`,
             fields:
-              "nextPageToken, files(id, name, mimeType, size, imageMediaMetadata(width,height), videoMediaMetadata(width,height,durationMillis))",
+              "nextPageToken, files(id, name, mimeType, size, parents, imageMediaMetadata(width,height), videoMediaMetadata(width,height,durationMillis))",
             pageSize: 1000,
             pageToken,
             // Sdílené disky (kdyby složka byla na Shared Drive) — neškodí u My Drive.
@@ -202,18 +230,8 @@ export function createGoogleDriveStorage(): DriveStorage {
             includeItemsFromAllDrives: true,
           });
           for (const f of res.data.files ?? []) {
-            if (!f.id || !f.mimeType) continue;
-            const img = f.imageMediaMetadata;
-            const vid = f.videoMediaMetadata;
-            files.push({
-              driveFileId: f.id,
-              name: f.name ?? f.id,
-              mimeType: f.mimeType,
-              sizeBytes: Number(f.size ?? 0) || 0,
-              width: vid?.width ?? img?.width ?? 0,
-              height: vid?.height ?? img?.height ?? 0,
-              durationMs: vid?.durationMillis ? Number(vid.durationMillis) || null : null,
-            });
+            const mapped = mapDriveFileMeta(f);
+            if (mapped) files.push(mapped);
           }
           pageToken = res.data.nextPageToken ?? undefined;
         } while (pageToken);
@@ -222,6 +240,88 @@ export function createGoogleDriveStorage(): DriveStorage {
         return err({
           code: "list_failed",
           message: `Výpis souborů z Google Drive selhal: ${(e as Error).message}`,
+        });
+      }
+    },
+
+    async listFilesRecursive(folderId: string): Promise<Result<DriveFileMeta[], DriveError>> {
+      const queue = [folderId];
+      const visited = new Set(queue);
+      const all: DriveFileMeta[] = [];
+
+      while (queue.length > 0) {
+        const currentFolderId = queue.shift();
+        if (!currentFolderId) continue;
+        const listed = await this.listFiles(currentFolderId);
+        if (listed.ok === false) return listed;
+        for (const file of listed.value) {
+          all.push(file);
+          if (file.mimeType === DRIVE_FOLDER_MIME_TYPE && !visited.has(file.driveFileId)) {
+            visited.add(file.driveFileId);
+            queue.push(file.driveFileId);
+          }
+        }
+      }
+
+      return ok(all);
+    },
+
+    async ensureFolder(
+      name: string,
+      parentFolderId: string,
+    ): Promise<Result<{ driveFolderId: string }, DriveError>> {
+      try {
+        const { drive } = driveClient();
+        const created = await drive.files.create({
+          requestBody: {
+            name,
+            mimeType: DRIVE_FOLDER_MIME_TYPE,
+            parents: [parentFolderId],
+          },
+          fields: "id",
+          supportsAllDrives: true,
+        });
+        const driveFolderId = created.data.id;
+        if (!driveFolderId) {
+          return err({
+            code: "upload_failed",
+            message: "Google Drive nevrátil ID nově vytvořené složky modelu.",
+          });
+        }
+        return ok({ driveFolderId });
+      } catch (e) {
+        return err({
+          code: "upload_failed",
+          message: `Vytvoření Drive složky modelu selhalo: ${(e as Error).message}`,
+        });
+      }
+    },
+
+    async moveFileToFolder(driveFileId: string, folderId: string): Promise<Result<void, DriveError>> {
+      try {
+        const { drive } = driveClient();
+        const meta = await drive.files.get({
+          fileId: driveFileId,
+          fields: "parents",
+          supportsAllDrives: true,
+        });
+        const parents = meta.data.parents ?? [];
+        const addParents = parents.includes(folderId) ? undefined : folderId;
+        const removeParents = parents.filter((parentId) => parentId !== folderId).join(",");
+        if (!addParents && removeParents.length === 0) return ok();
+
+        await drive.files.update({
+          fileId: driveFileId,
+          addParents,
+          removeParents: removeParents || undefined,
+          fields: "id",
+          supportsAllDrives: true,
+        });
+        return ok();
+      } catch (e) {
+        return err({
+          code: "upload_failed",
+          message: `Přesun souboru v Google Drive selhal: ${(e as Error).message}`,
         });
       }
     },
@@ -252,7 +352,7 @@ export function createGoogleDriveStorage(): DriveStorage {
         if (!accessToken) {
           return err({ code: "auth_failed", message: "Chybí Google access token." });
         }
-        const folder = process.env.GDRIVE_ROOT_FOLDER_ID;
+        const folder = meta.folderId ?? process.env.GDRIVE_ROOT_FOLDER_ID;
         const res = await fetch(
           "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true",
           {

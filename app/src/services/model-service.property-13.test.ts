@@ -33,6 +33,7 @@ function createFakePrisma(): PrismaClient {
         id: `m${++seq}`,
         name: data.name,
         bio: data.bio,
+        driveFolderId: null,
         coverMediaId: null,
         coverFocusY: null,
         profileMediaId: null,

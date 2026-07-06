@@ -90,30 +90,24 @@ describe("MediaLightbox", () => {
   });
 
   it("při otevření média nahradí stale stream URL čerstvou", async () => {
-    h.issueStreamingUrlAction.mockResolvedValue({
-      ok: true,
-      url: "/api/stream/fresh.token",
-    });
-
     const { container } = render(
       <MediaLightbox item={photoItem()} onClose={() => {}} />,
     );
 
     await waitFor(() => {
-      expect(h.issueStreamingUrlAction).toHaveBeenCalledWith("media-1");
+      expect(h.issueStreamingUrlAction).not.toHaveBeenCalled();
     });
 
     const image = container.querySelector('img[draggable="false"]');
     expect(image).not.toBeNull();
     await waitFor(() => {
-      expect(image?.getAttribute("src")).toBe("/api/stream/fresh.token");
+      expect(image?.getAttribute("src")).toBe("/api/thumb/thumb.token?size=2048");
     });
   });
 
   it("při chybě načtení fotky zkusí ještě jednou vydat novou stream URL", async () => {
     h.issueStreamingUrlAction
-      .mockResolvedValueOnce({ ok: true, url: "/api/stream/fresh-1.token" })
-      .mockResolvedValueOnce({ ok: true, url: "/api/stream/fresh-2.token" });
+      .mockResolvedValueOnce({ ok: true, url: "/api/thumb/fresh-2.token?size=2048" });
 
     const { container } = render(
       <MediaLightbox item={photoItem()} onClose={() => {}} />,
@@ -126,33 +120,20 @@ describe("MediaLightbox", () => {
     });
 
     await waitFor(() => {
-      expect(image.getAttribute("src")).toBe("/api/stream/fresh-1.token");
+      expect(image.getAttribute("src")).toBe("/api/thumb/thumb.token?size=2048");
     });
 
     fireEvent.error(image);
 
     await waitFor(() => {
-      expect(h.issueStreamingUrlAction).toHaveBeenCalledTimes(2);
-      expect(image.getAttribute("src")).toBe("/api/stream/fresh-2.token");
+      expect(h.issueStreamingUrlAction).toHaveBeenCalledTimes(1);
+      expect(image.getAttribute("src")).toBe("/api/thumb/fresh-2.token?size=2048");
     });
 
     expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("prefetchne další 3 fotky v pořadí", async () => {
-    h.issueStreamingUrlAction.mockResolvedValue({
-      ok: true,
-      url: "/api/stream/fresh.token",
-    });
-    h.issueStreamingUrlsAction.mockResolvedValue({
-      ok: true,
-      urls: {
-        "media-2": "/api/stream/preload-2.token",
-        "media-3": "/api/stream/preload-3.token",
-        "media-4": "/api/stream/preload-4.token",
-      },
-    });
-
     render(
       <MediaLightbox
         item={photoItem()}
@@ -162,18 +143,14 @@ describe("MediaLightbox", () => {
     );
 
     await waitFor(() => {
-      expect(h.issueStreamingUrlsAction).toHaveBeenCalledWith([
-        "media-2",
-        "media-3",
-        "media-4",
-      ]);
+      expect(h.issueStreamingUrlsAction).not.toHaveBeenCalled();
     });
 
     await waitFor(() => {
       expect(h.preloadedSrcs).toEqual([
-        "/api/stream/preload-2.token",
-        "/api/stream/preload-3.token",
-        "/api/stream/preload-4.token",
+        "/api/thumb/thumb.token?size=2048",
+        "/api/thumb/thumb.token?size=2048",
+        "/api/thumb/thumb.token?size=2048",
       ]);
     });
   });

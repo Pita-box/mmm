@@ -14,6 +14,7 @@ function setup(values: string[] = []) {
       label="Category"
       listId="t"
       values={values}
+      suggestions={["bear", "beach", "blonde"]}
       onAdd={onAdd}
       onRemove={onRemove}
     />,
@@ -33,6 +34,29 @@ describe("TagValueInput", () => {
     fireEvent.change(input, { target: { value: "bear" } });
     fireEvent.keyDown(input, { key: "Enter" });
     expect(onAdd).toHaveBeenCalledWith(["bear"]);
+  });
+
+  it("Enter vezme první odpovídající našeptaný štítek", () => {
+    const { onAdd, input } = setup();
+    fireEvent.change(input, { target: { value: "bea" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onAdd).toHaveBeenCalledWith(["bear"]);
+    expect(input).not.toHaveAttribute("list");
+  });
+
+  it("po dalším psaní znovu zapne našeptávač", () => {
+    const { input } = setup();
+    fireEvent.change(input, { target: { value: "bea" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.change(input, { target: { value: "bl" } });
+    expect(input).toHaveAttribute("list", "t");
+  });
+
+  it("když nic neodpovídá, Enter uloží napsanou hodnotu", () => {
+    const { onAdd, input } = setup();
+    fireEvent.change(input, { target: { value: "custom-tag" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onAdd).toHaveBeenCalledWith(["custom-tag"]);
   });
 
   it("čárka v řetězci přidá hotovou část hned, zbytek nechá v poli", () => {

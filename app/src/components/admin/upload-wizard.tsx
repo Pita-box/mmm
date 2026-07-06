@@ -40,6 +40,7 @@ export interface UploadWizardProps {
   readonly onCreateSession: (
     name: string,
     mimeType: string,
+    modelId?: string | null,
   ) => Promise<{ ok: boolean; uploadUrl?: string; message?: string }>;
   /** Nahrání vygenerovaného posteru videa na Drive (→ driveFileId). */
   readonly onUploadPoster?: (
@@ -140,7 +141,13 @@ export function UploadWizard({
 
   return (
     <AdminCard title="Nahrát média" description="Přetáhněte více souborů, otagujte je a publikujte.">
-      <UploadDropzone onCreateSession={onCreateSession} onUploadPoster={onUploadPoster} onUploaded={onUploaded} initialFiles={initialFiles} />
+      <UploadDropzone
+        onCreateSession={onCreateSession}
+        onUploadPoster={onUploadPoster}
+        onUploaded={onUploaded}
+        initialFiles={initialFiles}
+        modelId={lockModelSelection ? (initialModelId ?? null) : null}
+      />
 
       {result ? (
         <p role="status" className="mt-3 text-[length:var(--text-caption)] text-silver">

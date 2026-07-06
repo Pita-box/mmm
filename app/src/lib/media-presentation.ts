@@ -33,9 +33,19 @@ export function thumbUrlFor(
   mediaId: string,
   userId: string,
   now: Date = new Date(),
+  options?: { size?: number; dpr?: number },
 ): string | undefined {
   const token = getDriveConnector().issueStreamingToken({ mediaId, userId, now });
-  return isOk(token) ? `/api/thumb/${encodeURIComponent(token.value)}` : undefined;
+  if (!isOk(token)) return undefined;
+  const params = new URLSearchParams();
+  if (typeof options?.size === "number" && Number.isFinite(options.size)) {
+    params.set("size", String(Math.round(options.size)));
+  }
+  if (typeof options?.dpr === "number" && Number.isFinite(options.dpr)) {
+    params.set("dpr", String(Math.round(options.dpr)));
+  }
+  const query = params.size > 0 ? `?${params.toString()}` : "";
+  return `/api/thumb/${encodeURIComponent(token.value)}${query}`;
 }
 
 /** Doplňková zobrazovaná pole karty (titulek, štítky). */

@@ -51,6 +51,62 @@ function clampPercent(value: number, fallback = 50): number {
 /** Interní signál pro rollback uploadu uvnitř transakce (nese hlášku pro UI). */
 class UploadAbort extends Error {}
 
+function getDriveRootFolderId(): string | null {
+  const rootFolderId = process.env.GDRIVE_ROOT_FOLDER_ID?.trim();
+  if (!rootFolderId) return null;
+  if (process.env.NODE_ENV === "test") return null;
+  if (process.env.DRIVE_STORAGE !== "real") return null;
+  return rootFolderId;
+}
+
+async function ensureModelDriveFolderId(
+  modelId: string,
+): Promise<{ ok: true; driveFolderId: string | null } | { ok: false; message: string }> {
+  const rootFolderId = getDriveRootFolderId();
+  if (!rootFolderId) return { ok: true, driveFolderId: null };
+
+  const profile = await prisma.modelProfile.findUnique({
+    where: { id: modelId },
+    select: { id: true, name: true, driveFolderId: true },
+  });
+  if (!profile) return { ok: false, message: "Profil modelu nebyl nalezen." };
+  if (profile.driveFolderId) return { ok: true, driveFolderId: profile.driveFolderId };
+
+  const ensured = await driveStorage.ensureFolder(profile.name, rootFolderId);
+  if (isErr(ensured)) return { ok: false, message: ensured.error.message };
+  try {
+    await prisma.modelProfile.update({
+      where: { id: modelId },
+      data: { driveFolderId: ensured.value.driveFolderId },
+    });
+  } catch {
+    return { ok: false, message: "Uložení Drive složky modelu se nezdařilo." };
+  }
+  return { ok: true, driveFolderId: ensured.value.driveFolderId };
+}
+
+async function resolveTargetDriveFolderId(
+  modelId: string | null,
+): Promise<{ ok: true; driveFolderId: string | null } | { ok: false; message: string }> {
+  const rootFolderId = getDriveRootFolderId();
+  if (!rootFolderId) return { ok: true, driveFolderId: null };
+  if (!modelId) return { ok: true, driveFolderId: rootFolderId };
+  return ensureModelDriveFolderId(modelId);
+}
+
+async function moveDriveFilesToFolder(
+  folderId: string | null,
+  driveFileIds: readonly (string | null | undefined)[],
+): Promise<ActionResult> {
+  if (!folderId) return OK;
+  for (const driveFileId of driveFileIds) {
+    if (!driveFileId) continue;
+    const moved = await driveStorage.moveFileToFolder(driveFileId, folderId);
+    if (isErr(moved)) return { ok: false, message: moved.error.message };
+  }
+  return OK;
+}
+
 // ─── Modely ─────────────────────────────────────────────────────────────────
 
 /** Vytvoření profilu modelu (R4.1). Distributor i Admin. */
@@ -64,6 +120,11 @@ export async function createModelProfileAction(values: {
     bio: values.bio,
   });
   if (isErr(result)) return { ok: false, message: result.error.message };
+  const folder = await ensureModelDriveFolderId(result.value.id);
+  if (!folder.ok) {
+    await prisma.modelProfile.delete({ where: { id: result.value.id } }).catch(() => undefined);
+    return { ok: false, message: folder.message };
+  }
   revalidatePath("/admin/models");
   revalidatePath("/models");
   return OK;
@@ -246,12 +307,19 @@ export async function deleteModelProfileAction(
 export async function createUploadSessionAction(
   name: string,
   mimeType: string,
+  modelId?: string | null,
 ): Promise<{ ok: boolean; uploadUrl?: string; message?: string }> {
   await requireUploader();
   if (classifyType(mimeType) === null) {
     return { ok: false, message: "Nepodporovaný formát souboru." };
   }
-  const res = await driveStorage.createResumableSession({ name, mimeType });
+  const targetFolder = await resolveTargetDriveFolderId(modelId ?? null);
+  if (!targetFolder.ok) return { ok: false, message: targetFolder.message };
+  const res = await driveStorage.createResumableSession({
+    name,
+    mimeType,
+    folderId: targetFolder.driveFolderId,
+  });
   if (isErr(res)) return { ok: false, message: res.error.message };
   return { ok: true, uploadUrl: res.value.uploadUrl };
 }
@@ -291,6 +359,13 @@ const telegramBroadcastService = createTelegramBroadcastService({
  */
 async function persistMediaWithTags(input: PersistMediaInput): Promise<PersistMediaResult> {
   let createdMediaId: string | undefined;
+  const targetFolder = await resolveTargetDriveFolderId(input.modelId);
+  if (!targetFolder.ok) return { ok: false, message: targetFolder.message };
+  const moved = await moveDriveFilesToFolder(targetFolder.driveFolderId, [
+    input.driveFileId,
+    input.posterDriveFileId,
+  ]);
+  if (!moved.ok) return moved;
   try {
     await prisma.$transaction(async (tx) => {
       const txClient = tx as unknown as PrismaClient;
@@ -334,6 +409,7 @@ async function persistMediaWithTags(input: PersistMediaInput): Promise<PersistMe
   } catch (e) {
     // Rollback transakce zahodil Media_Item; smaž i soubor na Drive (R5.4).
     await driveStorage.deleteFile(input.driveFileId);
+    if (input.posterDriveFileId) await driveStorage.deleteFile(input.posterDriveFileId);
     return {
       ok: false,
       message: e instanceof UploadAbort ? e.message : "Uložení média selhalo.",
@@ -399,11 +475,11 @@ async function notifyTelegramAboutUploads(
   return { sent, failed, lastError };
 }
 
-async function notifyTelegramGallerySummary(count: number): Promise<ActionResult> {
+async function notifyTelegramGeneralSummary(count: number): Promise<ActionResult> {
   if (count <= 0) return OK;
   const sent = await telegramBroadcastService.sendMessage({
     chatId: process.env.MMM_TELEGRAM_CHAT_ID ?? "",
-    threadId: process.env.TELEGRAM_THREAD_GALLERY,
+    threadId: process.env.TELEGRAM_THREAD_GENERAL,
     text: buildTelegramGallerySummaryMessage(count),
   });
   if (isErr(sent)) {
@@ -429,15 +505,34 @@ export async function importFromDriveAction(): Promise<ActionResult> {
   if (!folderId) {
     return { ok: false, message: "GDRIVE_ROOT_FOLDER_ID není nastaven." };
   }
-  const listed = await driveStorage.listFiles(folderId);
+  const listed = await driveStorage.listFilesRecursive(folderId);
   if (isErr(listed)) return { ok: false, message: listed.error.message };
   const importStartedAt = new Date();
   const importableDriveFileIds = listed.value
     .filter((f) => classifyType(f.mimeType) !== null)
     .map((f) => f.driveFileId);
+  const modelProfiles = await prisma.modelProfile.findMany({
+    where: { driveFolderId: { not: null } },
+    select: { id: true, driveFolderId: true },
+  });
+  const modelIdsByFolderId = new Map(
+    modelProfiles
+      .filter((profile): profile is { id: string; driveFolderId: string } => typeof profile.driveFolderId === "string")
+      .map((profile) => [profile.driveFolderId, profile.id]),
+  );
+  const modelIdsByDriveFileId = Object.fromEntries(
+    listed.value.map((file) => [
+      file.driveFileId,
+      file.parentFolderId ? (modelIdsByFolderId.get(file.parentFolderId) ?? null) : null,
+    ]),
+  );
 
   const service = createMediaService(prisma);
-  const imported = await service.importFromDrive(listed.value, principal.userId);
+  const imported = await service.importFromDrive(
+    listed.value,
+    principal.userId,
+    modelIdsByDriveFileId,
+  );
   if (isErr(imported)) return { ok: false, message: imported.error.message };
 
   // Sync mazání: odeber média, jejichž soubor už na Drive není (pojistka:
@@ -462,7 +557,7 @@ export async function importFromDriveAction(): Promise<ActionResult> {
     telegramFailed = telegram.failed;
     telegramError = telegram.lastError;
     if (telegram.sent > 0) {
-      const summary = await notifyTelegramGallerySummary(telegram.sent);
+      const summary = await notifyTelegramGeneralSummary(telegram.sent);
       if (!summary.ok) {
         telegramFailed++;
         telegramError = summary.message;
@@ -528,7 +623,7 @@ export async function setMediaPublishedAction(
           message: `Médium bylo publikováno, ale Telegram oznámení selhalo. ${telegram.message ?? ""}`.trim(),
         };
       }
-      const summary = await notifyTelegramGallerySummary(1);
+      const summary = await notifyTelegramGeneralSummary(1);
       if (!summary.ok) {
         console.error("Telegram gallery summary failed for manual publish", {
           mediaId,
@@ -564,20 +659,48 @@ export async function assignMediaModelAction(
   modelId: string | null,
 ): Promise<ActionResult> {
   await requireUploader();
+  const media = await prisma.mediaItem.findUnique({
+    where: { id: mediaId },
+    select: { id: true, modelId: true, driveFileId: true, posterDriveFileId: true },
+  });
+  if (!media) return { ok: false, message: "Médium nebylo nalezeno." };
+  if (modelId === media.modelId) return OK;
   if (modelId) {
-    const res = await modelService.assignMedia(mediaId, modelId);
-    if (isErr(res)) return { ok: false, message: res.error.message };
-  } else {
-    // Odpojení od modelu — médium zůstává, jen ztratí příslušnost k albu.
-    try {
-      await prisma.mediaItem.update({ where: { id: mediaId }, data: { modelId: null } });
-    } catch {
-      return { ok: false, message: "Odpojení od modelu se nezdařilo." };
-    }
+    const profile = await prisma.modelProfile.findUnique({
+      where: { id: modelId },
+      select: { id: true },
+    });
+    if (!profile) return { ok: false, message: "Profil modelu neexistuje." };
+  }
+
+  const targetFolder = await resolveTargetDriveFolderId(modelId);
+  if (!targetFolder.ok) return { ok: false, message: targetFolder.message };
+  const previousFolder = await resolveTargetDriveFolderId(media.modelId);
+  if (!previousFolder.ok) return { ok: false, message: previousFolder.message };
+
+  const moved = await moveDriveFilesToFolder(targetFolder.driveFolderId, [
+    media.driveFileId,
+    media.posterDriveFileId,
+  ]);
+  if (!moved.ok) return moved;
+
+  try {
+    await prisma.mediaItem.update({ where: { id: mediaId }, data: { modelId } });
+  } catch {
+    await moveDriveFilesToFolder(previousFolder.driveFolderId, [
+      media.driveFileId,
+      media.posterDriveFileId,
+    ]);
+    return {
+      ok: false,
+      message: modelId ? "Přiřazení média k modelu se nezdařilo." : "Odpojení od modelu se nezdařilo.",
+    };
   }
   revalidatePath("/admin/media");
   revalidatePath("/");
   revalidatePath("/models");
+  if (media.modelId) revalidatePath(`/models/${media.modelId}`);
+  if (modelId) revalidatePath(`/models/${modelId}`);
   return OK;
 }
 
@@ -716,7 +839,7 @@ export async function finalizeUploadsAction(
     }
   }
   if (publish && telegramSent > 0) {
-    const summary = await notifyTelegramGallerySummary(telegramSent);
+    const summary = await notifyTelegramGeneralSummary(telegramSent);
     if (!summary.ok) {
       telegramFailed++;
       lastTelegramError = summary.message;
@@ -774,14 +897,20 @@ export async function setMediaPosterAction(
   await requireUploader();
   const prev = await prisma.mediaItem.findUnique({
     where: { id: mediaId },
-    select: { posterDriveFileId: true },
+    select: { posterDriveFileId: true, modelId: true },
   });
+  if (!prev) return { ok: false, message: "Médium nebylo nalezeno." };
+  const targetFolder = await resolveTargetDriveFolderId(prev.modelId);
+  if (!targetFolder.ok) return { ok: false, message: targetFolder.message };
+  const moved = await moveDriveFilesToFolder(targetFolder.driveFolderId, [posterDriveFileId]);
+  if (!moved.ok) return moved;
   try {
     await prisma.mediaItem.update({
       where: { id: mediaId },
       data: { posterDriveFileId },
     });
   } catch {
+    await driveStorage.deleteFile(posterDriveFileId);
     return { ok: false, message: "Uložení náhledu selhalo." };
   }
   if (prev?.posterDriveFileId && prev.posterDriveFileId !== posterDriveFileId) {

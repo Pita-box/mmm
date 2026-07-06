@@ -105,23 +105,28 @@ export function MediaLightbox({
 
   useEffect(() => {
     const cachedUrl = item?.id ? preloadedUrls.current.get(item.id) : undefined;
-    setStreamUrl(cachedUrl ?? item?.thumbnailUrl ?? "");
+    const initialPhotoUrl =
+      item?.mediaType === "photo" && item.posterUrl
+        ? `${item.posterUrl}${item.posterUrl.includes("?") ? "&" : "?"}size=2048`
+        : item?.thumbnailUrl;
+    setStreamUrl(cachedUrl ?? initialPhotoUrl ?? "");
     setImageLoading(item?.mediaType === "photo");
     setLoadFailed(false);
-  }, [item?.id, item?.thumbnailUrl, item?.mediaType]);
+  }, [item?.id, item?.thumbnailUrl, item?.posterUrl, item?.mediaType]);
 
   const selectedMediaId = item?.id;
   const selectedMediaType = item?.mediaType;
 
   useEffect(() => {
     if (!selectedMediaId) return;
+    if (selectedMediaType === "photo") return;
     let active = true;
     const seq = ++refreshSeq.current;
 
-    void issueStreamingUrlAction(selectedMediaId).then((res) => {
+    void issueStreamingUrlAction(selectedMediaId, selectedMediaType ?? "video").then((res) => {
       if (!active || refreshSeq.current !== seq || !res.ok || !res.url) return;
       setStreamUrl(res.url);
-      setImageLoading(selectedMediaType === "photo");
+      setImageLoading(false);
       setLoadFailed(false);
     });
 
@@ -135,29 +140,22 @@ export function MediaLightbox({
     const currentIndex = sequence.findIndex((entry) => entry.id === selectedMediaId);
     if (currentIndex < 0) return;
 
-    const nextPhotoIds = sequence
+    const nextPhotos = sequence
       .slice(currentIndex + 1)
       .filter((entry) => entry.mediaType === "photo")
-      .map((entry) => entry.id)
-      .filter((id) => !preloadedUrls.current.has(id))
+      .filter((entry): entry is MediaCardItem & { posterUrl: string } => typeof entry.posterUrl === "string")
+      .filter((entry) => !preloadedUrls.current.has(entry.id))
       .slice(0, 3);
 
-    if (nextPhotoIds.length === 0) return;
+    if (nextPhotos.length === 0) return;
 
-    let active = true;
-    void issueStreamingUrlsAction(nextPhotoIds).then((res) => {
-      if (!active || !res.ok || !res.urls) return;
-      for (const [mediaId, preloadUrl] of Object.entries(res.urls)) {
-        preloadedUrls.current.set(mediaId, preloadUrl);
-        const probe = new Image();
-        probe.decoding = "async";
-        probe.src = preloadUrl;
-      }
-    });
-
-    return () => {
-      active = false;
-    };
+    for (const entry of nextPhotos) {
+      const preloadUrl = `${entry.posterUrl}${entry.posterUrl.includes("?") ? "&" : "?"}size=2048`;
+      preloadedUrls.current.set(entry.id, preloadUrl);
+      const probe = new Image();
+      probe.decoding = "async";
+      probe.src = preloadUrl;
+    }
   }, [selectedMediaId, sequence]);
 
   if (!item) return null;
@@ -173,7 +171,7 @@ export function MediaLightbox({
   const refreshStreamUrl = () => {
     const seq = ++refreshSeq.current;
     setImageLoading(!isVideo);
-    return issueStreamingUrlAction(mediaId).then((res) => {
+    return issueStreamingUrlAction(mediaId, item.mediaType).then((res) => {
       if (refreshSeq.current !== seq || !res.ok || !res.url) {
         setImageLoading(false);
         return false;

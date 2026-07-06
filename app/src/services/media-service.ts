@@ -190,6 +190,7 @@ export interface MediaService {
   importFromDrive(
     files: readonly DriveFileMeta[],
     uploaderId?: string | null,
+    modelIdsByDriveFileId?: Readonly<Record<string, string | null | undefined>>,
   ): Promise<Result<{ imported: number; skipped: number }, MediaError>>;
   /**
  * Sync mazání (plán 007): smaže `MediaItem`y, jejichž `driveFileId` UŽ NENÍ
@@ -255,7 +256,7 @@ export function createMediaService(prisma: PrismaClient): MediaService {
       return ok(created);
     },
 
-    async importFromDrive(files, uploaderId = null) {
+    async importFromDrive(files, uploaderId = null, modelIdsByDriveFileId) {
       const now = new Date();
       // Jen podporované typy (foto/video); ostatní (např. složky) přeskočíme.
       const data = files
@@ -274,7 +275,7 @@ export function createMediaService(prisma: PrismaClient): MediaService {
             // objeví na webu. Admin může skrýt v seznamu médií.
             status: "published" as MediaStatus,
             publishAt: now,
-            modelId: null,
+            modelId: modelIdsByDriveFileId?.[f.driveFileId] ?? null,
             uploaderId,
           };
         })

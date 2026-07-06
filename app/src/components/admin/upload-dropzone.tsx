@@ -31,6 +31,7 @@ export interface UploadDropzoneProps {
   readonly onCreateSession: (
     name: string,
     mimeType: string,
+    modelId?: string | null,
   ) => Promise<{ ok: boolean; uploadUrl?: string; message?: string }>;
   /** Nahrání vygenerovaného posteru (JPEG base64) na Drive → vrátí driveFileId. */
   readonly onUploadPoster?: (
@@ -40,6 +41,8 @@ export interface UploadDropzoneProps {
   readonly onUploaded: (items: UploadedItem[]) => void;
   /** Externě dropnuté soubory (např. drop kamkoliv na /preview) — nahrají se hned. */
   readonly initialFiles?: readonly File[] | null;
+  /** Předvybraný model pro upload přímo do jeho Drive složky. */
+  readonly modelId?: string | null;
 }
 
 const MAX_UPLOAD_GB = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024 * 1024));
@@ -50,7 +53,13 @@ interface Progress {
   readonly error?: string;
 }
 
-export function UploadDropzone({ onCreateSession, onUploadPoster, onUploaded, initialFiles }: UploadDropzoneProps) {
+export function UploadDropzone({
+  onCreateSession,
+  onUploadPoster,
+  onUploaded,
+  initialFiles,
+  modelId = null,
+}: UploadDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const processedRef = useRef<readonly File[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -80,7 +89,7 @@ export function UploadDropzone({ onCreateSession, onUploadPoster, onUploaded, in
             ? await applyPhotoWatermark(file)
             : file;
 
-        const session = await onCreateSession(uploadFile.name, uploadFile.type);
+        const session = await onCreateSession(uploadFile.name, uploadFile.type, modelId);
         if (!session.ok || !session.uploadUrl) {
           setErr(session.message ?? "Nepodařilo se zahájit nahrávání.");
           continue;

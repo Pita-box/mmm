@@ -11,6 +11,7 @@
  * lastActivityAt — plán 009), token vázaný na uživatele a jen Approved_Media.
  */
 import { NextResponse, type NextRequest } from "next/server";
+import { optimizeImage } from "next/dist/server/image-optimizer";
 import { prisma } from "@/lib/prisma";
 import { isErr } from "@/lib/result";
 import { getDriveConnector, driveStorage } from "@/lib/drive";
@@ -19,6 +20,37 @@ import { isApproved } from "@/services/media-service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function resolveThumbSize(request: NextRequest): number {
+  const requested = Number.parseInt(request.nextUrl?.searchParams?.get("size") ?? "", 10);
+  if (Number.isFinite(requested) && requested > 0) {
+    return Math.min(2048, Math.max(256, requested));
+  }
+  return request.nextUrl?.searchParams?.get("dpr") === "1" ? 512 : 1024;
+}
+
+function resolveOutputType(request: NextRequest): "image/avif" | "image/webp" | "image/jpeg" {
+  const accept = request.headers?.get("accept")?.toLowerCase() ?? "";
+  if (accept.includes("image/avif")) return "image/avif";
+  if (accept.includes("image/webp")) return "image/webp";
+  return "image/jpeg";
+}
+
+async function optimizeThumbnail(
+  buffer: Buffer,
+  width: number,
+  contentType: "image/avif" | "image/webp" | "image/jpeg",
+): Promise<Buffer> {
+  return optimizeImage({
+    buffer,
+    contentType,
+    quality: contentType === "image/avif" ? 60 : 82,
+    width,
+    concurrency: 1,
+    sequentialRead: true,
+    timeoutInSeconds: 7,
+  });
+}
 
 export async function GET(
   request: NextRequest,
@@ -82,8 +114,9 @@ export async function GET(
   }
 
   // Náhled se vyzvedne server-side; klient dostane jen obrázkové bajty (R6.4).
-  // Velikost dle DPR: ne-retina (dpr=1) → menší (úspora), jinak retina 1024.
-  const maxSize = request.nextUrl?.searchParams?.get("dpr") === "1" ? 512 : 1024;
+  // Karty používají menší varianty, lightbox větší derivát; originál se
+  // klientovi neservíruje vůbec.
+  const maxSize = resolveThumbSize(request);
   const thumb = await driveStorage.getThumbnail(media.driveFileId, maxSize);
   if (isErr(thumb)) {
     const status = thumb.error.code === "not_found" ? 404 : 502;
@@ -91,6 +124,30 @@ export async function GET(
       { error: thumb.error.code, message: thumb.error.message },
       { status },
     );
+  }
+
+  if (media.mimeType.startsWith("image/")) {
+    const originalBytes = new Uint8Array(await new Response(thumb.value.body).arrayBuffer());
+    const outputType = resolveOutputType(request);
+    try {
+      const optimized = await optimizeThumbnail(Buffer.from(originalBytes), maxSize, outputType);
+      return new NextResponse(new Uint8Array(optimized), {
+        status: 200,
+        headers: {
+          "Content-Type": outputType,
+          "Cache-Control": "private, max-age=3600",
+        },
+      });
+    } catch {
+      // Fallback: i bez konverze raději vrať funkční náhled než chybu.
+    }
+    return new NextResponse(originalBytes, {
+      status: 200,
+      headers: {
+        "Content-Type": thumb.value.contentType,
+        "Cache-Control": "private, max-age=3600",
+      },
+    });
   }
 
   return new NextResponse(thumb.value.body, {

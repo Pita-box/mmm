@@ -39,6 +39,16 @@ export function TagValueInput({
   onRemove,
 }: TagValueInputProps) {
   const [draft, setDraft] = useState("");
+  const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
+
+  const resolveSuggestedValue = (raw: string): string => {
+    const trimmed = raw.trim();
+    if (trimmed.length === 0) return raw;
+    const match = suggestions.find((item) =>
+      item.toLowerCase().startsWith(trimmed.toLowerCase()),
+    );
+    return match ?? raw;
+  };
 
   const commit = (raw: string) => {
     const vals = splitTagInput(raw);
@@ -72,12 +82,13 @@ export function TagValueInput({
       <input
         aria-label={`Štítky — ${label}`}
         className={FIELD_CLASS}
-        list={suggestions.length > 0 ? listId : undefined}
+        list={suggestions.length > 0 && suggestionsEnabled ? listId : undefined}
         placeholder="napiš a stiskni Enter nebo čárku"
         value={draft}
         disabled={disabled}
         onChange={(e) => {
           const raw = e.target.value;
+          if (!suggestionsEnabled) setSuggestionsEnabled(true);
           // Čárka při psaní (i vložení řetězce) přidá hotové hodnoty hned.
           if (raw.includes(",")) {
             const parts = raw.split(",");
@@ -91,8 +102,9 @@ export function TagValueInput({
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
-            commit(draft);
+            commit(resolveSuggestedValue(draft));
             setDraft("");
+            setSuggestionsEnabled(false);
           }
         }}
       />

@@ -89,6 +89,8 @@ model ModelProfile {
   id             String   @id @default(uuid())
   name           String
   bio            String?
+  /// Google Drive složka modelu pod rootem; nová média modelu míří sem.
+  driveFolderId  String?  @unique
   /// Vybraná cover fotka modelu (zdroj hero banneru); musí být jednou z jeho fotek.
   coverMediaId   String?
   /// Vertikální focus coveru v procentech 0–100.

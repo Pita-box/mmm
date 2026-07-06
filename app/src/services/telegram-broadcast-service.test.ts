@@ -40,11 +40,11 @@ describe("buildTelegramUploadCaption", () => {
   it("uses model name when available", () => {
     expect(
       buildTelegramUploadCaption({ mimeType: "image/jpeg", modelName: "Alice" }),
-    ).toBe("Alice\nNew photo");
+    ).toBe("Model: Alice");
   });
 
-  it("falls back to a generic label", () => {
-    expect(buildTelegramUploadCaption({ mimeType: "video/mp4" })).toBe("New video");
+  it("without model returns empty caption", () => {
+    expect(buildTelegramUploadCaption({ mimeType: "video/mp4" })).toBe("");
   });
 });
 
@@ -61,6 +61,9 @@ describe("createTelegramBroadcastService", () => {
       ),
       getThumbnail: vi.fn(),
       listFiles: vi.fn(),
+      listFilesRecursive: vi.fn(),
+      ensureFolder: vi.fn(),
+      moveFileToFolder: vi.fn(),
       createResumableSession: vi.fn(),
       deleteFile: vi.fn(),
     } as unknown as DriveStorage;
@@ -70,7 +73,7 @@ describe("createTelegramBroadcastService", () => {
       expect(body).toContain('name="chat_id"');
       expect(body).toContain("-100123");
       expect(body).toContain('name="caption"');
-      expect(body).toContain("Alice\nNew photo");
+      expect(body).toContain("Model: Alice");
       expect(body).toContain('name="photo"; filename="photo-file.jpg"');
       return new Response("ok", { status: 200 });
     });
@@ -84,7 +87,7 @@ describe("createTelegramBroadcastService", () => {
     const result = await service.sendMedia({
       driveFileId: "drive-1",
       mimeType: "image/jpeg",
-      caption: "Alice\nNew photo",
+      caption: "Model: Alice",
       fileName: "photo-file.jpg",
     });
 
@@ -107,6 +110,9 @@ describe("createTelegramBroadcastService", () => {
       ),
       getThumbnail: vi.fn(),
       listFiles: vi.fn(),
+      listFilesRecursive: vi.fn(),
+      ensureFolder: vi.fn(),
+      moveFileToFolder: vi.fn(),
       createResumableSession: vi.fn(),
       deleteFile: vi.fn(),
     } as unknown as DriveStorage;
@@ -165,6 +171,50 @@ describe("createTelegramBroadcastService", () => {
     expect(fetchFn).toHaveBeenCalledWith(
       "https://api.telegram.org/botbot-token/sendMessage",
       expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("retries text message without thread when Telegram rejects the topic", async () => {
+    const fetchFn: typeof fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response("Bad Request: message thread not found", { status: 400 }),
+      )
+      .mockResolvedValueOnce(new Response("ok", { status: 200 }));
+
+    const service = createTelegramBroadcastService({
+      config: { botToken: "bot-token", chatId: "-100123", defaultThreadId: 77 },
+      fetchFn,
+    });
+
+    const result = await service.sendMessage({
+      chatId: "-100123",
+      text: "Hello",
+      threadId: 77,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+    expect(fetchFn).toHaveBeenNthCalledWith(
+      1,
+      "https://api.telegram.org/botbot-token/sendMessage",
+      expect.objectContaining({
+        body: JSON.stringify({
+          chat_id: "-100123",
+          text: "Hello",
+          message_thread_id: 77,
+        }),
+      }),
+    );
+    expect(fetchFn).toHaveBeenNthCalledWith(
+      2,
+      "https://api.telegram.org/botbot-token/sendMessage",
+      expect.objectContaining({
+        body: JSON.stringify({
+          chat_id: "-100123",
+          text: "Hello",
+        }),
+      }),
     );
   });
 });

@@ -82,13 +82,20 @@ function normalizeThreadId(value: string | number | null | undefined): number | 
   return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
 }
 
+function shouldRetryWithoutThread(details: string): boolean {
+  const normalized = details.trim().toLowerCase();
+  return normalized.includes("message thread not found")
+    || normalized.includes("message thread")
+    || normalized.includes("topic")
+    || normalized.includes("forum");
+}
+
 export function buildTelegramUploadCaption(args: {
   readonly mimeType: string;
   readonly modelName?: string | null;
 }): string {
-  const label = classifyType(args.mimeType) === "video" ? "New video" : "New photo";
   const model = typeof args.modelName === "string" ? args.modelName.trim() : "";
-  return model.length > 0 ? `${model}\n${label}` : label;
+  return model.length > 0 ? `Model: ${model}` : "";
 }
 
 export function createTelegramBroadcastService(deps: {
@@ -115,20 +122,41 @@ export function createTelegramBroadcastService(deps: {
 
       const endpoint = `https://api.telegram.org/bot${botToken}/sendMessage`;
       const threadId = normalizeThreadId(args.threadId);
-      const payload: Record<string, unknown> = {
-        chat_id: String(args.chatId),
-        text: args.text,
+      const buildPayload = (includeThreadId: boolean): Record<string, unknown> => {
+        const payload: Record<string, unknown> = {
+          chat_id: String(args.chatId),
+          text: args.text,
+        };
+        if (includeThreadId && threadId) payload.message_thread_id = threadId;
+        if (args.replyToMessageId) {
+          payload.reply_parameters = { message_id: args.replyToMessageId };
+        }
+        return payload;
       };
-      if (threadId) payload.message_thread_id = threadId;
-      if (args.replyToMessageId) {
-        payload.reply_parameters = { message_id: args.replyToMessageId };
-      }
 
-      const res = await fetchFn(endpoint, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const sendPayload = async (payload: Record<string, unknown>): Promise<Response> =>
+        fetchFn(endpoint, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+      const payload = buildPayload(true);
+      let res = await sendPayload(payload);
+
+      if (!res.ok) {
+        const details = (await res.text()).trim();
+        if (threadId && shouldRetryWithoutThread(details)) {
+          res = await sendPayload(buildPayload(false));
+        } else {
+          return err({
+            code: "send_failed",
+            message: details.length > 0
+              ? `Telegram API vrátil HTTP ${res.status}: ${details}`
+              : `Telegram API vrátil HTTP ${res.status}.`,
+          });
+        }
+      }
 
       if (!res.ok) {
         const details = (await res.text()).trim();
