@@ -39,7 +39,15 @@ async function startSession(
   const login = await authService.login({ email, password });
   if (isErr(login)) return login.error.message;
 
-  const user = await prisma.user.findUnique({ where: { id: login.value.userId } });
+  const user = await prisma.user.findUnique({
+    where: { id: login.value.userId },
+    select: {
+      id: true,
+      role: true,
+      status: true,
+      subscriptionStatus: true,
+    },
+  });
   if (user === null) return "Účet nebyl nalezen.";
 
   const principal: SessionPrincipal = {
