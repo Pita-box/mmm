@@ -21,6 +21,19 @@ import { isApproved } from "@/services/media-service";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function thumbResponse(
+  body: ReadableStream<Uint8Array>,
+  contentType: string,
+): NextResponse {
+  return new NextResponse(body, {
+    status: 200,
+    headers: {
+      "Content-Type": contentType,
+      "Cache-Control": "private, max-age=3600",
+    },
+  });
+}
+
 function resolveThumbSize(request: NextRequest): number {
   const requested = Number.parseInt(request.nextUrl?.searchParams?.get("size") ?? "", 10);
   if (Number.isFinite(requested) && requested > 0) {
@@ -132,9 +145,9 @@ export async function GET(
   }
 
   if (media.mimeType.startsWith("image/")) {
-    const originalBytes = new Uint8Array(await new Response(thumb.value.body).arrayBuffer());
     const outputType = resolveOutputType(request);
     try {
+      const originalBytes = new Uint8Array(await new Response(thumb.value.body).arrayBuffer());
       const optimized = await optimizeThumbnail(Buffer.from(originalBytes), maxSize, outputType);
       return new NextResponse(new Uint8Array(optimized), {
         status: 200,
@@ -144,24 +157,13 @@ export async function GET(
         },
       });
     } catch {
-      // Fallback: i bez konverze raději vrať funkční náhled než chybu.
+      // Fallback: zkus náhled z Drive načíst znovu a vrať ho bez optimalizace.
+      const fallbackThumb = await driveStorage.getThumbnail(media.driveFileId, maxSize);
+      if (!isErr(fallbackThumb)) {
+        return thumbResponse(fallbackThumb.value.body, fallbackThumb.value.contentType);
+      }
     }
-    return new NextResponse(originalBytes, {
-      status: 200,
-      headers: {
-        "Content-Type": thumb.value.contentType,
-        "Cache-Control": "private, max-age=3600",
-      },
-    });
   }
 
-  return new NextResponse(thumb.value.body, {
-    status: 200,
-    headers: {
-      "Content-Type": thumb.value.contentType,
-      // Náhledy se nemění; krátká privátní cache sníží zátěž. Token má ≤300 s
-      // platnost (R6.1), takže cache neobchází autorizaci.
-      "Cache-Control": "private, max-age=3600",
-    },
-  });
+  return thumbResponse(thumb.value.body, thumb.value.contentType);
 }
