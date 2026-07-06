@@ -65,26 +65,50 @@ export interface AuthRepository {
 
 // ─── Prisma implementace ────────────────────────────────────────────────────
 
+const userSelect = {
+  id: true,
+  email: true,
+  passwordHash: true,
+  role: true,
+  status: true,
+  displayName: true,
+  subscriptionStatus: true,
+  failedLoginAttempts: true,
+  lockedUntil: true,
+  createdAt: true,
+} as const;
+
 export class PrismaAuthRepository implements AuthRepository {
   constructor(private readonly db: PrismaClient) {}
 
   findUserByEmail(normalizedEmail: string): Promise<UserRecord | null> {
-    return this.db.user.findUnique({ where: { email: normalizedEmail } });
+    return this.db.user.findUnique({
+      where: { email: normalizedEmail },
+      select: userSelect,
+    });
   }
 
   findUserById(id: string): Promise<UserRecord | null> {
-    return this.db.user.findUnique({ where: { id } });
+    return this.db.user.findUnique({
+      where: { id },
+      select: userSelect,
+    });
   }
 
   createUser(input: CreateUserInput): Promise<UserRecord> {
     // role (User) a subscriptionStatus (inactive) přebírají default ze schématu.
     return this.db.user.create({
       data: { email: input.email, passwordHash: input.passwordHash },
+      select: userSelect,
     });
   }
 
   updateUser(id: string, patch: UserPatch): Promise<UserRecord> {
-    return this.db.user.update({ where: { id }, data: patch });
+    return this.db.user.update({
+      where: { id },
+      data: patch,
+      select: userSelect,
+    });
   }
 
   createSession(session: {
