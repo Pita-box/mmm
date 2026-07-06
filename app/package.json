@@ -24,7 +24,8 @@
     "prisma": "6.19.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-image-crop": "^11.1.2"
+    "react-image-crop": "^11.1.2",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

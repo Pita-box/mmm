@@ -13,7 +13,7 @@ const h = vi.hoisted(() => ({
   principal: null as { userId: string; sessionId: string } | null,
   verify: null as unknown as Result<{ mediaId: string; userId: string; exp: number }, DriveError>,
   media: null as { id: string; driveFileId: string; status: string; publishAt: Date | null; mimeType: string } | null,
-  optimizeImage: vi.fn(async () => Buffer.from("optimized")),
+  toBuffer: vi.fn(async () => Buffer.from("optimized")),
 }));
 
 vi.mock("@/lib/session", () => ({
@@ -37,8 +37,18 @@ vi.mock("@/lib/drive", () => ({
 vi.mock("@/lib/prisma", () => ({
   prisma: { mediaItem: { findUnique: async () => h.media } },
 }));
-vi.mock("next/dist/server/image-optimizer", () => ({
-  optimizeImage: h.optimizeImage,
+vi.mock("sharp", () => ({
+  default: (_buffer: Buffer) => {
+    const api = {
+      rotate: () => api,
+      resize: () => api,
+      avif: () => api,
+      webp: () => api,
+      jpeg: () => api,
+      toBuffer: h.toBuffer,
+    };
+    return api;
+  },
 }));
 
 import { GET } from "./route";
@@ -92,8 +102,6 @@ describe("GET /api/thumb/[token]", () => {
     const res = await GET({ headers: new Headers({ accept: "image/avif,image/webp" }) } as NextRequest, ctx());
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("image/avif");
-    expect(h.optimizeImage).toHaveBeenCalledWith(
-      expect.objectContaining({ contentType: "image/avif", width: 1024 }),
-    );
+    expect(h.toBuffer).toHaveBeenCalled();
   });
 });

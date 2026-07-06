@@ -11,7 +11,7 @@
  * lastActivityAt — plán 009), token vázaný na uživatele a jen Approved_Media.
  */
 import { NextResponse, type NextRequest } from "next/server";
-import { optimizeImage } from "next/dist/server/image-optimizer";
+import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
 import { isErr } from "@/lib/result";
 import { getDriveConnector, driveStorage } from "@/lib/drive";
@@ -41,15 +41,20 @@ async function optimizeThumbnail(
   width: number,
   contentType: "image/avif" | "image/webp" | "image/jpeg",
 ): Promise<Buffer> {
-  return optimizeImage({
-    buffer,
-    contentType,
-    quality: contentType === "image/avif" ? 60 : 82,
+  const pipeline = sharp(buffer, { sequentialRead: true }).rotate().resize({
     width,
-    concurrency: 1,
-    sequentialRead: true,
-    timeoutInSeconds: 7,
+    withoutEnlargement: true,
   });
+
+  if (contentType === "image/avif") {
+    return pipeline.avif({ quality: 60 }).toBuffer();
+  }
+
+  if (contentType === "image/webp") {
+    return pipeline.webp({ quality: 82 }).toBuffer();
+  }
+
+  return pipeline.jpeg({ quality: 82 }).toBuffer();
 }
 
 export async function GET(
