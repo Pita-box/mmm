@@ -1,0 +1,19 @@
+/**
+ * Veřejné API administrátorských komponent (Admin_Console, task 20.6).
+ * Formuláře a přehledy pro upload, štítkování, plánování, správu uživatelů,
+ * viditelnost stránek a oznamovací banner. Drátování odeslání = task 21.2.
+ */
+export * from "./admin-ui";
+export * from "./upload-dropzone";
+export * from "./upload-wizard";
+export * from "./upload-modal";
+export * from "./drive-import-button";
+export * from "./generate-all-thumbnails";
+export * from "./model-profile-form";
+export * from "./users-overview";
+export * from "./gate-sample-picker";
+export * from "./media-edit-panel";
+export * from "./tag-value-input";
+export * from "./tag-manager";
+export * from "./page-visibility-toggles";
+export * from "./notification-banner-form";
