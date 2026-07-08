@@ -7,7 +7,7 @@
  */
 
 /** Hranice šířky viewportu pro počet sloupců (R12.1). */
-export const SMALL_BREAKPOINT = 600;
+export const SMALL_BREAKPOINT = 800;
 export const LARGE_BREAKPOINT = 1200;
 
 /** Maximální velikost jedné dávky donačítání (R12.2). */
@@ -16,20 +16,19 @@ export const MAX_BATCH_SIZE = 24;
 /**
  * Vrátí počet sloupců masonry mřížky podle šířky viewportu (R12.1, Property 29):
  *
- *   - šířka ≤ 600 px            → 1 sloupec
- *   - 600 px < šířka ≤ 1200 px  → 2 až 4 sloupce (deterministické dělení po 200 px)
+ *   - šířka ≤ 800 px            → 2 sloupce
+ *   - 800 px < šířka ≤ 1200 px  → 3 až 4 sloupce (deterministické dělení po 200 px)
  *   - šířka > 1200 px           → 5 sloupců
  *
- * Prostřední pásmo (600–1200) je rozděleno na tři stejné třetiny:
- *   (600, 800] → 2, (800, 1000] → 3, (1000, 1200] → 4.
+ * Prostřední pásmo (800–1200) je rozděleno po 200 px:
+ *   (800, 1000] → 3, (1000, 1200] → 4.
  *
- * Nezáporná i nulová/záporná šířka spadá do prvního pásma (1 sloupec).
+ * Nezáporná i nulová/záporná šířka spadá do prvního pásma (2 sloupce).
  */
 export function columnsForWidth(width: number): number {
-  if (width <= SMALL_BREAKPOINT) return 1;
+  if (width <= SMALL_BREAKPOINT) return 2;
   if (width > LARGE_BREAKPOINT) return 5;
-  // width ∈ (600, 1200] → 2..4 podle třetin po 200 px
-  if (width <= 800) return 2;
+  // width ∈ (800, 1200] → 3..4 podle pásma po 200 px
   if (width <= 1000) return 3;
   return 4;
 }

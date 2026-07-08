@@ -7,11 +7,11 @@ import { columnsForWidth, SMALL_BREAKPOINT, LARGE_BREAKPOINT } from "./masonry";
  * Property 29: Počet sloupců masonry podle šířky viewportu.
  *
  * Pro libovolnou šířku viewportu platí, že počet sloupců je:
- *   - 1 pro šířku do 600 px (width <= 600),
- *   - 2 až 4 pro šířku 600–1200 px (600 < width <= 1200),
+ *   - 2 pro šířku do 800 px (width <= 800),
+ *   - 3 až 4 pro šířku 800–1200 px (800 < width <= 1200),
  *   - 5 pro šířku nad 1200 px (width > 1200).
  *
- * Hranice: SMALL = 600, LARGE = 1200.
+ * Hranice: SMALL = 800, LARGE = 1200.
  *
  * Validates: Requirements 12.1
  */
@@ -44,8 +44,8 @@ describe("Property 29: Počet sloupců masonry podle šířky viewportu", () => 
         const cols = columnsForWidth(width);
 
         if (width <= SMALL_BREAKPOINT) {
-          // Do 600 px (včetně záporných / nulových) → právě 1 sloupec.
-          return cols === 1;
+          // Do 800 px (včetně záporných / nulových) → právě 2 sloupce.
+          return cols === 2;
         }
 
         if (width > LARGE_BREAKPOINT) {
@@ -53,8 +53,8 @@ describe("Property 29: Počet sloupců masonry podle šířky viewportu", () => 
           return cols === 5;
         }
 
-        // Prostřední pásmo (600, 1200] → 2 až 4 sloupce.
-        return cols === 2 || cols === 3 || cols === 4;
+        // Prostřední pásmo (800, 1200] → 3 až 4 sloupce.
+        return cols === 3 || cols === 4;
       }),
       { numRuns: 100 },
     );

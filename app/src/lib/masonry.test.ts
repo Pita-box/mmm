@@ -6,15 +6,13 @@ import {
 } from "./masonry";
 
 describe("columnsForWidth (R12.1)", () => {
-  it("vrací 1 sloupec pro šířku do 600 px včetně hranice", () => {
-    expect(columnsForWidth(0)).toBe(1);
-    expect(columnsForWidth(320)).toBe(1);
-    expect(columnsForWidth(600)).toBe(1);
+  it("vrací 2 sloupce pro mobilní šířku do 800 px včetně hranice", () => {
+    expect(columnsForWidth(0)).toBe(2);
+    expect(columnsForWidth(320)).toBe(2);
+    expect(columnsForWidth(800)).toBe(2);
   });
 
-  it("vrací 2–4 sloupce pro pásmo 600–1200 px", () => {
-    expect(columnsForWidth(601)).toBe(2);
-    expect(columnsForWidth(800)).toBe(2);
+  it("vrací 3–4 sloupce pro pásmo 800–1200 px", () => {
     expect(columnsForWidth(801)).toBe(3);
     expect(columnsForWidth(1000)).toBe(3);
     expect(columnsForWidth(1001)).toBe(4);
@@ -26,8 +24,8 @@ describe("columnsForWidth (R12.1)", () => {
     expect(columnsForWidth(2560)).toBe(5);
   });
 
-  it("nezáporné i záporné/nulové šířky spadají do 1 sloupce", () => {
-    expect(columnsForWidth(-100)).toBe(1);
+  it("nezáporné i záporné/nulové šířky spadají do 2 sloupců", () => {
+    expect(columnsForWidth(-100)).toBe(2);
   });
 });
 

@@ -43,7 +43,9 @@ export function AppShell({
         hiddenSections={hiddenSections}
         displayName={displayName}
       />
-      <main className="mx-auto w-full max-w-[1280px] px-6 py-8 pt-24">{children}</main>
+      <main className="mx-auto w-full max-w-[1280px] px-3 pb-28 pt-4 md:px-6 md:py-8 md:pt-24">
+        {children}
+      </main>
     </div>
   );
 }
