@@ -2,6 +2,37 @@
 
 Záznamy chronologicky, nejnovější nahoře.
 
+## 2026-06-29 — Anglická lokalizace (Telegram bot/notifikace + UI)
+
+### Nové funkce / změny
+- **Telegram (hlavní zadání):** notifikace + bot plně anglicky.
+  - `telegram-community-service.ts` `buildTelegramGallerySummaryMessage` → EN („N new items were added on the site."); český pluralizátor odstraněn; test updatnut.
+  - `telegram-broadcast-service.ts` interní error hlášky → EN; caption „Model: X" už EN.
+  - `telegram-service.ts` error → EN. Bot (`telegram-bot-service.ts`) byl už EN.
+  - General ping text bere z env `TELEGRAM_GENERAL_RANDOM_MESSAGES` (data admina) — nic k překladu.
+- **UI:** uživatelské texty přeloženy do EN napříč `components/` a `app/` (settings, auth, top-nav/nav, users-overview, upload wizard/dropzone/modal, tag-manager, notification-banner-form, admin karty, empty-states, toasty, api/route error `message`). Kódové komentáře ponechány česky (nejsou součástí aplikace).
+- Testy sladěny s EN: `tag-value-input.test.tsx` (aria „Tags — Category" / „Remove blonde"), `design-tokens` snapshot (NotificationBanner aria „Dismiss notification") aktualizován; MasonryGrid „That&apos;s all." escapováno.
+- Ověřeno: tsc 0, 344 testů, lint 0.
+
+## 2026-06-29 — Above-the-fold priorita náhledů + lazy zbytek (lehčí initial load)
+
+### Bug & fix (perf)
+- **Symptom:** na home stránce s více karusely každý karusel eageroval své první 3 náhledy a masonry „Procházet vše" (až dole) eageroval první řady → desítky prioritních fetchů najednou při načtení; `fetchpriority=high` rozmělněné.
+- **Fix:** prioritu (`eager`/`high`) dostane jen skutečně above-the-fold obsah.
+  - `Carousel` má `priority` prop (default false); `PreviewFeed` ji dává jen prvnímu karuselu (`index === 0`), ostatní vše lazy.
+  - `MasonryGrid` má `priority` prop (default true — Search/Models/Collections mají mřížku jako top obsah); `PreviewFeed` předává `priority={false}` (masonry je pod karusely).
+  - Zbytek `loading="lazy"` → prohlížeč dotáhne až při scrollu do view; stránkování (24/dávka) beze změny.
+- Ověřeno: tsc 0, 344 testů, lint 0. (`Carousel.tsx`, `MasonryGrid.tsx`, `PreviewFeed.tsx`.)
+
+## 2026-06-29 — Cachovatelné náhledy (stabilní token) — zrychlení načítání
+
+### Bug & fix (perf)
+- **Symptom:** náhledy se při každé navigaci/refresh znovu tahaly z Drive a transkódovaly (sharp) → čekání; nulový cache-hit.
+- **Root cause:** náhledová URL obsahuje token s `exp = now+300s`, který se mění každou sekundu → jiná URL při každém renderu → prohlížeč `max-age=3600` cache nikdy netrefil.
+- **Fix:** `thumbUrlFor` teď bucketuje token na hodinu (`now` zaokrouhleno dolů na hodinu) s TTL ~2 h → URL je v rámci hodiny STABILNÍ → prohlížeč cache reálně trefí, náhled se znovu netahá. `issueStreamingToken` dostal volitelné `ttlSeconds` (default 300; delší jen pro náhledy). Stream celého souboru zůstává 300 s. (`lib/media-presentation.ts`, `services/drive-connector.ts`.)
+- Ověřeno: tsc 0; token/media testy zelené. Priorita prvních karet (`eager`/`high`) i sharp avif/webp už byly na místě.
+- **Nesouvisející:** `photo-watermark.test.ts` selhává 2/3 i bez této změny (pre-existing mismatch ve watermark layoutu — `centerY 936 vs 946`, `fill-opacity 0.25 vs 0.32`). Není součástí tohoto fixu.
+
 ## 2026-07-05 — Telegram Phase 3: Gallery summary message + community pings do General
 
 ### Hotové tasky

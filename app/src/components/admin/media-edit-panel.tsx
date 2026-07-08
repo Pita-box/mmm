@@ -75,7 +75,7 @@ function TagChip({
       {chip.value}
       <button
         type="button"
-        aria-label={`Odebrat štítek ${chip.value}`}
+        aria-label={`Remove tag ${chip.value}`}
         disabled={disabled}
         className="ml-0.5 cursor-pointer rounded-[var(--radius-sm)] p-0.5 hover:text-netflix-red disabled:opacity-50"
         onClick={onRemove}
@@ -134,19 +134,19 @@ export function MediaEditPanel({
     startTransition(async () => {
       if ((localModelId || null) !== (currentModelId ?? null)) {
         const r = await onAssignModel(mediaId, localModelId || null);
-        if (!r.ok) return setError(r.message ?? "Uložení modelu selhalo.");
+        if (!r.ok) return setError(r.message ?? "Failed to save model.");
       }
       for (const orig of tags) {
         if (!localTags.some((t) => t.id === orig.id)) {
           const r = await onRemoveTag(mediaId, orig.id);
-          if (!r.ok) return setError(r.message ?? "Odebrání štítku selhalo.");
+          if (!r.ok) return setError(r.message ?? "Failed to remove tag.");
         }
       }
       const added = localTags.filter((t) => t.id.startsWith("tmp-"));
       const idMap: Record<string, string> = {};
       for (const t of added) {
         const r = await onAddTag(mediaId, t.category, t.value);
-        if (!r.ok) return setError(r.message ?? "Přidání štítku selhalo.");
+        if (!r.ok) return setError(r.message ?? "Failed to add tag.");
         if (r.tagValueId) idMap[t.id] = r.tagValueId;
       }
       // Reconcile temp id → reálné (kvůli pozdějšímu odebrání).
@@ -165,7 +165,7 @@ export function MediaEditPanel({
         disabled={pending}
         onChange={(e) => onChange(e.target.value)}
       >
-        <option value="">— bez modelu —</option>
+        <option value="">— No model —</option>
         {models.map((m) => (
           <option key={m.id} value={m.id}>
             {m.name}
@@ -199,7 +199,7 @@ export function MediaEditPanel({
         ))}
         <Button type="button" disabled={pending} onClick={save}>
           <Save aria-hidden size={16} />
-          {pending ? "Ukládám…" : "Uložit"}
+          {pending ? "Saving…" : "Save"}
         </Button>
       </div>
     );
@@ -209,7 +209,7 @@ export function MediaEditPanel({
   const run = (action: () => Promise<{ ok: boolean; message?: string }>) => {
     startTransition(async () => {
       const res = await action();
-      setError(res.ok ? null : res.message ?? "Akce se nezdařila.");
+      setError(res.ok ? null : res.message ?? "Action failed.");
     });
   };
   const commitImmediate = (cat: string, raw: string) => {
@@ -229,7 +229,7 @@ export function MediaEditPanel({
         const res = await onAddTag(mediaId, chip.category, chip.value);
         if (!res.ok) {
           setLocalTags((prev) => prev.filter((t) => t.id !== chip.id));
-          setError(res.message ?? "Štítek se nepodařilo přidat.");
+          setError(res.message ?? "Failed to add tag.");
         } else if (res.tagValueId) {
           setLocalTags((prev) => prev.map((t) => (t.id === chip.id ? { ...t, id: res.tagValueId! } : t)));
         }
@@ -243,7 +243,7 @@ export function MediaEditPanel({
       const res = await onRemoveTag(mediaId, id);
       if (!res.ok && removed) {
         setLocalTags((prev) => [...prev, removed]);
-        setError(res.message ?? "Štítek se nepodařilo odebrat.");
+        setError(res.message ?? "Failed to remove tag.");
       }
     });
   };
@@ -256,7 +256,7 @@ export function MediaEditPanel({
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <select
-            aria-label="Kategorie štítku"
+            aria-label="Tag category"
             className={FIELD_CLASS}
             value={category}
             disabled={pending}
@@ -269,10 +269,10 @@ export function MediaEditPanel({
             ))}
           </select>
           <input
-            aria-label="Hodnota štítku"
+            aria-label="Tag value"
             className={FIELD_CLASS}
             list={`edit-tags-${mediaId}-${category}`}
-            placeholder="hodnota (Enter / čárka přidá)"
+            placeholder="value (Enter / comma adds)"
             value={value}
             onChange={(e) => {
               const raw = e.target.value;
@@ -308,7 +308,7 @@ export function MediaEditPanel({
             }}
           >
             <Plus aria-hidden size={14} />
-            Přidat štítek
+            Add tag
           </Button>
         </div>
 

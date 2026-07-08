@@ -19,7 +19,7 @@ function setup(values: string[] = []) {
       onRemove={onRemove}
     />,
   );
-  return { onAdd, onRemove, input: screen.getByLabelText("Štítky — Category") };
+  return { onAdd, onRemove, input: screen.getByLabelText("Tags — Category") };
 }
 
 describe("TagValueInput", () => {
@@ -68,7 +68,7 @@ describe("TagValueInput", () => {
 
   it("klik na ✕ odebere hodnotu", () => {
     const { onRemove } = setup(["blonde"]);
-    fireEvent.click(screen.getByLabelText("Odebrat blonde"));
+    fireEvent.click(screen.getByLabelText("Remove blonde"));
     expect(onRemove).toHaveBeenCalledWith("blonde");
   });
 });

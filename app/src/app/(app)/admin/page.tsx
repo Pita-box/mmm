@@ -16,13 +16,13 @@ const ADMIN_SECTIONS: readonly {
   icon: LucideIcon;
   adminOnly?: boolean;
 }[] = [
-  { href: "/admin/media", title: "Média", desc: "Nahrávání, štítkování a plánování zveřejnění.", icon: Film },
-  { href: "/admin/models", title: "Modely", desc: "Vytváření a editace profilů modelů.", icon: Users },
-  { href: "/admin/tags", title: "Štítky", desc: "Správa hodnot štítků — přejmenování a mazání.", icon: Tags, adminOnly: true },
-  { href: "/admin/users", title: "Uživatelé", desc: "Přehled účtů, role, blokace a členství.", icon: UserCog, adminOnly: true },
-  { href: "/admin/membership-gate", title: "Membership gate", desc: "Výběr sample fotek pro bariéru členství.", icon: Lock, adminOnly: true },
-  { href: "/admin/pages", title: "Viditelnost stránek", desc: "Globální skrytí a zobrazení sekcí.", icon: EyeOff, adminOnly: true },
-  { href: "/admin/notifications", title: "Oznámení", desc: "Globální oznamovací banner.", icon: Megaphone, adminOnly: true },
+  { href: "/admin/media", title: "Media", desc: "Upload, tagging and publish scheduling.", icon: Film },
+  { href: "/admin/models", title: "Models", desc: "Create and edit model profiles.", icon: Users },
+  { href: "/admin/tags", title: "Tags", desc: "Manage tag values — rename and delete.", icon: Tags, adminOnly: true },
+  { href: "/admin/users", title: "Users", desc: "Accounts overview, roles, blocking and membership.", icon: UserCog, adminOnly: true },
+  { href: "/admin/membership-gate", title: "Membership gate", desc: "Pick sample photos for the membership gate.", icon: Lock, adminOnly: true },
+  { href: "/admin/pages", title: "Page visibility", desc: "Globally hide and show sections.", icon: EyeOff, adminOnly: true },
+  { href: "/admin/notifications", title: "Notifications", desc: "Global notification banner.", icon: Megaphone, adminOnly: true },
 ];
 
 export default async function AdminConsole() {
@@ -38,7 +38,7 @@ export default async function AdminConsole() {
           Admin Console
         </h1>
         <p className="mt-2 text-[length:var(--text-body)] text-silver">
-          Správa obsahu, uživatelů, stránek a oznámení.
+          Manage content, users, pages and notifications.
         </p>
       </header>
 

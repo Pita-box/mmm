@@ -39,7 +39,7 @@ export default async function AdminMembershipGatePage() {
   return (
     <AdminCard
       title="Membership gate"
-      description="Vyber publikované fotky, které se rozmazaně zobrazí uživatelům bez platného členství."
+      description="Choose published photos to show blurred to users without an active membership."
     >
       <GateSamplePicker
         media={items}

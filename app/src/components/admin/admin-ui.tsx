@@ -145,7 +145,7 @@ export function Badge({
 export function WiringNotice() {
   return (
     <p className="mt-4 text-[length:var(--text-caption)] text-ash">
-      Odeslání se napojí na server v tasku 21 (server actions / route handlery).
+      Submission will be wired to the server in task 21 (server actions / route handlers).
     </p>
   );
 }

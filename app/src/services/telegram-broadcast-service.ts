@@ -116,7 +116,7 @@ export function createTelegramBroadcastService(deps: {
       if (!botToken) {
         return err({
           code: "destination_unavailable",
-          message: "Telegram bot token není nastavený.",
+          message: "Telegram bot token is not set.",
         });
       }
 
@@ -152,8 +152,8 @@ export function createTelegramBroadcastService(deps: {
           return err({
             code: "send_failed",
             message: details.length > 0
-              ? `Telegram API vrátil HTTP ${res.status}: ${details}`
-              : `Telegram API vrátil HTTP ${res.status}.`,
+              ? `Telegram API returned HTTP : `
+              : `Telegram API returned HTTP .`,
           });
         }
       }
@@ -163,8 +163,8 @@ export function createTelegramBroadcastService(deps: {
         return err({
           code: "send_failed",
           message: details.length > 0
-            ? `Telegram API vrátil HTTP ${res.status}: ${details}`
-            : `Telegram API vrátil HTTP ${res.status}.`,
+            ? `Telegram API returned HTTP : `
+            : `Telegram API returned HTTP .`,
         });
       }
 
@@ -179,7 +179,7 @@ export function createTelegramBroadcastService(deps: {
       if (!botToken || !chatId) {
         return err({
           code: "destination_unavailable",
-          message: "Telegram bot token nebo chat ID není nastavený.",
+          message: "Telegram bot token or chat ID is not set.",
         });
       }
 
@@ -187,14 +187,14 @@ export function createTelegramBroadcastService(deps: {
       if (!kind) {
         return err({
           code: "unsupported_format",
-          message: `Telegram broadcast nepodporuje MIME typ ${input.mimeType}.`,
+          message: `Telegram broadcast does not support MIME type .`,
         });
       }
 
       if (!deps.storage) {
         return err({
           code: "send_failed",
-          message: "Drive storage není připojené pro odeslání média.",
+          message: "Drive storage is not connected for sending media.",
         });
       }
 
@@ -256,8 +256,8 @@ export function createTelegramBroadcastService(deps: {
         return err({
           code: "send_failed",
           message: details.length > 0
-            ? `Telegram API vrátil HTTP ${res.status}: ${details}`
-            : `Telegram API vrátil HTTP ${res.status}.`,
+            ? `Telegram API returned HTTP : `
+            : `Telegram API returned HTTP .`,
         });
       }
 

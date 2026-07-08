@@ -10,16 +10,16 @@ import {
 describe("telegram community service", () => {
   it("builds singular gallery summary", () => {
     expect(buildTelegramGallerySummaryMessage(1)).toBe(
-      "Bylo přidáno 1 nové médium na webu.",
+      "1 new item was added on the site.",
     );
   });
 
   it("builds plural gallery summary", () => {
     expect(buildTelegramGallerySummaryMessage(4)).toBe(
-      "Bylo přidáno 4 nová média na webu.",
+      "4 new items were added on the site.",
     );
     expect(buildTelegramGallerySummaryMessage(5)).toBe(
-      "Bylo přidáno 5 nových médií na webu.",
+      "5 new items were added on the site.",
     );
   });
 

@@ -21,7 +21,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     payload = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "invalid_body", message: "Tělo požadavku nelze přečíst." },
+      { error: "invalid_body", message: "The request body could not be read." },
       { status: 400 },
     );
   }

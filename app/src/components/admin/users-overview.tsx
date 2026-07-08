@@ -61,9 +61,9 @@ function RoleBadge({ role }: { readonly role: Role }) {
 
 function StatusBadge({ status }: { readonly status: AccountStatus }) {
   return status === "active" ? (
-    <Badge tone="positive">Aktivní</Badge>
+    <Badge tone="positive">Active</Badge>
   ) : (
-    <Badge tone="negative">Zablokován</Badge>
+    <Badge tone="negative">Blocked</Badge>
   );
 }
 
@@ -88,20 +88,20 @@ function MembershipControl({
     <div className="flex flex-wrap items-center gap-2">
       {member ? (
         <Badge tone="positive">
-          Členství{row.membershipExpiresAt ? ` do ${row.membershipExpiresAt.slice(0, 10)}` : " ∞"}
+          Membership{row.membershipExpiresAt ? ` until ${row.membershipExpiresAt.slice(0, 10)}` : " ∞"}
         </Badge>
       ) : (
-        <Badge tone="neutral">Bez členství</Badge>
+        <Badge tone="neutral">No membership</Badge>
       )}
       <label className="sr-only" htmlFor={`exp-${row.id}`}>
-        Expirace členství {row.email}
+        Membership expiry for {row.email}
       </label>
       <input
         id={`exp-${row.id}`}
         type="date"
         value={date}
         onChange={(e) => setDate(e.target.value)}
-        title="Datum expirace (prázdné = bez expirace)"
+        title="Expiry date (empty = no expiry)"
         className="rounded-[var(--radius-lg)] border border-graphite bg-[color:var(--color-deep-space)] px-2 py-1 text-[length:var(--text-caption)] text-chalk-white"
       />
       <Button
@@ -111,7 +111,7 @@ function MembershipControl({
           void onSetMembership?.(row.id, true, date ? new Date(date).toISOString() : null);
         }}
       >
-        Aktivovat
+        Activate
       </Button>
       {member && (
         <Button
@@ -121,7 +121,7 @@ function MembershipControl({
             void onSetMembership?.(row.id, false, null);
           }}
         >
-          Zrušit
+          Revoke
         </Button>
       )}
     </div>
@@ -137,12 +137,12 @@ export function UsersOverview({
 }: UsersOverviewProps) {
   return (
     <AdminCard
-      title="Přehled uživatelů"
-      description="Role a stav účtů. Roli lze změnit, účet zablokovat nebo odblokovat."
+      title="Users"
+      description="Account roles and status. Change a role, block or unblock an account."
     >
       {users.length === 0 ? (
         <p className="text-[length:var(--text-body)] text-silver">
-          Zatím nejsou žádné uživatelské účty.
+          No user accounts yet.
         </p>
       ) : (
         <ul className="flex flex-col divide-y divide-graphite">
@@ -167,13 +167,13 @@ export function UsersOverview({
                   </div>
                   <div className="flex items-center gap-2">
                     <label className="sr-only" htmlFor={`role-${user.id}`}>
-                      Role uživatele {user.email}
+                      Role for user {user.email}
                     </label>
                     <select
                       id={`role-${user.id}`}
                       value={user.role}
                       disabled={isSelf}
-                      title={isSelf ? "Vlastní roli nelze měnit" : "Změnit roli"}
+                      title={isSelf ? "You can't change your own role" : "Change role"}
                       onChange={(e) => {
                         void onChangeRole?.(user.id, e.target.value as Role);
                       }}
@@ -192,7 +192,7 @@ export function UsersOverview({
                         void onToggleStatus?.(user.id, next);
                       }}
                     >
-                      {user.status === "active" ? "Zablokovat" : "Odblokovat"}
+                      {user.status === "active" ? "Block" : "Unblock"}
                     </Button>
                   </div>
                 </div>

@@ -79,7 +79,7 @@ export function UploadDropzone({
         setItems((prev) => prev.map((p, idx) => (idx === i ? { ...p, error } : p)));
 
       if (classifyType(file.type) === null || isErr(validateUpload({ mimeType: file.type, sizeBytes: file.size }))) {
-        setErr("Nepodporovaný formát nebo příliš velký soubor.");
+        setErr("Unsupported format or file too large.");
         continue;
       }
       try {
@@ -91,7 +91,7 @@ export function UploadDropzone({
 
         const session = await onCreateSession(uploadFile.name, uploadFile.type, modelId);
         if (!session.ok || !session.uploadUrl) {
-          setErr(session.message ?? "Nepodařilo se zahájit nahrávání.");
+          setErr(session.message ?? "Couldn't start the upload.");
           continue;
         }
         const driveFileId = await uploadResumable(session.uploadUrl, uploadFile, (pct) =>
@@ -168,10 +168,10 @@ export function UploadDropzone({
       >
         <UploadCloud aria-hidden size={32} className="text-silver" />
         <span className="text-[length:var(--text-body)] text-chalk-white">
-          {busy ? "Nahrávám…" : "Přetáhněte soubory sem"}
+          {busy ? "Uploading…" : "Drop files here"}
         </span>
         <span className="text-[length:var(--text-caption)] text-ash">
-          Foto (JPEG/PNG/WebP) nebo video (MP4/MOV/WebM), max {MAX_UPLOAD_GB} GB. Více souborů najednou.
+          Photo (JPEG/PNG/WebP) or video (MP4/MOV/WebM), max {MAX_UPLOAD_GB} GB. Multiple files at once.
         </span>
         <button
           type="button"
@@ -179,7 +179,7 @@ export function UploadDropzone({
           onClick={() => inputRef.current?.click()}
           className="mt-2 rounded-[var(--radius-lg)] bg-netflix-red px-5 py-2 text-[length:var(--text-caption)] font-semibold text-chalk-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          Vybrat soubory
+          Choose files
         </button>
       </div>
       <input

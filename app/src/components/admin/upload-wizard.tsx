@@ -125,13 +125,13 @@ export function UploadWizard({
       }));
       const res = await onFinalize(payload, publish);
       if (res.ok) {
-        setResult(`Hotovo: vytvořeno ${res.created}.`);
+        setResult(`Done: created ${res.created}.`);
         setItems([]);
         setMetas([]);
         setCur(0);
         router.refresh();
       } else {
-        setResult(res.message ?? "Část položek selhala.");
+        setResult(res.message ?? "Some items failed.");
       }
     });
   }
@@ -140,7 +140,7 @@ export function UploadWizard({
   const meta = metas[cur];
 
   return (
-    <AdminCard title="Nahrát média" description="Přetáhněte více souborů, otagujte je a publikujte.">
+    <AdminCard title="Upload media" description="Drop multiple files, tag them, and publish.">
       <UploadDropzone
         onCreateSession={onCreateSession}
         onUploadPoster={onUploadPoster}
@@ -169,7 +169,7 @@ export function UploadWizard({
             </div>
             <div className="flex items-center justify-between gap-2">
               <Button type="button" variant="secondary" disabled={cur === 0} onClick={() => setCur((c) => c - 1)}>
-                <ChevronLeft aria-hidden size={14} /> Předchozí
+                <ChevronLeft aria-hidden size={14} /> Previous
               </Button>
               <span className="text-[length:var(--text-caption)] text-silver">
                 {cur + 1} / {items.length}
@@ -180,7 +180,7 @@ export function UploadWizard({
                 disabled={cur >= items.length - 1}
                 onClick={() => setCur((c) => c + 1)}
               >
-                Další <ChevronRight aria-hidden size={14} />
+                Next <ChevronRight aria-hidden size={14} />
               </Button>
             </div>
             <p className="truncate text-[length:var(--text-caption)] text-ash">{item.name}</p>
@@ -203,7 +203,7 @@ export function UploadWizard({
                   value={meta.modelId}
                   onChange={(e) => patchCur({ modelId: e.target.value })}
                 >
-                  <option value="">— bez modelu —</option>
+                  <option value="">— no model —</option>
                   {models.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name}
@@ -226,15 +226,15 @@ export function UploadWizard({
             ))}
 
             <Button type="button" variant="secondary" onClick={applyToAll} disabled={items.length < 2}>
-              <Check aria-hidden size={14} /> Použít model a štítky na všechna
+              <Check aria-hidden size={14} /> Apply model and tags to all
             </Button>
 
             <div className="flex flex-wrap gap-2">
               <Button type="button" disabled={pending} onClick={() => finalize(true)}>
-                {pending ? "Ukládám…" : "Publikovat vše"}
+                {pending ? "Saving…" : "Publish all"}
               </Button>
               <Button type="button" variant="secondary" disabled={pending} onClick={() => finalize(false)}>
-                Uložit skryté
+                Save hidden
               </Button>
             </div>
           </div>

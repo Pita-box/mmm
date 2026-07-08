@@ -34,7 +34,7 @@ export function NotificationBannerForm({
 
   const textError =
     submitted && !validateNotificationText(text)
-      ? `Text musí mít ${LENGTH_BOUNDS.notificationText.min}–${LENGTH_BOUNDS.notificationText.max} znaků.`
+      ? `Text must be ${LENGTH_BOUNDS.notificationText.min}–${LENGTH_BOUNDS.notificationText.max} characters.`
       : null;
 
   function handleActivate(e: React.FormEvent) {
@@ -47,23 +47,23 @@ export function NotificationBannerForm({
 
   return (
     <AdminCard
-      title="Oznamovací banner"
-      description="Globální oznámení pro všechny přihlášené uživatele (text 1–500 znaků)."
+      title="Notification banner"
+      description="Global notification for all signed-in users (text 1–500 characters)."
     >
       {activeText ? (
         <p className="mb-4 flex items-center gap-2 text-[length:var(--text-caption)] text-silver">
-          <Badge tone="negative">Aktivní</Badge>
+          <Badge tone="negative">Active</Badge>
           <span className="truncate">{activeText}</span>
         </p>
       ) : (
         <p className="mb-4 text-[length:var(--text-caption)] text-ash">
-          Žádné aktivní oznámení.
+          No active notification.
         </p>
       )}
 
       <form onSubmit={handleActivate} className="flex flex-col gap-5" noValidate>
         <Field
-          label="Text oznámení"
+          label="Notification text"
           htmlFor="notification-text"
           error={textError}
           hint={`${text.length}/${LENGTH_BOUNDS.notificationText.max}`}
@@ -73,7 +73,7 @@ export function NotificationBannerForm({
             value={text}
             maxLength={LENGTH_BOUNDS.notificationText.max}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Text zobrazený všem uživatelům"
+            placeholder="Text shown to all users"
             aria-invalid={textError != null}
           />
         </Field>

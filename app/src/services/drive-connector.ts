@@ -55,6 +55,12 @@ export interface IssueTokenParams {
   /** Identita autentizovaného uživatele; prázdná/chybějící = neautorizováno. */
   readonly userId?: string | null;
   readonly now: Date;
+  /**
+   * Volitelná životnost tokenu v sekundách (výchozí `STREAMING_TOKEN_TTL_SECONDS`
+   * = 300). Delší se používá jen pro málo citlivé náhledy (plán cache), aby URL
+   * mohla být stabilní a cachovatelná. Stream celého souboru zůstává na 300 s.
+   */
+  readonly ttlSeconds?: number;
 }
 
 // ─── Čisté jádro: podpis a ověření tokenu ─────────────────────────────────────
@@ -103,10 +109,14 @@ export function issueStreamingToken(
     });
   }
   const nowSeconds = Math.floor(params.now.getTime() / 1000);
+  const ttl =
+    params.ttlSeconds && params.ttlSeconds > 0
+      ? params.ttlSeconds
+      : STREAMING_TOKEN_TTL_SECONDS;
   const payload: StreamingTokenPayload = {
     mediaId: params.mediaId,
     userId: params.userId,
-    exp: nowSeconds + STREAMING_TOKEN_TTL_SECONDS,
+    exp: nowSeconds + ttl,
   };
   return ok(signStreamingToken(payload, secret));
 }

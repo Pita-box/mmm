@@ -168,10 +168,10 @@ export function SearchBrowser({ pool }: SearchBrowserProps) {
         >
           <SearchX aria-hidden size={40} className="text-[color:var(--color-ash)]" />
           <p className="text-[length:var(--text-subheading)] font-medium text-[color:var(--color-chalk-white)]">
-            Žádný obsah neodpovídá zvoleným filtrům.
+            No content matches the selected filters.
           </p>
           <p className="text-[length:var(--text-body)] text-[color:var(--color-silver)]">
-            Zkuste upravit výběr filtrů.
+            Try adjusting your filter selection.
           </p>
         </div>
       ) : (

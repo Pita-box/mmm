@@ -13,15 +13,9 @@ function formatDatePart(
   return Number.parseInt(value ?? "0", 10);
 }
 
-function pluralizeGalleryMedia(count: number): string {
-  const abs = Math.abs(count);
-  if (abs === 1) return "nové médium";
-  if (abs >= 2 && abs <= 4) return "nová média";
-  return "nových médií";
-}
-
 export function buildTelegramGallerySummaryMessage(count: number): string {
-  return `Bylo přidáno ${count} ${pluralizeGalleryMedia(count)} na webu.`;
+  const isSingular = Math.abs(count) === 1;
+  return `${count} new ${isSingular ? "item" : "items"} ${isSingular ? "was" : "were"} added on the site.`;
 }
 
 export function parseTelegramGeneralRandomMessages(

@@ -101,11 +101,11 @@ export function PreviewFeed({
             Preview
           </h1>
           <p className="mt-2 text-[length:var(--text-body)] text-[color:var(--color-silver)]">
-            Nejnovější obsah seřazený od nejnovějšího.
+            The latest content, newest first.
           </p>
         </header>
         <p className="py-12 text-center text-[length:var(--text-body)] text-[color:var(--color-ash)]">
-          Zatím tu není žádný obsah.
+          No content here yet.
         </p>
         {canUpload ? <MediaUploadLauncher models={models} tagSuggestions={tagSuggestions} /> : null}
       </section>
@@ -114,20 +114,22 @@ export function PreviewFeed({
 
   return (
     <section>
-      {rows.map((row) => (
+      {rows.map((row, index) => (
         <Carousel
           key={row.title}
           title={row.title}
           href={row.href}
           media={row.items}
           onSelect={setSelected}
+          priority={index === 0}
         />
       ))}
 
       <h2 className="mb-4 mt-4 text-[length:var(--text-heading-sm)] font-bold text-[color:var(--color-chalk-white)]">
-        Procházet vše
+        Browse all
       </h2>
-      <MasonryGrid loadPage={loadPage} onSelect={setSelected} />
+      {/* Masonry je až pod karusely → není above-the-fold; vše lazy (dotáhne se scrollem). */}
+      <MasonryGrid loadPage={loadPage} onSelect={setSelected} priority={false} />
 
       <MediaLightbox
         item={selected}

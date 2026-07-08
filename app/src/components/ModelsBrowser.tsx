@@ -59,7 +59,7 @@ export function ModelsBrowser({
     startCreateTransition(async () => {
       const result = await onCreateModel({ name, bio });
       if (!result.ok) {
-        setCreateError(result.message ?? "Vytvoření modelu se nezdařilo.");
+        setCreateError(result.message ?? "Failed to create model.");
         return;
       }
       setCreateOpen(false);
@@ -82,7 +82,7 @@ export function ModelsBrowser({
             }}
           >
             <Plus aria-hidden size={16} />
-            Přidat model
+            Add model
           </Button>
         ) : null}
       </header>
@@ -91,7 +91,7 @@ export function ModelsBrowser({
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Vytvořit model"
+          aria-label="Create model"
           className="fixed inset-0 z-[70] overflow-y-auto bg-black/70 backdrop-blur-sm"
           onClick={() => setCreateOpen(false)}
         >
@@ -102,25 +102,25 @@ export function ModelsBrowser({
             >
               <header className="mb-5">
                 <h2 className="text-[length:var(--text-subheading)] font-bold text-chalk-white">
-                  Vytvořit model
+                  Create model
                 </h2>
               </header>
               <form action={handleCreateModelSubmit} className="flex flex-col gap-4">
-                <Field label="Jméno modelu" htmlFor="create-model-name">
+                <Field label="Model name" htmlFor="create-model-name">
                   <TextInput
                     id="create-model-name"
                     name="name"
                     maxLength={100}
                     required
-                    placeholder="Jméno modelu"
+                    placeholder="Model name"
                   />
                 </Field>
-                <Field label="Bio" htmlFor="create-model-bio" hint="Volitelné, max 1000 znaků.">
+                <Field label="Bio" htmlFor="create-model-bio" hint="Optional, max 1000 characters.">
                   <TextArea
                     id="create-model-bio"
                     name="bio"
                     maxLength={1000}
-                    placeholder="Krátký popis modelu"
+                    placeholder="Short description of the model"
                   />
                 </Field>
                 {createError ? (
@@ -135,10 +135,10 @@ export function ModelsBrowser({
                     onClick={() => setCreateOpen(false)}
                     disabled={isCreating}
                   >
-                    Zrušit
+                    Cancel
                   </Button>
                   <Button type="submit" disabled={isCreating}>
-                    {isCreating ? "Vytvářím…" : "Vytvořit model"}
+                    {isCreating ? "Creating…" : "Create model"}
                   </Button>
                 </div>
               </form>
@@ -162,7 +162,7 @@ export function ModelsBrowser({
       ) : (
         <p className="flex flex-col items-center gap-3 py-12 text-center text-[length:var(--text-body)] text-[color:var(--color-ash)]">
           <Users aria-hidden size={40} className="text-[color:var(--color-slate)]" />
-          Zatím nejsou k dispozici žádní modelové.
+          No models available yet.
         </p>
       )}
       {canUpload ? <MediaUploadLauncher models={models} tagSuggestions={tagSuggestions} /> : null}

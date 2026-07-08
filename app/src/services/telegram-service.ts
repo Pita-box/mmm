@@ -36,6 +36,6 @@ export function resolveTelegramRedirect(
   }
   return err({
     code: "destination_unavailable",
-    message: "Cíl Telegram není dostupný.",
+    message: "Telegram destination is not available.",
   });
 }

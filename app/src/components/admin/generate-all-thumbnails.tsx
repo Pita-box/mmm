@@ -56,25 +56,25 @@ export function GenerateAllThumbnails({ videos, onUploadPoster, onSetPoster }: G
       setProcessed(i + 1);
     }
     setRunning(false);
-    setStatus(`Hotovo: ${ok} vygenerováno, ${bad} selhalo.`);
+    setStatus(`Done: ${ok} generated, ${bad} failed.`);
   }
 
   return (
     <AdminCard
-      title="Náhledy videí"
-      description="Vygeneruje náhled (snímek z 1/3 délky) pro všechna publikovaná videa."
+      title="Video thumbnails"
+      description="Generates a thumbnail (frame from 1/3 of the length) for all published videos."
     >
       <div className="flex flex-col gap-3">
         <div>
           <Button type="button" onClick={() => void run()} disabled={running || videos.length === 0}>
             <ImagePlus aria-hidden size={16} />
             {running
-              ? `Generuji… ${processed}/${videos.length}`
-              : `Generovat náhledy všech videí (${videos.length})`}
+              ? `Generating… ${processed}/${videos.length}`
+              : `Generate thumbnails for all videos (${videos.length})`}
           </Button>
         </div>
         {videos.length === 0 ? (
-          <p className="text-[length:var(--text-caption)] text-ash">Žádná publikovaná videa.</p>
+          <p className="text-[length:var(--text-caption)] text-ash">No published videos.</p>
         ) : null}
         {status ? (
           <p role="status" className="text-[length:var(--text-caption)] text-silver">

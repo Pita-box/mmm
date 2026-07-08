@@ -76,35 +76,35 @@ export function SettingsPanel({
   return (
     <div className="flex flex-col gap-6">
       <AdminCard
-        title="Profil"
-        description="Upravte své zobrazované jméno (1–255 znaků)."
+        title="Profile"
+        description="Update your display name (1–255 characters)."
       >
         <form action={profileAction} className="flex flex-col gap-5" noValidate>
-          <Field label="Zobrazované jméno" htmlFor="displayName">
+          <Field label="Display name" htmlFor="displayName">
             <TextInput
               id="displayName"
               name="displayName"
               defaultValue={initialDisplayName}
               maxLength={255}
-              placeholder="Vaše jméno"
+              placeholder="Your name"
             />
           </Field>
-          <Feedback state={profileState} success="Profil byl uložen." />
+          <Feedback state={profileState} success="Profile saved." />
           <div>
             <Button type="submit" disabled={profilePending}>
               <Save aria-hidden size={16} />
-              {profilePending ? "Ukládám…" : "Uložit profil"}
+              {profilePending ? "Saving…" : "Save profile"}
             </Button>
           </div>
         </form>
       </AdminCard>
 
       <AdminCard
-        title="Změna hesla"
-        description="Zadejte stávající a nové heslo (8–128 znaků)."
+        title="Change password"
+        description="Enter your current and new password (8–128 characters)."
       >
         <form action={passwordAction} className="flex flex-col gap-5" noValidate>
-          <Field label="Stávající heslo" htmlFor="currentPassword">
+          <Field label="Current password" htmlFor="currentPassword">
             <TextInput
               id="currentPassword"
               name="currentPassword"
@@ -112,7 +112,7 @@ export function SettingsPanel({
               autoComplete="current-password"
             />
           </Field>
-          <Field label="Nové heslo" htmlFor="newPassword">
+          <Field label="New password" htmlFor="newPassword">
             <TextInput
               id="newPassword"
               name="newPassword"
@@ -122,11 +122,11 @@ export function SettingsPanel({
               maxLength={128}
             />
           </Field>
-          <Feedback state={passwordState} success="Heslo bylo změněno." />
+          <Feedback state={passwordState} success="Password changed." />
           <div>
             <Button type="submit" disabled={passwordPending}>
               <KeyRound aria-hidden size={16} />
-              {passwordPending ? "Měním…" : "Změnit heslo"}
+              {passwordPending ? "Changing…" : "Change password"}
             </Button>
           </div>
         </form>
@@ -134,7 +134,7 @@ export function SettingsPanel({
 
       <AdminCard
         title="Telegram"
-        description="Přejít do privátní Telegram skupiny (otevře se v nové záložce)."
+        description="Go to the private Telegram group (opens in a new tab)."
       >
         <div className="flex flex-col gap-3">
           {telegramError ? (
@@ -145,7 +145,7 @@ export function SettingsPanel({
           <div>
             <Button type="button" onClick={openTelegram} disabled={telegramPending}>
               <Send aria-hidden size={16} />
-              {telegramPending ? "Otevírám…" : "Otevřít Telegram"}
+              {telegramPending ? "Opening…" : "Open Telegram"}
             </Button>
           </div>
         </div>

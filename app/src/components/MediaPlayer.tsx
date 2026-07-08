@@ -183,7 +183,7 @@ export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaP
     return (
       <div className={`flex items-center justify-center rounded-2xl bg-[color:var(--color-graphite)] px-6 py-4 ${className ?? ""}`}>
         <span className="text-[length:var(--text-body)] text-[color:var(--color-silver)]">
-          Médium nelze přehrát.
+          This media can&apos;t be played.
         </span>
       </div>
     );
@@ -255,7 +255,7 @@ export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaP
         <div className="flex items-center gap-3">
           <input
             type="range"
-            aria-label="Posuv videa"
+            aria-label="Video seek"
             min={0}
             max={duration || 0}
             step={0.1}
@@ -276,7 +276,7 @@ export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaP
           <button
             type="button"
             onClick={togglePlay}
-            aria-label={playing ? "Pozastavit" : "Přehrát"}
+            aria-label={playing ? "Pause" : "Play"}
             className="cursor-pointer transition-transform hover:scale-110"
           >
             {playing ? (
@@ -289,7 +289,7 @@ export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaP
           <button
             type="button"
             onClick={() => seekBy(-5)}
-            aria-label="Zpět o 5 sekund"
+            aria-label="Back 5 seconds"
             className="relative flex cursor-pointer items-center justify-center transition-transform hover:scale-110"
           >
             <RotateCcw aria-hidden size={24} strokeWidth={1.75} />
@@ -299,7 +299,7 @@ export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaP
           <button
             type="button"
             onClick={() => seekBy(5)}
-            aria-label="Vpřed o 5 sekund"
+            aria-label="Forward 5 seconds"
             className="relative flex cursor-pointer items-center justify-center transition-transform hover:scale-110"
           >
             <RotateCw aria-hidden size={24} strokeWidth={1.75} />
@@ -310,7 +310,7 @@ export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaP
             <button
               type="button"
               onClick={toggleMute}
-              aria-label={muted ? "Zapnout zvuk" : "Ztlumit"}
+              aria-label={muted ? "Unmute" : "Mute"}
               className="cursor-pointer transition-transform hover:scale-110"
             >
               {muted || volume === 0 ? (
@@ -321,7 +321,7 @@ export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaP
             </button>
             <input
               type="range"
-              aria-label="Hlasitost"
+              aria-label="Volume"
               min={0}
               max={1}
               step={0.05}
@@ -337,7 +337,7 @@ export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaP
           <button
             type="button"
             onClick={toggleFullscreen}
-            aria-label="Celá obrazovka"
+            aria-label="Fullscreen"
             className="ml-auto cursor-pointer transition-transform hover:scale-110"
           >
             {fullscreen ? (

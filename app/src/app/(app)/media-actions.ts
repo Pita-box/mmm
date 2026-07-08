@@ -37,7 +37,7 @@ export async function issueStreamingUrlAction(
   const principal = await requireSession();
   const url = displayUrlFor(mediaId, mediaType, principal.userId);
   if (!url) {
-    return { ok: false, message: "Streamovací odkaz se nepodařilo vytvořit." };
+    return { ok: false, message: "Failed to create the streaming link." };
   }
   return { ok: true, url };
 }

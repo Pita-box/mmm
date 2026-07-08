@@ -23,9 +23,7 @@ export interface MediaCollageCardProps {
 
 /** Česká pluralizace „soubor". */
 function filesLabel(n: number): string {
-  if (n === 1) return "1 soubor";
-  if (n >= 2 && n <= 4) return `${n} soubory`;
-  return `${n} souborů`;
+  return n === 1 ? "1 file" : `${n} files`;
 }
 
 /** Jedna dlaždice collage — náhled přes proxy nebo gradient placeholder. */
@@ -52,7 +50,7 @@ function Tile({ src, span }: { readonly src?: string; readonly span: string }) {
 }
 
 export function MediaCollageCard({ href, title, count, posters }: MediaCollageCardProps) {
-  const label = title.trim().length > 0 ? title : "Bez názvu";
+  const label = title.trim().length > 0 ? title : "Untitled";
   const n = posters.length;
 
   return (

@@ -41,7 +41,7 @@ export function AuthForm({ action, mode, callbackUrl }: AuthFormProps) {
           htmlFor="email"
           className="text-[length:var(--text-caption)] font-semibold text-silver"
         >
-          E-mail
+          Email
         </label>
         <input
           id="email"
@@ -50,7 +50,7 @@ export function AuthForm({ action, mode, callbackUrl }: AuthFormProps) {
           autoComplete="email"
           required
           className={INPUT_CLASS}
-          placeholder="vas@email.cz"
+          placeholder="you@email.com"
         />
       </div>
 
@@ -59,7 +59,7 @@ export function AuthForm({ action, mode, callbackUrl }: AuthFormProps) {
           htmlFor="password"
           className="text-[length:var(--text-caption)] font-semibold text-silver"
         >
-          Heslo
+          Password
         </label>
         <input
           id="password"
@@ -70,7 +70,7 @@ export function AuthForm({ action, mode, callbackUrl }: AuthFormProps) {
           minLength={8}
           maxLength={128}
           className={INPUT_CLASS}
-          placeholder="8–128 znaků"
+          placeholder="8–128 characters"
         />
       </div>
 
@@ -86,16 +86,16 @@ export function AuthForm({ action, mode, callbackUrl }: AuthFormProps) {
         className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-lg)] bg-netflix-red px-4 py-2 text-[length:var(--text-body)] font-semibold text-chalk-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pending ? (
-          "Zpracovávám…"
+          "Processing…"
         ) : isSignup ? (
           <>
             <UserPlus aria-hidden size={16} />
-            Vytvořit účet
+            Create account
           </>
         ) : (
           <>
             <LogIn aria-hidden size={16} />
-            Přihlásit se
+            Sign in
           </>
         )}
       </button>

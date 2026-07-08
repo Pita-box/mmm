@@ -48,7 +48,7 @@ async function startSession(
       subscriptionStatus: true,
     },
   });
-  if (user === null) return "Účet nebyl nalezen.";
+  if (user === null) return "Account not found.";
 
   const principal: SessionPrincipal = {
     userId: user.id,
@@ -61,7 +61,7 @@ async function startSession(
 
   const issued = await establishSession(principal);
   if (!issued) {
-    return "Relaci se nepodařilo vytvořit. Kontaktujte správce.";
+    return "Failed to create the session. Contact the administrator.";
   }
   return null;
 }

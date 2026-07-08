@@ -29,13 +29,33 @@ export function streamingUrlFor(
  * karty/Hero (plán 010). Používá stejný streamovací token jako `streamingUrlFor`,
  * jen jiný endpoint (náhled místo celého souboru).
  */
+/**
+ * Bucketování náhledového tokenu na hodinu (+2h životnost) → URL je v rámci
+ * hodiny STABILNÍ, takže prohlížeč cache (`max-age=3600` v thumb route) reálně
+ * trefí a náhled se při další navigaci/refresh nevytahuje znovu z Drive ani
+ * netranskóduje sharpem. To je hlavní zrychlení vnímané uživatelem.
+ *
+ * ponytail: náhledy jsou málo citlivé (malé optimalizované obrázky Approved_Media
+ * vázané na uživatele), proto delší token snese. Strop: náhledový token žije až
+ * ~2 h (stream celého souboru zůstává 300 s). Upgrade: sdílená CDN cache
+ * (`public`/`s-maxage`) by vyžadovala odpojit token od `userId`.
+ */
+const THUMB_BUCKET_MS = 60 * 60 * 1000;
+const THUMB_TTL_SECONDS = 2 * 60 * 60;
+
 export function thumbUrlFor(
   mediaId: string,
   userId: string,
   now: Date = new Date(),
   options?: { size?: number; dpr?: number },
 ): string | undefined {
-  const token = getDriveConnector().issueStreamingToken({ mediaId, userId, now });
+  const bucketedNow = new Date(Math.floor(now.getTime() / THUMB_BUCKET_MS) * THUMB_BUCKET_MS);
+  const token = getDriveConnector().issueStreamingToken({
+    mediaId,
+    userId,
+    now: bucketedNow,
+    ttlSeconds: THUMB_TTL_SECONDS,
+  });
   if (!isOk(token)) return undefined;
   const params = new URLSearchParams();
   if (typeof options?.size === "number" && Number.isFinite(options.size)) {

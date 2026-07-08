@@ -54,7 +54,7 @@ export function NotificationBanner({ text }: NotificationBannerProps) {
       <button
         type="button"
         onClick={() => setDismissed(true)}
-        aria-label="Zavřít oznámení"
+        aria-label="Dismiss notification"
         className="-mr-1 -mt-1 shrink-0 cursor-pointer rounded-[var(--radius-sm)] p-1 leading-none text-[color:var(--color-silver)] transition-colors hover:text-[color:var(--color-chalk-white)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-chalk-white)]"
       >
         <X aria-hidden size={16} />

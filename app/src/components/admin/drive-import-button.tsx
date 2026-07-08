@@ -25,8 +25,8 @@ export function DriveImportButton({ onImport }: DriveImportButtonProps) {
 
   return (
     <AdminCard
-      title="Synchronizace s Google Drive"
-      description="Nahrajte videa do sdílené Drive složky (web, desktop klient nebo rclone), pak synchronizujte. Velké soubory tak server nezatíží. Nové soubory se naimportují jako skryté (doplňte model/štítky a publikujte); média, jejichž soubor na Drive už není, se odeberou."
+      title="Google Drive sync"
+      description="Upload videos to the shared Drive folder (web, desktop client, or rclone), then sync. This keeps large files off the server. New files are imported as hidden (add a model/tags and publish); media whose file no longer exists on Drive are removed."
     >
       <div className="flex flex-wrap items-center gap-3">
         <Button
@@ -37,13 +37,13 @@ export function DriveImportButton({ onImport }: DriveImportButtonProps) {
             startTransition(async () => {
               const res = await onImport();
               setIsError(!res.ok);
-              setMessage(res.message ?? (res.ok ? "Synchronizace dokončena." : "Synchronizace selhala."));
+              setMessage(res.message ?? (res.ok ? "Sync complete." : "Sync failed."));
               if (res.ok) router.refresh();
             })
           }
         >
           <FolderDown aria-hidden size={16} />
-          {pending ? "Synchronizuji…" : "Synchronizovat z Drive"}
+          {pending ? "Syncing…" : "Sync from Drive"}
         </Button>
         {message ? (
           <span

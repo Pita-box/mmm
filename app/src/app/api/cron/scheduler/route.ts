@@ -110,7 +110,7 @@ async function handle(request: Request): Promise<NextResponse> {
   const expected = process.env.CRON_SECRET;
   if (!expected || expected.length === 0) {
     return NextResponse.json(
-      { error: "cron_disabled", message: "CRON_SECRET není nastaven." },
+      { error: "cron_disabled", message: "CRON_SECRET is not set." },
       { status: 503 },
     );
   }
@@ -118,7 +118,7 @@ async function handle(request: Request): Promise<NextResponse> {
   const provided = extractSecret(request);
   if (provided === null || !secretsMatch(provided, expected)) {
     return NextResponse.json(
-      { error: "unauthorized", message: "Neplatné nebo chybějící cron tajemství." },
+      { error: "unauthorized", message: "Invalid or missing cron secret." },
       { status: 401 },
     );
   }
@@ -132,7 +132,7 @@ async function handle(request: Request): Promise<NextResponse> {
     return NextResponse.json({ promoted, generalPingSent }, { status: 200 });
   } catch {
     return NextResponse.json(
-      { error: "scheduler_failed", message: "Běh plánovače selhal." },
+      { error: "scheduler_failed", message: "The scheduler run failed." },
       { status: 500 },
     );
   }

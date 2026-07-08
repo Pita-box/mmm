@@ -74,8 +74,8 @@ export function MediaUploadLauncher({
           setDroppedFiles(null);
           setUploadOpen(true);
         }}
-        aria-label="Nahrát média"
-        title="Nahrát média"
+        aria-label="Upload media"
+        title="Upload media"
         style={{
           borderColor: "color-mix(in oklab, var(--color-chalk-white) 15%, transparent)",
           boxShadow: "0 8px 30px rgba(0, 0, 0, 0.5)",
@@ -93,7 +93,7 @@ export function MediaUploadLauncher({
           <div className="flex h-[90vh] max-h-[90vh] w-full max-w-3xl flex-col items-center justify-center gap-3 rounded-[var(--radius-2xl)] border-2 border-dashed border-[color:var(--color-netflix-red)] bg-[color:var(--color-deep-space)]/60 text-center">
             <Plus aria-hidden size={40} className="text-[color:var(--color-netflix-red)]" />
             <span className="text-[length:var(--text-subheading)] font-bold text-chalk-white">
-              Pusťte soubory pro nahrání
+              Drop files to upload
             </span>
           </div>
         </div>

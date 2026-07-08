@@ -59,8 +59,8 @@ export function PageVisibilityToggles({
 
   return (
     <AdminCard
-      title="Viditelnost stránek"
-      description="Skryté sekce zmizí z navigace i z přístupu pro všechny uživatele."
+      title="Page visibility"
+      description="Hidden sections disappear from navigation and access for all users."
     >
       <ul className="flex flex-col divide-y divide-graphite">
         {MANAGEABLE_SECTIONS.map((section) => {
@@ -83,14 +83,14 @@ export function PageVisibilityToggles({
                 ) : (
                   <Eye aria-hidden size={16} className="text-[color:var(--color-netflix-red)]" />
                 )}
-                {hidden ? "Skrytá" : "Viditelná"}
+                {hidden ? "Hidden" : "Visible"}
                 <input
                   id={toggleId}
                   type="checkbox"
                   role="switch"
                   checked={!hidden}
                   onChange={() => toggle(section.sectionKey)}
-                  aria-label={`Viditelnost sekce ${section.label}`}
+                  aria-label={`Visibility of section ${section.label}`}
                   className="h-4 w-4 accent-[color:var(--color-netflix-red)]"
                 />
               </label>

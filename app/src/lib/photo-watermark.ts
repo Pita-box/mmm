@@ -49,7 +49,7 @@ export function getPhotoWatermarkLayout(
   const paddingX = Math.round(fontSizePx * 0.9)
   const paddingY = Math.round(fontSizePx * 0.5)
   const boxHeight = fontSizePx + paddingY * 2
-  const bottomMargin = Math.round(height * 0.03)
+  const bottomMargin = Math.round(height * 0.04)
   return {
     centerX: width / 2,
     centerY: height - bottomMargin - boxHeight / 2,
@@ -77,7 +77,7 @@ export function buildPhotoWatermarkSvg(
 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
-    `<rect x="${rectX}" y="${rectY}" width="${boxWidth}" height="${boxHeight}" rx="${layout.radius}" ry="${layout.radius}" fill="#000000" fill-opacity="0.25"/>`,
+    `<rect x="${rectX}" y="${rectY}" width="${boxWidth}" height="${boxHeight}" rx="${layout.radius}" ry="${layout.radius}" fill="#000000" fill-opacity="0.32"/>`,
     `<text x="${Math.round(layout.centerX)}" y="${textY}" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" fill-opacity="0.5" font-family="Inter, Arial, sans-serif" font-size="${layout.fontSizePx}" font-weight="500">${escapeXml(text)}</text>`,
     "</svg>",
   ].join("")

@@ -28,7 +28,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     payload = await request.text();
   } catch {
     return NextResponse.json(
-      { error: "invalid_body", message: "Tělo požadavku nelze přečíst." },
+      { error: "invalid_body", message: "The request body could not be read." },
       { status: 400 },
     );
   }
@@ -56,7 +56,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   } catch {
     return NextResponse.json(
-      { error: "webhook_failed", message: "Zpracování webhooku selhalo." },
+      { error: "webhook_failed", message: "Webhook processing failed." },
       { status: 500 },
     );
   }

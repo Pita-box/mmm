@@ -42,11 +42,11 @@ export function ModelProfileForm({
 
   const nameError =
     submitted && !validateModelName(name)
-      ? `Jméno musí mít ${LENGTH_BOUNDS.modelName.min}–${LENGTH_BOUNDS.modelName.max} znaků.`
+      ? `Name must be ${LENGTH_BOUNDS.modelName.min}–${LENGTH_BOUNDS.modelName.max} characters.`
       : null;
   const bioError =
     submitted && !validateBio(bio)
-      ? `Bio nesmí přesáhnout ${LENGTH_BOUNDS.bio.max} znaků.`
+      ? `Bio can't exceed ${LENGTH_BOUNDS.bio.max} characters.`
       : null;
 
   function handleSubmit(e: React.FormEvent) {
@@ -59,12 +59,12 @@ export function ModelProfileForm({
 
   return (
     <AdminCard
-      title={mode === "edit" ? "Upravit profil modelu" : "Nový profil modelu"}
-      description="Jméno 1–100 znaků, bio je volitelné (max 1000 znaků)."
+      title={mode === "edit" ? "Edit model profile" : "New model profile"}
+      description="Name 1–100 characters, bio is optional (max 1000 characters)."
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
         <Field
-          label="Jméno modelu"
+          label="Model name"
           htmlFor="model-name"
           error={nameError}
           hint={`${name.length}/${LENGTH_BOUNDS.modelName.max}`}
@@ -74,7 +74,7 @@ export function ModelProfileForm({
             value={name}
             maxLength={LENGTH_BOUNDS.modelName.max}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Jméno modelu"
+            placeholder="Model name"
             aria-invalid={nameError != null}
           />
         </Field>
@@ -90,7 +90,7 @@ export function ModelProfileForm({
             value={bio}
             maxLength={LENGTH_BOUNDS.bio.max}
             onChange={(e) => setBio(e.target.value)}
-            placeholder="Krátký popis modelu (volitelné)"
+            placeholder="Short description of the model (optional)"
             aria-invalid={bioError != null}
           />
         </Field>
@@ -100,12 +100,12 @@ export function ModelProfileForm({
             {mode === "edit" ? (
               <>
                 <Save aria-hidden size={16} />
-                Uložit změny
+                Save changes
               </>
             ) : (
               <>
                 <UserPlus aria-hidden size={16} />
-                Vytvořit profil
+                Create profile
               </>
             )}
           </Button>

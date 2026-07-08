@@ -80,7 +80,7 @@ export function MediaCard({
 }: MediaCardProps) {
   const hasRatio = item.width > 0 && item.height > 0;
   const isVideo = item.mediaType === "video";
-  const label = isVideo ? "Video" : "Fotografie";
+  const label = isVideo ? "Video" : "Photo";
   const duration = formatDuration(item.durationMs);
 
   // DPR-aware náhled: retina (default 2) → 1024, ne-retina (1) → 512 (úspora).

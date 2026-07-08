@@ -28,7 +28,7 @@ export function GateSamplePicker({ media, initialSelected, onToggle }: GateSampl
   if (media.length === 0) {
     return (
       <p className="text-[length:var(--text-body)] text-silver">
-        Zatím nejsou žádná publikovaná média k výběru.
+        No published media to choose from yet.
       </p>
     );
   }

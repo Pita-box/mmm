@@ -258,7 +258,7 @@ export function ModelDetail({
     setError(null);
     startTransition(async () => {
       const res = await onUpdate?.({ name: draftName, bio: draftBio });
-      if (res && !res.ok) setError(res.message ?? "Uložení se nezdařilo.");
+      if (res && !res.ok) setError(res.message ?? "Save failed.");
       else {
         setEditOpen(false);
         router.refresh();
@@ -284,7 +284,7 @@ export function ModelDetail({
         avatarCropY: crop.avatarCropY,
         avatarZoom: crop.avatarZoom,
       });
-      if (res && !res.ok) setAvatarError(res.message ?? "Uložení avataru se nezdařilo.");
+      if (res && !res.ok) setAvatarError(res.message ?? "Failed to save avatar.");
       else {
         setAvatarEditorOpen(false);
         router.refresh();
@@ -302,7 +302,7 @@ export function ModelDetail({
         coverMediaId: mediaId,
         coverFocusY: mediaId ? clampPercent(draftCoverFocusY) : null,
       });
-      if (res && !res.ok) setCoverError(res.message ?? "Uložení cover fotky se nezdařilo.");
+      if (res && !res.ok) setCoverError(res.message ?? "Failed to save cover photo.");
       else {
         setCoverEditorOpen(false);
         router.refresh();
@@ -322,7 +322,7 @@ export function ModelDetail({
   const remove = (withMedia: boolean) => {
     startTransition(async () => {
       const res = await onDelete?.(withMedia);
-      if (res && !res.ok) setError(res.message ?? "Smazání se nezdařilo.");
+      if (res && !res.ok) setError(res.message ?? "Delete failed.");
       else router.push("/models");
     });
   };
@@ -351,8 +351,8 @@ export function ModelDetail({
           <div className="absolute right-4 top-4 flex items-center gap-2">
             <button
               type="button"
-              aria-label="Upravit cover fotku"
-              title="Upravit cover"
+              aria-label="Edit cover photo"
+              title="Edit cover"
               onClick={openCoverEditor}
               style={{ borderColor: "color-mix(in oklab, var(--color-chalk-white) 15%, transparent)" }}
               className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border bg-[color:var(--color-deep-space)]/60 text-[color:var(--color-chalk-white)] backdrop-blur-md transition-colors hover:bg-[color:var(--color-deep-space)]/80"
@@ -361,8 +361,8 @@ export function ModelDetail({
             </button>
             <button
               type="button"
-              aria-label="Smazat model"
-              title="Smazat"
+              aria-label="Delete model"
+              title="Delete"
               onClick={() => setConfirmOpen(true)}
               style={{ borderColor: "color-mix(in oklab, var(--color-chalk-white) 15%, transparent)" }}
               className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border bg-[color:var(--color-deep-space)]/60 text-[color:var(--color-chalk-white)] backdrop-blur-md transition-colors hover:text-[color:var(--color-netflix-red)]"
@@ -393,7 +393,7 @@ export function ModelDetail({
           {canEdit ? (
             <button
               type="button"
-              aria-label="Upravit profilovou fotku"
+              aria-label="Edit profile photo"
               onClick={openAvatarEditor}
               className="absolute right-1 top-1 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--color-deep-space)]/80 text-[color:var(--color-chalk-white)] opacity-0 shadow-md transition-opacity hover:bg-[color:var(--color-deep-space)] group-hover:opacity-100 group-focus-within:opacity-100"
             >
@@ -424,7 +424,7 @@ export function ModelDetail({
               className="shrink-0 px-4"
             >
               <Pencil aria-hidden size={16} />
-              Upravit profil
+              Edit profile
             </Button>
           ) : null}
         </div>
@@ -450,7 +450,7 @@ export function ModelDetail({
       {/* Inline editace (admin). */}
       {canEdit && editOpen && (
         <div className="mb-8 flex flex-col gap-4 rounded-[var(--radius-2xl)] border border-graphite bg-[color:var(--color-deep-space)] p-5">
-          <Field label="Jméno modelu" htmlFor="edit-model-name" error={error}>
+          <Field label="Model name" htmlFor="edit-model-name" error={error}>
             <TextInput
               id="edit-model-name"
               value={draftName}
@@ -469,11 +469,11 @@ export function ModelDetail({
           <div className="flex gap-2">
             <Button type="button" onClick={save} disabled={pending}>
               <Save aria-hidden size={16} />
-              Uložit
+              Save
             </Button>
             <Button type="button" variant="secondary" onClick={() => setEditOpen(false)} disabled={pending}>
               <X aria-hidden size={16} />
-              Zrušit
+              Cancel
             </Button>
           </div>
         </div>
@@ -483,7 +483,7 @@ export function ModelDetail({
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Upravit cover fotku"
+          aria-label="Edit cover photo"
           onClick={() => setCoverEditorOpen(false)}
           className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--color-deep-space)]/82 p-4"
         >
@@ -494,15 +494,15 @@ export function ModelDetail({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-[length:var(--text-subheading)] font-bold text-[color:var(--color-chalk-white)]">
-                  Cover fotka
+                  Cover photo
                 </h2>
                 <p className="mt-1 text-[length:var(--text-caption)] text-[color:var(--color-silver)]">
-                  Přetahuj fotku v banneru, dokud nebude sedět výřez. Uložení se projeví na detailu modelu.
+                  Drag the photo in the banner until the crop looks right. Saving applies it to the model page.
                 </p>
               </div>
               <Button type="button" variant="secondary" onClick={() => setCoverEditorOpen(false)}>
                 <X aria-hidden size={16} />
-                Zavřít
+                Close
               </Button>
             </div>
 
@@ -517,7 +517,7 @@ export function ModelDetail({
                     : "text-[color:var(--color-silver)] hover:text-[color:var(--color-chalk-white)]"
                 }`}
               >
-                Edit aktuální
+                Edit current
               </button>
               <button
                 type="button"
@@ -529,7 +529,7 @@ export function ModelDetail({
                     : "text-[color:var(--color-silver)] hover:text-[color:var(--color-chalk-white)]"
                 }`}
               >
-                Vybrat z nahraných
+                Choose from uploads
               </button>
             </div>
 
@@ -572,19 +572,19 @@ export function ModelDetail({
                     ) : (
                       <div className="flex h-44 items-center justify-center rounded-[var(--radius-xl)] bg-[color:var(--color-deep-space)] sm:h-80">
                         <span className="px-6 text-center text-[length:var(--text-caption)] text-[color:var(--color-silver)]">
-                          Nejdřív vyber fotku v záložce „Vybrat z nahraných“.
+                          First pick a photo in the &ldquo;Choose from uploads&rdquo; tab.
                         </span>
                       </div>
                     )}
                   </div>
                   <p className="text-[length:var(--text-caption)] text-[color:var(--color-silver)]">
-                    Přetahuj cover nahoru a dolů, dokud nebude výřez sedět přesně tak, jak ho chceš zobrazit.
+                    Drag the cover up and down until the crop is exactly how you want it shown.
                   </p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-4">
                   <p className="text-[length:var(--text-caption)] text-[color:var(--color-silver)]">
-                    Vyber publikovanou fotku přiřazenou k tomuto profilu.
+                    Choose a published photo assigned to this profile.
                   </p>
                   <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
                     <button
@@ -638,7 +638,7 @@ export function ModelDetail({
                   {coverLibraryPages > 1 ? (
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-[length:var(--text-caption)] text-[color:var(--color-silver)]">
-                        Strana {coverLibraryPage + 1} / {coverLibraryPages}
+                        Page {coverLibraryPage + 1} / {coverLibraryPages}
                       </span>
                       <div className="flex gap-2">
                         <Button
@@ -647,7 +647,7 @@ export function ModelDetail({
                           disabled={coverLibraryPage === 0}
                           onClick={() => setCoverLibraryPage((page) => Math.max(0, page - 1))}
                         >
-                          Předchozí
+                          Previous
                         </Button>
                         <Button
                           type="button"
@@ -657,14 +657,14 @@ export function ModelDetail({
                             setCoverLibraryPage((page) => Math.min(coverLibraryPages - 1, page + 1))
                           }
                         >
-                          Další
+                          Next
                         </Button>
                       </div>
                     </div>
                   ) : null}
                   {photoMedia.length === 0 ? (
                     <p className="text-[length:var(--text-caption)] text-[color:var(--color-ash)]">
-                      Tento model zatím nemá žádnou publikovanou fotku, kterou by šlo použít jako cover.
+                      This model has no published photos yet that could be used as a cover.
                     </p>
                   ) : null}
                 </div>
@@ -681,10 +681,10 @@ export function ModelDetail({
             <div className="flex gap-2">
               <Button type="button" onClick={saveCover} disabled={pending}>
                 <Save aria-hidden size={16} />
-                Uložit cover
+                Save cover
               </Button>
               <Button type="button" variant="secondary" onClick={() => setCoverEditorOpen(false)} disabled={pending}>
-                Zrušit
+                Cancel
               </Button>
             </div>
           </div>
@@ -695,7 +695,7 @@ export function ModelDetail({
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Upravit profilovou fotku"
+          aria-label="Edit profile photo"
           onClick={() => setAvatarEditorOpen(false)}
           className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--color-deep-space)]/82 p-4"
         >
@@ -706,15 +706,15 @@ export function ModelDetail({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-[length:var(--text-subheading)] font-bold text-[color:var(--color-chalk-white)]">
-                  Profilová fotka
+                  Profile photo
                 </h2>
                 <p className="mt-1 text-[length:var(--text-caption)] text-[color:var(--color-silver)]">
-                  Zmenši nebo zvětši výběr a přetáhni ho na správné místo. Tento avatar se zobrazí i na `/search`.
+                  Resize the selection and drag it into place. This avatar also appears on `/search`.
                 </p>
               </div>
               <Button type="button" variant="secondary" onClick={() => setAvatarEditorOpen(false)}>
                 <X aria-hidden size={16} />
-                Zavřít
+                Close
               </Button>
             </div>
 
@@ -729,7 +729,7 @@ export function ModelDetail({
                     : "text-[color:var(--color-silver)] hover:text-[color:var(--color-chalk-white)]"
                 }`}
               >
-                Edit aktuální
+                Edit current
               </button>
               <button
                 type="button"
@@ -741,7 +741,7 @@ export function ModelDetail({
                     : "text-[color:var(--color-silver)] hover:text-[color:var(--color-chalk-white)]"
                 }`}
               >
-                Vybrat z nahraných
+                Choose from uploads
               </button>
             </div>
 
@@ -782,19 +782,19 @@ export function ModelDetail({
                     ) : (
                       <div className="flex aspect-square items-center justify-center rounded-[var(--radius-xl)] bg-[color:var(--color-deep-space)]">
                         <span className="px-6 text-center text-[length:var(--text-caption)] text-[color:var(--color-silver)]">
-                          Nejdřív vyber fotku v záložce „Vybrat z nahraných“.
+                          First pick a photo in the &ldquo;Choose from uploads&rdquo; tab.
                         </span>
                       </div>
                     )}
                   </div>
                   <p className="text-[length:var(--text-caption)] text-[color:var(--color-silver)]">
-                    Výřez lze zmenšovat i zvětšovat tahem za rohy a zároveň ho celý přesouvat po fotce.
+                    Resize the crop by dragging its corners and move the whole selection across the photo.
                   </p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-4">
                   <p className="text-[length:var(--text-caption)] text-[color:var(--color-silver)]">
-                    Vyber publikovanou fotku přiřazenou k tomuto profilu.
+                    Choose a published photo assigned to this profile.
                   </p>
                   <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
                     <button
@@ -840,7 +840,7 @@ export function ModelDetail({
                   {avatarLibraryPages > 1 ? (
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-[length:var(--text-caption)] text-[color:var(--color-silver)]">
-                        Strana {avatarLibraryPage + 1} / {avatarLibraryPages}
+                        Page {avatarLibraryPage + 1} / {avatarLibraryPages}
                       </span>
                       <div className="flex gap-2">
                         <Button
@@ -849,7 +849,7 @@ export function ModelDetail({
                           disabled={avatarLibraryPage === 0}
                           onClick={() => setAvatarLibraryPage((page) => Math.max(0, page - 1))}
                         >
-                          Předchozí
+                          Previous
                         </Button>
                         <Button
                           type="button"
@@ -859,14 +859,14 @@ export function ModelDetail({
                             setAvatarLibraryPage((page) => Math.min(avatarLibraryPages - 1, page + 1))
                           }
                         >
-                          Další
+                          Next
                         </Button>
                       </div>
                     </div>
                   ) : null}
                   {photoMedia.length === 0 ? (
                     <p className="text-[length:var(--text-caption)] text-[color:var(--color-ash)]">
-                      Tento model zatím nemá žádnou publikovanou fotku, kterou by šlo použít jako avatar.
+                      This model has no published photos yet that could be used as an avatar.
                     </p>
                   ) : null}
                 </div>
@@ -891,7 +891,7 @@ export function ModelDetail({
                   ) : null}
                 </div>
                 <p className="text-center text-[length:var(--text-caption)] text-[color:var(--color-ash)]">
-                  Finální kruhový avatar
+                  Final circular avatar
                 </p>
                 {avatarError ? (
                   <p role="alert" className="text-center text-[length:var(--text-caption)] text-[color:var(--color-netflix-red)]">
@@ -905,10 +905,10 @@ export function ModelDetail({
             <div className="flex gap-2">
               <Button type="button" onClick={saveAvatar} disabled={pending}>
                 <Save aria-hidden size={16} />
-                Uložit avatar
+                Save avatar
               </Button>
               <Button type="button" variant="secondary" onClick={() => setAvatarEditorOpen(false)} disabled={pending}>
-                Zrušit
+                Cancel
               </Button>
             </div>
           </div>
@@ -920,7 +920,7 @@ export function ModelDetail({
       ) : (
         <p className="flex flex-col items-center gap-3 py-12 text-center text-[length:var(--text-body)] text-[color:var(--color-ash)]">
           <ImageOff aria-hidden size={40} className="text-[color:var(--color-slate)]" />
-          Tento model zatím nemá žádný obsah.
+          This model has no content yet.
         </p>
       )}
 
@@ -936,7 +936,7 @@ export function ModelDetail({
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Smazat model"
+          aria-label="Delete model"
           onClick={() => setConfirmOpen(false)}
           className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--color-deep-space)]/80 p-4"
         >
@@ -946,10 +946,10 @@ export function ModelDetail({
             className="flex w-full max-w-md max-h-[90vh] flex-col gap-4 overflow-y-auto rounded-[var(--radius-2xl)] border bg-[color:var(--color-deep-space)] p-6"
           >
             <h2 className="text-[length:var(--text-subheading)] font-bold text-[color:var(--color-chalk-white)]">
-              Smazat model „{name}&quot;?
+              Delete model &ldquo;{name}&quot;?
             </h2>
             <p className="text-[length:var(--text-caption)] text-[color:var(--color-silver)]">
-              Vyber rozsah smazání. Tato akce je nevratná.
+              Choose what to delete. This action can&apos;t be undone.
             </p>
             {error && (
               <p role="alert" className="text-[length:var(--text-caption)] text-[color:var(--color-netflix-red)]">
@@ -958,14 +958,14 @@ export function ModelDetail({
             )}
             <div className="flex flex-col gap-2">
               <Button type="button" variant="secondary" onClick={() => remove(false)} disabled={pending}>
-                Smazat jen model (média zůstanou)
+                Delete model only (keep media)
               </Button>
               <Button type="button" variant="danger" onClick={() => remove(true)} disabled={pending}>
                 <Trash2 aria-hidden size={16} />
-                Smazat model i média
+                Delete model and media
               </Button>
               <Button type="button" variant="secondary" onClick={() => setConfirmOpen(false)} disabled={pending}>
-                Zrušit
+                Cancel
               </Button>
             </div>
           </div>

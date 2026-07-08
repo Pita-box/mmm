@@ -24,6 +24,12 @@ export interface CarouselProps {
   readonly media: readonly MediaCardItem[];
   /** Akce při výběru karty (otevření přehrávače). */
   readonly onSelect?: (item: MediaCardItem) => void;
+  /**
+   * Je tato řada nad ohybem (above-the-fold)? Jen tehdy se první karty načtou
+   * eager/high; jinak vše lazy (dotáhne se při scrollu do view). Výchozí false —
+   * na stránce s více karusely má prioritu jen ten první.
+   */
+  readonly priority?: boolean;
 }
 
 function cardWidthForViewport(width: number): number {
@@ -32,7 +38,7 @@ function cardWidthForViewport(width: number): number {
   return 160;
 }
 
-export function Carousel({ title, href, media, onSelect }: CarouselProps) {
+export function Carousel({ title, href, media, onSelect, priority = false }: CarouselProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [overflow, setOverflow] = useState(false);
   const [canPrev, setCanPrev] = useState(false);
@@ -116,7 +122,7 @@ export function Carousel({ title, href, media, onSelect }: CarouselProps) {
               type="button"
               onClick={() => scrollByDirection(-1)}
               disabled={!canPrev}
-              aria-label="Předchozí"
+              aria-label="Previous"
               className={`${arrowBase} ${canPrev ? arrowEnabled : arrowDisabled}`}
             >
               <ChevronLeft aria-hidden size={20} />
@@ -125,7 +131,7 @@ export function Carousel({ title, href, media, onSelect }: CarouselProps) {
               type="button"
               onClick={() => scrollByDirection(1)}
               disabled={!canNext}
-              aria-label="Další"
+              aria-label="Next"
               className={`${arrowBase} ${canNext ? arrowEnabled : arrowDisabled}`}
             >
               <ChevronRight aria-hidden size={20} />
@@ -146,8 +152,8 @@ export function Carousel({ title, href, media, onSelect }: CarouselProps) {
             <MediaCard
               item={item}
               onSelect={onSelect}
-              imageLoading={index < 3 ? "eager" : "lazy"}
-              imageFetchPriority={index < 3 ? "high" : "auto"}
+              imageLoading={priority && index < 3 ? "eager" : "lazy"}
+              imageFetchPriority={priority && index < 3 ? "high" : "auto"}
             />
           </div>
         ))}

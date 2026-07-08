@@ -185,12 +185,12 @@ export function MediaLightbox({
   const handleImageError = () => {
     if (loadFailed) {
       setImageLoading(false);
-      setToast("Médium se nepodařilo načíst. Zkuste to znovu.");
+      setToast("Failed to load media. Please try again.");
       return;
     }
     setLoadFailed(true);
     void refreshStreamUrl().then((ok) => {
-      if (!ok) setToast("Médium se nepodařilo načíst. Zkuste to znovu.");
+      if (!ok) setToast("Failed to load media. Please try again.");
     });
   };
 
@@ -198,17 +198,17 @@ export function MediaLightbox({
     startTransition(async () => {
       const res = await action();
       // Server akce revaliduje "/" → preview se obnoví sama; chybu ukaž v toastu.
-      if (!res.ok) setToast(res.message ?? "Akce se nezdařila.");
+      if (!res.ok) setToast(res.message ?? "Action failed.");
     });
   };
 
   const handleDelete = () => {
-    if (!window.confirm("Smazat médium? Odstraní se z celého systému.")) {
+    if (!window.confirm("Delete media? It will be removed from the entire system.")) {
       return;
     }
     startTransition(async () => {
       const res = await deleteMediaAction(mediaId);
-      if (!res.ok) setToast(res.message ?? "Smazání selhalo.");
+      if (!res.ok) setToast(res.message ?? "Delete failed.");
       else onClose();
     });
   };
@@ -221,10 +221,10 @@ export function MediaLightbox({
       const blob = await captureVideoPoster(url);
       const base64 = await blobToBase64(blob);
       const up = await uploadPosterAction(base64, `${mediaId}.poster.jpg`);
-      if (!up.ok || !up.driveFileId) throw new Error(up.message ?? "Nahrání náhledu selhalo.");
+      if (!up.ok || !up.driveFileId) throw new Error(up.message ?? "Thumbnail upload failed.");
       const set = await setMediaPosterAction(mediaId, up.driveFileId);
-      if (!set.ok) throw new Error(set.message ?? "Uložení náhledu selhalo.");
-      setToast("Náhled vygenerován.");
+      if (!set.ok) throw new Error(set.message ?? "Thumbnail save failed.");
+      setToast("Thumbnail generated.");
     } catch (e) {
       setToast((e as Error).message);
     } finally {
@@ -237,7 +237,7 @@ export function MediaLightbox({
     navigator.clipboard
       ?.writeText(shareUrl)
       .then(() => setToast("Link is copied! Ready to share."))
-      .catch(() => setToast("Kopírování se nezdařilo."));
+      .catch(() => setToast("Copy failed."));
   };
 
   // Glass round icon button (toolbar).
@@ -251,7 +251,7 @@ export function MediaLightbox({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Prohlížeč média"
+      aria-label="Media viewer"
       onClick={onClose}
       className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-[color:var(--color-deep-space)]/80 p-4 sm:p-8"
     >
@@ -275,7 +275,7 @@ export function MediaLightbox({
       <button
         type="button"
         onClick={onClose}
-        aria-label="Zavřít prohlížeč"
+        aria-label="Close viewer"
         style={{
           borderColor:
             "color-mix(in oklab, var(--color-chalk-white) 15%, transparent)",
@@ -295,7 +295,7 @@ export function MediaLightbox({
               onPrev?.();
             }}
             disabled={!onPrev}
-            aria-label="Předchozí médium"
+            aria-label="Previous media"
             style={glassBorder}
             className={`absolute left-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border bg-[color:var(--color-deep-space)]/60 text-[color:var(--color-chalk-white)] backdrop-blur-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-chalk-white)] ${
               onPrev ? "cursor-pointer hover:bg-[color:var(--color-deep-space)]/80" : "cursor-default opacity-40"
@@ -310,7 +310,7 @@ export function MediaLightbox({
               onNext?.();
             }}
             disabled={!onNext}
-            aria-label="Další médium"
+            aria-label="Next media"
             style={glassBorder}
             className={`absolute right-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border bg-[color:var(--color-deep-space)]/60 text-[color:var(--color-chalk-white)] backdrop-blur-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-chalk-white)] ${
               onNext ? "cursor-pointer hover:bg-[color:var(--color-deep-space)]/80" : "cursor-default opacity-40"
@@ -329,13 +329,13 @@ export function MediaLightbox({
         {!safe && imageLoading && !isVideo ? (
           <div className="flex items-center justify-center rounded-2xl bg-[color:var(--color-deep-space)] px-10 py-10">
             <span
-              aria-label="Načítání média"
+              aria-label="Loading media"
               className="h-10 w-10 animate-spin rounded-full border-2 border-[color:var(--color-chalk-white)]/25 border-t-[color:var(--color-netflix-red)]"
             />
           </div>
         ) : !safe ? (
           <p className="rounded-2xl bg-[color:var(--color-graphite)] px-6 py-4 text-[length:var(--text-body)] text-[color:var(--color-silver)]">
-            Médium nelze zobrazit.
+            This media can&apos;t be displayed.
           </p>
         ) : isVideo ? (
           <MediaPlayer
@@ -377,7 +377,7 @@ export function MediaLightbox({
             {imageLoading ? (
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-[color:var(--color-deep-space)]/45 backdrop-blur-sm">
                 <span
-                  aria-label="Načítání média"
+                  aria-label="Loading media"
                   className="h-10 w-10 animate-spin rounded-full border-2 border-[color:var(--color-chalk-white)]/25 border-t-[color:var(--color-netflix-red)]"
                 />
               </div>
@@ -394,8 +394,8 @@ export function MediaLightbox({
         {canEdit && isVideo && (
           <button
             type="button"
-            aria-label="Vygenerovat náhled"
-            title="Vygenerovat náhled (snímek z 1/3 videa)"
+            aria-label="Generate thumbnail"
+            title="Generate thumbnail (frame from 1/3 of the video)"
             disabled={genLoading}
             style={glassBorder}
             className={iconBtn}
@@ -407,8 +407,8 @@ export function MediaLightbox({
         {canEdit && (
           <button
             type="button"
-            aria-label="Upravit médium"
-            title="Upravit"
+            aria-label="Edit media"
+            title="Edit"
             style={glassBorder}
             className={`${iconBtn} ${editOpen ? "text-[color:var(--color-netflix-red)]" : ""}`}
             onClick={() => setEditOpen((v) => !v)}
@@ -418,8 +418,8 @@ export function MediaLightbox({
         )}
         <button
           type="button"
-          aria-label="Sdílet odkaz"
-          title="Kopírovat odkaz"
+          aria-label="Share link"
+          title="Copy link"
           style={glassBorder}
           className={iconBtn}
           onClick={handleShare}
@@ -429,8 +429,8 @@ export function MediaLightbox({
         {canEdit && (
           <button
             type="button"
-            aria-label="Smazat médium"
-            title="Smazat"
+            aria-label="Delete media"
+            title="Delete"
             disabled={pending}
             style={glassBorder}
             className={`${iconBtn} hover:text-[color:var(--color-netflix-red)]`}
@@ -458,7 +458,7 @@ export function MediaLightbox({
             onAssignModel={assignMediaModelAction}
             onAddTag={addMediaTagAction}
             onRemoveTag={removeMediaTagAction}
-            onSaved={() => setToast("Uloženo.")}
+            onSaved={() => setToast("Saved.")}
           />
 
           <Button
@@ -468,7 +468,7 @@ export function MediaLightbox({
             onClick={() => runAction(() => setMediaPublishedAction(mediaId, false))}
           >
             <EyeOff aria-hidden size={14} />
-            Skrýt
+            Hide
           </Button>
         </div>
       )}

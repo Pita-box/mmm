@@ -126,7 +126,7 @@ export function TopNav({ role, hiddenSections = {}, displayName }: TopNavProps) 
 
         {/* Uprostřed: hlavní navigace. */}
         <nav
-          aria-label="Hlavní navigace"
+          aria-label="Main navigation"
           className="flex items-center justify-center"
         >
           <ul className="flex items-center gap-1">
@@ -165,8 +165,8 @@ export function TopNav({ role, hiddenSections = {}, displayName }: TopNavProps) 
         <div className="flex items-center justify-end gap-3">
           <Link
             href="/settings"
-            aria-label="Nastavení profilu"
-            title={displayName ?? "Nastavení"}
+            aria-label="Profile settings"
+            title={displayName ?? "Settings"}
             className="flex items-center gap-2 text-silver transition-colors hover:text-chalk-white focus-visible:text-chalk-white focus-visible:outline-none"
           >
             <CircleUserRound aria-hidden size={24} />
@@ -182,7 +182,7 @@ export function TopNav({ role, hiddenSections = {}, displayName }: TopNavProps) 
               className="flex items-center gap-1.5 rounded-[var(--radius-lg)] border border-charcoal px-3 py-1.5 text-[length:var(--text-caption)] font-semibold text-silver transition-colors hover:border-netflix-red hover:text-chalk-white"
             >
               <LogOut aria-hidden size={14} />
-              Odhlásit se
+              Sign out
             </button>
           </form>
         </div>

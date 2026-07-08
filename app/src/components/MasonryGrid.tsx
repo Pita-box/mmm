@@ -23,6 +23,12 @@ export interface MasonryGridProps {
   readonly loadPage: LoadPage;
   /** Volitelná akce při výběru karty. */
   readonly onSelect?: (item: MediaCardItem) => void;
+  /**
+   * Je mřížka nad ohybem (top obsah stránky)? Pak se první řady načtou
+   * eager/high, zbytek lazy. `false` (mřížka až pod jiným obsahem, např. pod
+   * karusely na home) → vše lazy. Výchozí true (Search/Models/Collections).
+   */
+  readonly priority?: boolean;
 }
 
 type Status = "idle" | "loading" | "error" | "done";
@@ -58,7 +64,7 @@ export function poolLoader(
  * - Při selhání dávky zůstanou již zobrazená média beze změny a nabídne se
  *   akce „Zkusit znovu" (R12.5).
  */
-export function MasonryGrid({ loadPage, onSelect }: MasonryGridProps) {
+export function MasonryGrid({ loadPage, onSelect, priority = true }: MasonryGridProps) {
   const [items, setItems] = useState<MediaCardItem[]>([]);
   const [columns, setColumns] = useState(1);
   const [status, setStatus] = useState<Status>("idle");
@@ -145,8 +151,8 @@ export function MasonryGrid({ loadPage, onSelect }: MasonryGridProps) {
             <MediaCard
               item={item}
               onSelect={onSelect}
-              imageLoading={index < columns * 2 ? "eager" : "lazy"}
-              imageFetchPriority={index < columns * 2 ? "high" : "auto"}
+              imageLoading={priority && index < columns * 2 ? "eager" : "lazy"}
+              imageFetchPriority={priority && index < columns * 2 ? "high" : "auto"}
             />
           </div>
         ))}
@@ -162,7 +168,7 @@ export function MasonryGrid({ loadPage, onSelect }: MasonryGridProps) {
             aria-hidden
             className="h-5 w-5 animate-spin rounded-full border-2 border-[color:var(--color-charcoal)] border-t-[color:var(--color-netflix-red)]"
           />
-          Načítání…
+          Loading…
         </div>
       )}
 
@@ -171,20 +177,20 @@ export function MasonryGrid({ loadPage, onSelect }: MasonryGridProps) {
           role="alert"
           className="flex flex-col items-center justify-center gap-3 py-6 text-[length:var(--text-body)] text-[color:var(--color-silver)]"
         >
-          <p>Načtení dalšího obsahu se nezdařilo.</p>
+          <p>Failed to load more content.</p>
           <button
             type="button"
             onClick={() => void load()}
             className="cursor-pointer rounded-sm bg-[color:var(--color-netflix-red)] px-4 py-2 text-[length:var(--text-body)] font-medium text-[color:var(--color-chalk-white)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-chalk-white)]"
           >
-            Zkusit znovu
+            Try again
           </button>
         </div>
       )}
 
       {status === "done" && items.length > 0 && (
         <div className="py-6 text-center text-[length:var(--text-caption)] text-[color:var(--color-ash)]">
-          To je vše.
+          That&apos;s all.
         </div>
       )}
 

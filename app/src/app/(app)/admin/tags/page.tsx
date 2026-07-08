@@ -15,11 +15,11 @@ export default async function AdminTagsPage() {
     <section className="flex flex-col gap-6">
       <header>
         <h1 className="text-[length:var(--text-heading-sm)] font-black text-chalk-white">
-          Štítky a kategorie
+          Tags and categories
         </h1>
         <p className="mt-2 text-[length:var(--text-body)] text-silver">
-          Přejmenuj nebo smaž hodnoty štítků. Kategorie jsou pevné; štítky slouží
-          k filtrování médií.
+          Rename or delete tag values. Categories are fixed; tags are used to
+          filter media.
         </p>
       </header>
 

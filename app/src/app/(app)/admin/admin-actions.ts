@@ -69,7 +69,7 @@ async function ensureModelDriveFolderId(
     where: { id: modelId },
     select: { id: true, name: true, driveFolderId: true },
   });
-  if (!profile) return { ok: false, message: "Profil modelu nebyl nalezen." };
+  if (!profile) return { ok: false, message: "Model profile not found." };
   if (profile.driveFolderId) return { ok: true, driveFolderId: profile.driveFolderId };
 
   const ensured = await driveStorage.ensureFolder(profile.name, rootFolderId);
@@ -80,7 +80,7 @@ async function ensureModelDriveFolderId(
       data: { driveFolderId: ensured.value.driveFolderId },
     });
   } catch {
-    return { ok: false, message: "Uložení Drive složky modelu se nezdařilo." };
+    return { ok: false, message: "Failed to save the model's Drive folder." };
   }
   return { ok: true, driveFolderId: ensured.value.driveFolderId };
 }
@@ -160,7 +160,7 @@ export async function updateModelProfileAction(
       avatarZoom: true,
     },
   });
-  if (!profile) return { ok: false, message: "Profil modelu nebyl nalezen." };
+  if (!profile) return { ok: false, message: "Model profile not found." };
 
   const hasCoverUpdate = "coverMediaId" in values || "coverFocusY" in values;
   const hasAvatarUpdate =
@@ -191,7 +191,7 @@ export async function updateModelProfileAction(
       if (!media) {
         return {
           ok: false,
-          message: "Cover fotka musí vycházet z publikované fotky přiřazené k tomuto modelu.",
+          message: "The cover photo must be a published photo assigned to this model.",
         };
       }
       coverFocusY = clampPercent(values.coverFocusY ?? 50);
@@ -227,7 +227,7 @@ export async function updateModelProfileAction(
       if (!media) {
         return {
           ok: false,
-          message: "Profilový avatar musí vycházet z publikované fotky přiřazené k tomuto modelu.",
+          message: "The profile avatar must be a published photo assigned to this model.",
         };
       }
       profileMediaMetrics = { width: media.width, height: media.height };
@@ -289,7 +289,7 @@ export async function deleteModelProfileAction(
       await prisma.modelProfile.delete({ where: { id: modelId } });
     }
   } catch {
-    return { ok: false, message: "Smazání modelu se nezdařilo." };
+    return { ok: false, message: "Failed to delete the model." };
   }
   revalidatePath("/admin/models");
   revalidatePath("/models");
@@ -311,7 +311,7 @@ export async function createUploadSessionAction(
 ): Promise<{ ok: boolean; uploadUrl?: string; message?: string }> {
   await requireUploader();
   if (classifyType(mimeType) === null) {
-    return { ok: false, message: "Nepodporovaný formát souboru." };
+    return { ok: false, message: "Unsupported file format." };
   }
   const targetFolder = await resolveTargetDriveFolderId(modelId ?? null);
   if (!targetFolder.ok) return { ok: false, message: targetFolder.message };
@@ -412,7 +412,7 @@ async function persistMediaWithTags(input: PersistMediaInput): Promise<PersistMe
     if (input.posterDriveFileId) await driveStorage.deleteFile(input.posterDriveFileId);
     return {
       ok: false,
-      message: e instanceof UploadAbort ? e.message : "Uložení média selhalo.",
+      message: e instanceof UploadAbort ? e.message : "Failed to save the media.",
     };
   }
 
@@ -503,7 +503,7 @@ export async function importFromDriveAction(): Promise<ActionResult> {
   const principal = await requireUploader();
   const folderId = process.env.GDRIVE_ROOT_FOLDER_ID;
   if (!folderId) {
-    return { ok: false, message: "GDRIVE_ROOT_FOLDER_ID není nastaven." };
+    return { ok: false, message: "GDRIVE_ROOT_FOLDER_ID is not set." };
   }
   const listed = await driveStorage.listFilesRecursive(folderId);
   if (isErr(listed)) return { ok: false, message: listed.error.message };
@@ -575,8 +575,8 @@ export async function importFromDriveAction(): Promise<ActionResult> {
     ok: true,
     message:
       telegramFailed > 0
-        ? `Naimportováno ${imported.value.imported}, přeskočeno ${imported.value.skipped}, odebráno ${removed.value.removed}. Telegram neodeslal ${telegramFailed} položek. ${telegramError ?? ""}`.trim()
-        : `Naimportováno ${imported.value.imported}, přeskočeno ${imported.value.skipped}, odebráno ${removed.value.removed}.`,
+        ? `Imported ${imported.value.imported}, skipped ${imported.value.skipped}, removed ${removed.value.removed}. Telegram failed to send ${telegramFailed} items. ${telegramError ?? ""}`.trim()
+        : `Imported ${imported.value.imported}, skipped ${imported.value.skipped}, removed ${removed.value.removed}.`,
   };
 }
 
@@ -620,7 +620,7 @@ export async function setMediaPublishedAction(
         revalidatePath("/");
         return {
           ok: true,
-          message: `Médium bylo publikováno, ale Telegram oznámení selhalo. ${telegram.message ?? ""}`.trim(),
+          message: `The media was published, but the Telegram notification failed. ${telegram.message ?? ""}`.trim(),
         };
       }
       const summary = await notifyTelegramGeneralSummary(1);
@@ -634,7 +634,7 @@ export async function setMediaPublishedAction(
         revalidatePath("/");
         return {
           ok: true,
-          message: `Médium bylo publikováno, ale Telegram textové oznámení selhalo. ${summary.message ?? ""}`.trim(),
+          message: `The media was published, but the Telegram text notification failed. ${summary.message ?? ""}`.trim(),
         };
       }
     }
@@ -663,14 +663,14 @@ export async function assignMediaModelAction(
     where: { id: mediaId },
     select: { id: true, modelId: true, driveFileId: true, posterDriveFileId: true },
   });
-  if (!media) return { ok: false, message: "Médium nebylo nalezeno." };
+  if (!media) return { ok: false, message: "Media not found." };
   if (modelId === media.modelId) return OK;
   if (modelId) {
     const profile = await prisma.modelProfile.findUnique({
       where: { id: modelId },
       select: { id: true },
     });
-    if (!profile) return { ok: false, message: "Profil modelu neexistuje." };
+    if (!profile) return { ok: false, message: "Model profile does not exist." };
   }
 
   const targetFolder = await resolveTargetDriveFolderId(modelId);
@@ -693,7 +693,7 @@ export async function assignMediaModelAction(
     ]);
     return {
       ok: false,
-      message: modelId ? "Přiřazení média k modelu se nezdařilo." : "Odpojení od modelu se nezdařilo.",
+      message: modelId ? "Failed to assign the media to the model." : "Failed to detach the media from the model.",
     };
   }
   revalidatePath("/admin/media");
@@ -799,7 +799,7 @@ export async function finalizeUploadsAction(
   for (const item of items) {
     if (classifyType(item.mimeType) === null) {
       failed++;
-      lastError = "Nepodporovaný formát souboru.";
+      lastError = "Unsupported file format.";
       continue;
     }
     const res = await persistMediaWithTags({
@@ -857,9 +857,9 @@ export async function finalizeUploadsAction(
     failed,
     message:
       failed > 0
-        ? `Vytvořeno ${created}, selhalo ${failed}. ${lastError ?? ""}`.trim()
+        ? `Created ${created}, failed ${failed}. ${lastError ?? ""}`.trim()
         : telegramFailed > 0
-          ? `Vytvořeno ${created}. Telegram neodeslal ${telegramFailed} položek. ${lastTelegramError ?? ""}`.trim()
+          ? `Created ${created}. Telegram failed to send ${telegramFailed} items. ${lastTelegramError ?? ""}`.trim()
           : undefined,
   };
 }
@@ -877,12 +877,12 @@ export async function uploadPosterAction(
   await requireUploader();
   try {
     const bytes = Buffer.from(base64, "base64");
-    if (bytes.length === 0) return { ok: false, message: "Prázdný náhled." };
+    if (bytes.length === 0) return { ok: false, message: "Empty thumbnail." };
     const res = await driveStorage.upload(bytes, { mimeType: "image/jpeg", name });
     if (isErr(res)) return { ok: false, message: res.error.message };
     return { ok: true, driveFileId: res.value.driveFileId };
   } catch {
-    return { ok: false, message: "Nahrání náhledu selhalo." };
+    return { ok: false, message: "Failed to upload the thumbnail." };
   }
 }
 
@@ -899,7 +899,7 @@ export async function setMediaPosterAction(
     where: { id: mediaId },
     select: { posterDriveFileId: true, modelId: true },
   });
-  if (!prev) return { ok: false, message: "Médium nebylo nalezeno." };
+  if (!prev) return { ok: false, message: "Media not found." };
   const targetFolder = await resolveTargetDriveFolderId(prev.modelId);
   if (!targetFolder.ok) return { ok: false, message: targetFolder.message };
   const moved = await moveDriveFilesToFolder(targetFolder.driveFolderId, [posterDriveFileId]);
@@ -911,7 +911,7 @@ export async function setMediaPosterAction(
     });
   } catch {
     await driveStorage.deleteFile(posterDriveFileId);
-    return { ok: false, message: "Uložení náhledu selhalo." };
+    return { ok: false, message: "Failed to save the thumbnail." };
   }
   if (prev?.posterDriveFileId && prev.posterDriveFileId !== posterDriveFileId) {
     await driveStorage.deleteFile(prev.posterDriveFileId);
@@ -943,7 +943,7 @@ export async function setGateSampleAction(
       await prisma.membershipGateSample.deleteMany({ where: { mediaId } });
     }
   } catch {
-    return { ok: false, message: "Změna výběru se nezdařila." };
+    return { ok: false, message: "Failed to change the selection." };
   }
   revalidatePath("/admin/membership-gate");
   revalidatePath("/", "layout");
@@ -970,7 +970,7 @@ export async function setUserStatusAction(
       }
     });
   } catch {
-    return { ok: false, message: "Změna stavu účtu se nezdařila." };
+    return { ok: false, message: "Failed to change the account status." };
   }
   revalidatePath("/admin/users");
   return OK;
@@ -991,7 +991,7 @@ export async function setUserMembershipAction(
   if (active && expiresAt) {
     const parsed = new Date(expiresAt);
     if (Number.isNaN(parsed.getTime())) {
-      return { ok: false, message: "Neplatné datum expirace." };
+      return { ok: false, message: "Invalid expiration date." };
     }
     expiry = parsed;
   }
@@ -1004,7 +1004,7 @@ export async function setUserMembershipAction(
       },
     });
   } catch {
-    return { ok: false, message: "Změna členství se nezdařila." };
+    return { ok: false, message: "Failed to change the membership." };
   }
   revalidatePath("/admin/users");
   return OK;
@@ -1023,15 +1023,15 @@ export async function setUserRoleAction(
   // Vstup z klienta — povol jen platné role (Prisma by sice neplatný enum odmítla,
   // ale validujeme explicitně na hranici důvěry).
   if (role !== "User" && role !== "Distributor" && role !== "Admin") {
-    return { ok: false, message: "Neplatná role." };
+    return { ok: false, message: "Invalid role." };
   }
   if (userId === admin.userId) {
-    return { ok: false, message: "Nelze měnit vlastní roli." };
+    return { ok: false, message: "You cannot change your own role." };
   }
   try {
     await prisma.user.update({ where: { id: userId }, data: { role } });
   } catch {
-    return { ok: false, message: "Změna role se nezdařila." };
+    return { ok: false, message: "Failed to change the role." };
   }
   revalidatePath("/admin/users");
   return OK;
@@ -1047,9 +1047,9 @@ export async function deleteMediaAction(mediaId: string): Promise<ActionResult> 
     where: { id: mediaId },
     select: { uploaderId: true, driveFileId: true, posterDriveFileId: true },
   });
-  if (media === null) return { ok: false, message: "Médium nebylo nalezeno." };
+  if (media === null) return { ok: false, message: "Media not found." };
   if (!canDeleteMedia(principal.role, principal.userId, media)) {
-    return { ok: false, message: "Nemáte oprávnění smazat toto médium." };
+    return { ok: false, message: "You do not have permission to delete this media." };
   }
   // Drive nejdřív (aby ho sync nemohl re-import), pak DB. deleteFile je
   // idempotentní (404 = ok). Selhání Drive → DB záznam zůstává (konzistence).

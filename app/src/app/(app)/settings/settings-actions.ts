@@ -23,7 +23,7 @@ export interface FormState {
 
 const NOT_AUTHENTICATED: FormState = {
   ok: false,
-  error: "Vaše relace vypršela. Přihlaste se prosím znovu.",
+  error: "Your session has expired. Please sign in again.",
 };
 
 /** Uložení profilu (R18.1, R18.2). */

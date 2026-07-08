@@ -117,7 +117,7 @@ export function FilterBar({
   if (menu.length === 0) {
     return (
       <p className="text-[length:var(--text-body)] text-[color:var(--color-silver)]">
-        Zatím nejsou k dispozici žádné filtry.
+        No filters available yet.
       </p>
     );
   }

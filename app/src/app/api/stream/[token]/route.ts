@@ -32,7 +32,7 @@ export async function GET(
   const principal = await getSessionPrincipalReadOnly();
   if (principal === null) {
     return NextResponse.json(
-      { error: "unauthorized", message: "Přihlášení vyžadováno." },
+      { error: "unauthorized", message: "Authentication required." },
       { status: 401 },
     );
   }
@@ -55,7 +55,7 @@ export async function GET(
   // Token musí být vydán právě tomuto uživateli (není přenosný, plán 003).
   if (verified.value.userId !== principal.userId) {
     return NextResponse.json(
-      { error: "forbidden", message: "Token nepatří tomuto uživateli." },
+      { error: "forbidden", message: "This token does not belong to this user." },
       { status: 403 },
     );
   }
@@ -66,7 +66,7 @@ export async function GET(
   // Neznámé i neschválené médium (skryté/naplánované) → 404 (neprozrazujeme stav).
   if (media === null || !isApproved(media, new Date())) {
     return NextResponse.json(
-      { error: "not_found", message: "Médium nebylo nalezeno." },
+      { error: "not_found", message: "Media not found." },
       { status: 404 },
     );
   }

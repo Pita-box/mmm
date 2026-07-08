@@ -68,7 +68,7 @@ export function TagValueInput({
               {v}
               <button
                 type="button"
-                aria-label={`Odebrat ${v}`}
+                aria-label={`Remove ${v}`}
                 disabled={disabled}
                 className="ml-0.5 cursor-pointer rounded-[var(--radius-sm)] p-0.5 hover:text-netflix-red disabled:opacity-50"
                 onClick={() => onRemove(v)}
@@ -80,10 +80,10 @@ export function TagValueInput({
         </ul>
       ) : null}
       <input
-        aria-label={`Štítky — ${label}`}
+        aria-label={`Tags — ${label}`}
         className={FIELD_CLASS}
         list={suggestions.length > 0 && suggestionsEnabled ? listId : undefined}
-        placeholder="napiš a stiskni Enter nebo čárku"
+        placeholder="type and press Enter or comma"
         value={draft}
         disabled={disabled}
         onChange={(e) => {
