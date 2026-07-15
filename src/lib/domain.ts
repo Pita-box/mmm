@@ -45,5 +45,10 @@ export const FIXED_CATEGORIES: readonly TagCategory[] = [
 ] as const;
 
 /** Veřejné cesty dostupné bez autentizace (R1.2). Paywall je [POST-MVP]. */
-export const PUBLIC_PATHS = ["/signin", "/signup", "/paywall"] as const;
+export const PUBLIC_PATHS = [
+  "/signin",
+  "/signup",
+  "/paywall",
+  "/api/webhooks/telegram",
+] as const;
 export type PublicPath = (typeof PUBLIC_PATHS)[number];
