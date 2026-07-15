@@ -25,7 +25,10 @@ describe("domain constants", () => {
       "/signup",
       "/paywall",
       "/api/webhooks/telegram",
+<<<<<<< HEAD
       "/api/cron/scheduler",
+=======
+>>>>>>> 2c944f5 (Edit diaglog of telegram-bot-service.ts)
     ]);
   });
 });
