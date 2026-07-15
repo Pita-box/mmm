@@ -20,7 +20,13 @@ describe("domain constants", () => {
   });
 
   it("exposes the public (unauthenticated) paths", () => {
-    expect(PUBLIC_PATHS).toEqual(["/signin", "/signup", "/paywall"]);
+    expect(PUBLIC_PATHS).toEqual([
+      "/signin",
+      "/signup",
+      "/paywall",
+      "/api/webhooks/telegram",
+      "/api/cron/scheduler",
+    ]);
   });
 });
 
