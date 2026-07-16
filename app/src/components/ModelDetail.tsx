@@ -70,6 +70,8 @@ export interface ModelDetailProps {
   readonly canUpload?: boolean;
   /** Fixní model pro upload z detailu. */
   readonly uploadModel?: ModelOption;
+  /** Modely pro lightbox editaci médií. */
+  readonly modelOptions?: readonly ModelOption[];
   readonly uploadTagSuggestions?: Partial<Record<string, string[]>>;
   readonly onUpdate?: (values: {
     name: string;
@@ -101,6 +103,7 @@ export function ModelDetail({
   canEdit = false,
   canUpload = false,
   uploadModel,
+  modelOptions = [],
   uploadTagSuggestions = {},
   onUpdate,
   onDelete,
@@ -916,7 +919,12 @@ export function ModelDetail({
       )}
 
       {hasMedia ? (
-        <BrowsableGrid media={media} canEdit={canEdit} />
+        <BrowsableGrid
+          media={media}
+          canEdit={canEdit}
+          models={modelOptions}
+          tagSuggestions={uploadTagSuggestions}
+        />
       ) : (
         <p className="flex flex-col items-center gap-3 py-12 text-center text-[length:var(--text-body)] text-[color:var(--color-ash)]">
           <ImageOff aria-hidden size={40} className="text-[color:var(--color-slate)]" />

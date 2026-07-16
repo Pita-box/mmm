@@ -7,6 +7,7 @@
  * Streaming_URL (R6.4).
  */
 import { ModelDetail } from "@/components/ModelDetail";
+import type { ModelOption } from "@/components/admin/upload-wizard";
 import { modelService } from "@/services/model-service";
 import { prisma } from "@/lib/prisma";
 import { isErr, isOk } from "@/lib/result";
@@ -46,11 +47,34 @@ export default async function ModelDetailPage({
     );
   }
 
+  const canEdit = principal.role === "Admin";
+  const canUpload = principal.role === "Admin" || principal.role === "Distributor";
+
   // Galerie obsahuje výhradně Approved_Media modelu (R13.4).
   const gallery = await modelService.getGallery(id, now);
   const media = isOk(gallery)
     ? gallery.value.map((item) => toCardItem(item, principal.userId, {}, now))
     : [];
+  const mediaTags = canUpload
+    ? await prisma.mediaTag.findMany({
+        where: { mediaId: { in: media.map((item) => item.id) } },
+        include: { tagValue: true },
+      })
+    : [];
+  const editTagsByMediaId = new Map<string, { id: string; category: string; value: string }[]>();
+  for (const tag of mediaTags) {
+    const bucket = editTagsByMediaId.get(tag.mediaId) ?? [];
+    bucket.push({
+      id: tag.tagValue.id,
+      category: tag.tagValue.category,
+      value: tag.tagValue.value,
+    });
+    editTagsByMediaId.set(tag.mediaId, bucket);
+  }
+  const editableMedia = media.map((item) => ({
+    ...item,
+    editTags: canUpload ? editTagsByMediaId.get(item.id) ?? [] : undefined,
+  }));
 
   // Distinct štítky z Approved_Media modelu (jen pro výpis na profilu).
   const tagRows = await prisma.tagValue.findMany({
@@ -64,7 +88,7 @@ export default async function ModelDetailPage({
   });
   const tags = tagRows.map((t) => t.value);
 
-  const photoMedia = media.filter(
+  const photoMedia = editableMedia.filter(
     (item) => item.mediaType === "photo" && typeof item.posterUrl === "string",
   );
   const autoCoverItem = photoMedia[0];
@@ -75,21 +99,22 @@ export default async function ModelDetailPage({
   const currentAvatarItem = profile.value.profileMediaId
     ? photoMedia.find((item) => item.id === profile.value.profileMediaId)
     : autoAvatarItem;
-  const coverUrl = currentCoverItem?.posterUrl ?? media[0]?.posterUrl;
+  const coverUrl = currentCoverItem?.posterUrl ?? editableMedia[0]?.posterUrl;
   const avatarUrl = currentAvatarItem?.posterUrl
     ?? (
       profile.value.profileMediaId
         ? thumbUrlFor(profile.value.profileMediaId, principal.userId, now)
         : undefined
     )
-    ?? media[1]?.posterUrl
-    ?? media[0]?.posterUrl;
+    ?? editableMedia[1]?.posterUrl
+    ?? editableMedia[0]?.posterUrl;
 
-  const canEdit = principal.role === "Admin";
-  const canUpload = principal.role === "Admin" || principal.role === "Distributor";
   const uploadModel = { id, name: profile.value.name };
+  let modelOptions: ModelOption[] = [];
   const uploadTagSuggestions: Record<string, string[]> = {};
   if (canUpload) {
+    const profiles = await modelService.listProfiles();
+    modelOptions = profiles.map((p) => ({ id: p.id, name: p.name }));
     const tagValues = await tagService.listValues();
     for (const { category, value } of tagValues) {
       (uploadTagSuggestions[category] ??= []).push(value);
@@ -128,10 +153,11 @@ export default async function ModelDetailPage({
       initialAvatarCropY={profile.value.avatarCropY}
       initialAvatarZoom={profile.value.avatarZoom}
       tags={tags}
-      media={media}
+      media={editableMedia}
       canEdit={canEdit}
       canUpload={canUpload}
       uploadModel={uploadModel}
+      modelOptions={modelOptions}
       uploadTagSuggestions={uploadTagSuggestions}
       onUpdate={onUpdate}
       onDelete={onDelete}

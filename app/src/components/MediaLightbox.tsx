@@ -454,7 +454,6 @@ export function MediaLightbox({
             models={models}
             tags={item.editTags ?? []}
             tagSuggestions={tagSuggestions}
-            expanded
             onAssignModel={assignMediaModelAction}
             onAddTag={addMediaTagAction}
             onRemoveTag={removeMediaTagAction}
