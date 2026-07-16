@@ -111,6 +111,10 @@ export function createTelegramBroadcastService(deps: {
       readonly text: string;
       readonly threadId?: string | number | null;
       readonly replyToMessageId?: number | null;
+      readonly inlineButton?: {
+        readonly text: string;
+        readonly url: string;
+      };
     }): Promise<Result<void, TelegramBotError>> {
       const botToken = deps.config.botToken?.trim();
       if (!botToken) {
@@ -130,6 +134,11 @@ export function createTelegramBroadcastService(deps: {
         if (includeThreadId && threadId) payload.message_thread_id = threadId;
         if (args.replyToMessageId) {
           payload.reply_parameters = { message_id: args.replyToMessageId };
+        }
+        if (args.inlineButton) {
+          payload.reply_markup = {
+            inline_keyboard: [[args.inlineButton]],
+          };
         }
         return payload;
       };

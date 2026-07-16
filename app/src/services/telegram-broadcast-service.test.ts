@@ -174,6 +174,39 @@ describe("createTelegramBroadcastService", () => {
     );
   });
 
+  it("adds an inline URL button when requested", async () => {
+    const fetchFn: typeof fetch = vi.fn(async (_url: URL | RequestInfo, init?: RequestInit) => {
+      expect(init?.body).toBe(
+        JSON.stringify({
+          chat_id: "123",
+          text: "Welcome",
+          reply_markup: {
+            inline_keyboard: [[
+              { text: "🔥 Join group", url: "https://t.me/+nKmAUZEMd9lkZTk8" },
+            ]],
+          },
+        }),
+      );
+      return new Response("ok", { status: 200 });
+    });
+
+    const service = createTelegramBroadcastService({
+      config: { botToken: "bot-token" },
+      fetchFn,
+    });
+
+    const result = await service.sendMessage({
+      chatId: 123,
+      text: "Welcome",
+      inlineButton: {
+        text: "🔥 Join group",
+        url: "https://t.me/+nKmAUZEMd9lkZTk8",
+      },
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
   it("retries text message without thread when Telegram rejects the topic", async () => {
     const fetchFn: typeof fetch = vi
       .fn()

@@ -44,6 +44,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     threadId: reply.threadId,
     replyToMessageId: reply.replyToMessageId,
     text: reply.text,
+    inlineButton: {
+      text: "🔥 Join group",
+      url: "https://t.me/+nKmAUZEMd9lkZTk8",
+    },
   });
 
   if (!sent.ok) {
