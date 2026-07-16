@@ -2,6 +2,39 @@
 
 Záznamy chronologicky, nejnovější nahoře.
 
+## 2026-07-16 — Telegram Bot API server config + Drive sync broadcast
+
+### Nové funkce / změny
+- **Telegram Bot API endpoint je konfigurovatelný:** `telegram-broadcast-service.ts`
+  nově bere volitelnou env `TELEGRAM_BOT_API_BASE_URL`. Když není nastavená,
+  zůstává default `https://api.telegram.org`; když je nastavená, všechny bot
+  requesty používají vlastní base URL (`<base>/bot<TOKEN>/<method>`).
+- **Připraveno pro budoucí vlastní Telegram Bot API server:** vlastní server je
+  potřeba pro upload velkých videí do Telegramu (Telegram dokumentuje Local Bot
+  API upload až do 2000 MB). Vercel doména `mmmred.site` sama o sobě Bot API
+  server není; pro budoucí provoz je potřeba samostatná dlouho běžící služba
+  mimo Vercel, např. `https://botapi.mmmred.site`.
+- **Sync from Drive posílá nová média do Telegram Gallery stejně jako klasický
+  upload:** `importFromDriveAction` po importu vybere nově publikované řádky a
+  přes `notifyTelegramAboutUploads` pošle fotky i videa do `TELEGRAM_THREAD_GALLERY`.
+- **Drive sync už nečeká na Telegram upload před odpovědí UI:** Telegram odesílání
+  při importu běží přes `after(...)`, stejně jako bulk upload finalize. Sync tedy
+  rychleji vrací výsledek webu a Telegram chyby se logují server-side.
+- `api/webhooks/telegram` a `api/cron/scheduler` používají stejný volitelný
+  `TELEGRAM_BOT_API_BASE_URL`, takže webhook replies, random General pings i media
+  broadcasty půjdou přes stejný endpoint, pokud bude nastaven.
+- `.env.example` doplněna o `TELEGRAM_BOT_API_BASE_URL`.
+
+### Provozní poznámky
+- `TELEGRAM_BOT_API_BASE_URL` nech prázdné, dokud vlastní Bot API server opravdu
+  neběží. `https://mmmred.site` ani `https://www.mmmred.site` nejsou správné
+  hodnoty; jsou to Vercel/Next app domény.
+- `localhost` z Vercelu nefunguje pro vlastní Bot API server, protože by mířil na
+  Vercel runtime, ne na lokální Mac/VPS. Endpoint musí být dostupný z Vercelu
+  přes veřejnou/proxy URL.
+- Ověřeno: `pnpm vitest run src/services/telegram-broadcast-service.test.ts
+  src/services/media-service.import.test.ts` (13 testů), `pnpm exec tsc --noEmit`.
+
 ## 2026-06-29 — Anglická lokalizace (Telegram bot/notifikace + UI)
 
 ### Nové funkce / změny

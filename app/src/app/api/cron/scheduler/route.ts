@@ -34,6 +34,7 @@ const telegramService = createTelegramBroadcastService({
     botToken: process.env.MMM_TELEGRAM_BOT_TOKEN,
     chatId: process.env.MMM_TELEGRAM_CHAT_ID,
     defaultThreadId: process.env.TELEGRAM_THREAD_GENERAL,
+    botApiBaseUrl: process.env.TELEGRAM_BOT_API_BASE_URL,
   },
 });
 

@@ -146,6 +146,30 @@ describe("createTelegramBroadcastService", () => {
     );
   });
 
+  it("uses a configured Bot API base URL", async () => {
+    const fetchFn: typeof fetch = vi.fn(async () => new Response("ok", { status: 200 }));
+
+    const service = createTelegramBroadcastService({
+      config: {
+        botToken: "bot-token",
+        chatId: "-100123",
+        botApiBaseUrl: "http://127.0.0.1:8081/",
+      },
+      fetchFn,
+    });
+
+    const result = await service.sendMessage({
+      chatId: "-100123",
+      text: "Hello",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(fetchFn).toHaveBeenCalledWith(
+      "http://127.0.0.1:8081/botbot-token/sendMessage",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
   it("sends text messages without drive storage", async () => {
     const fetchFn: typeof fetch = vi.fn(async (_url: URL | RequestInfo, init?: RequestInit) => {
       expect(init?.body).toBe(

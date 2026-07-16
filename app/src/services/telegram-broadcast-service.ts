@@ -16,6 +16,7 @@ export interface TelegramBroadcastConfig {
   readonly botToken?: string | null;
   readonly chatId?: string | null;
   readonly defaultThreadId?: string | number | null;
+  readonly botApiBaseUrl?: string | null;
 }
 
 export interface TelegramBroadcastInput {
@@ -90,6 +91,11 @@ function shouldRetryWithoutThread(details: string): boolean {
     || normalized.includes("forum");
 }
 
+function telegramEndpoint(baseUrl: string | null | undefined, botToken: string, method: string): string {
+  const base = baseUrl?.trim().replace(/\/+$/, "") || "https://api.telegram.org";
+  return `${base}/bot${botToken}/${method}`;
+}
+
 export function buildTelegramUploadCaption(args: {
   readonly mimeType: string;
   readonly modelName?: string | null;
@@ -124,7 +130,7 @@ export function createTelegramBroadcastService(deps: {
         });
       }
 
-      const endpoint = `https://api.telegram.org/bot${botToken}/sendMessage`;
+      const endpoint = telegramEndpoint(deps.config.botApiBaseUrl, botToken, "sendMessage");
       const threadId = normalizeThreadId(args.threadId);
       const buildPayload = (includeThreadId: boolean): Record<string, unknown> => {
         const payload: Record<string, unknown> = {
@@ -218,7 +224,11 @@ export function createTelegramBroadcastService(deps: {
       const resolvedChatId = chatId;
 
       const boundary = `mmmred-telegram-${Math.random().toString(16).slice(2)}`;
-      const endpoint = `https://api.telegram.org/bot${botToken}/${kind === "photo" ? "sendPhoto" : "sendVideo"}`;
+      const endpoint = telegramEndpoint(
+        deps.config.botApiBaseUrl,
+        botToken,
+        kind === "photo" ? "sendPhoto" : "sendVideo",
+      );
       const fileName =
         input.fileName?.trim() ||
         `${kind}-${input.driveFileId}.${extensionForMimeType(input.mimeType)}`;

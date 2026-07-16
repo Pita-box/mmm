@@ -179,3 +179,28 @@ retry, abort/resume).
   Approach B (web resumable upload).
 - `serverActions.bodySizeLimit` v `next.config.ts` NEZVYŠOVAT kvůli velkým
   videím — A je obchází úplně.
+
+## Implemented operations update — 2026-07-16
+
+- **Drive sync je primární cesta pro velká videa.** Vlastník může nahrát velké
+  soubory přímo do Google Drive mimo web (Drive web / desktop client / rclone) a
+  v adminu spustit `Sync from Drive`. Tím se nezatěžuje Next upload flow velkými
+  soubory; aplikace jen založí/synchronizuje `MediaItem` z Drive metadat.
+- **Klasický web upload i `Sync from Drive` posílají nově publikovaná média do
+  Telegram skupiny, thread `Gallery`.** Fotky jdou přes `sendPhoto`, videa přes
+  `sendVideo` se `supports_streaming`. Po úspěšném media broadcastu se do
+  `General` posílá textový summary count.
+- **Telegram odesílání po Drive sync běží přes `after(...)`.** Import odpoví UI
+  hned po DB synchronizaci; samotné poslání médií do Telegramu doběhne jako
+  navazující server-side práce a případné chyby se logují.
+- **Velká Telegram videa vyžadují vlastní Telegram Bot API server.** Výchozí
+  `https://api.telegram.org` není vhodné pro 1-2GB video uploady; Local Bot API
+  server podle Telegram dokumentace umožňuje upload až 2000 MB.
+- **Nová volitelná env:** `TELEGRAM_BOT_API_BASE_URL`. Pokud není nastavená,
+  aplikace používá `https://api.telegram.org`. Pokud je nastavená, používá se jako
+  base URL pro všechny bot requesty (`<base>/bot<TOKEN>/<method>`).
+- **`mmmred.site` není Bot API server.** Je to Vercel/Next doména. Budoucí správná
+  hodnota bude až samostatně provozovaný endpoint, např.
+  `https://botapi.mmmred.site`, kde opravdu běží `telegram-bot-api`. `localhost`
+  z Vercelu také není použitelný, protože míří na Vercel runtime, ne na lokální
+  stroj.

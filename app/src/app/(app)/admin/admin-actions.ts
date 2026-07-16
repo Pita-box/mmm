@@ -351,6 +351,7 @@ const telegramBroadcastService = createTelegramBroadcastService({
     botToken: process.env.MMM_TELEGRAM_BOT_TOKEN,
     chatId: process.env.MMM_TELEGRAM_CHAT_ID,
     defaultThreadId: process.env.TELEGRAM_THREAD_GALLERY,
+    botApiBaseUrl: process.env.TELEGRAM_BOT_API_BASE_URL,
   },
 });
 
@@ -562,41 +563,37 @@ export async function importFromDriveAction(): Promise<ActionResult> {
   );
   if (isErr(removed)) return { ok: false, message: removed.error.message };
 
-  let telegramFailed = 0;
-  let telegramError: string | undefined;
   if (imported.value.imported > 0 && importableDriveFileIds.length > 0) {
-    const newRows = await prisma.mediaItem.findMany({
-      where: {
-        driveFileId: { in: importableDriveFileIds },
-        createdAt: { gte: importStartedAt },
-        status: "published",
-      },
-      select: { driveFileId: true, mimeType: true, modelId: true },
-    });
-    const telegram = await notifyTelegramAboutUploads(newRows);
-    telegramFailed = telegram.failed;
-    telegramError = telegram.lastError;
-    if (telegram.sent > 0) {
-      const summary = await notifyTelegramGeneralSummary(telegram.sent);
-      if (!summary.ok) {
-        telegramFailed++;
-        telegramError = summary.message;
-        console.error("Telegram gallery summary failed for import", {
-          sent: telegram.sent,
-          message: summary.message,
-        });
+    after(async () => {
+      const newRows = await prisma.mediaItem.findMany({
+        where: {
+          driveFileId: { in: importableDriveFileIds },
+          createdAt: { gte: importStartedAt },
+          status: "published",
+        },
+        select: { driveFileId: true, mimeType: true, modelId: true },
+      });
+      const telegram = await notifyTelegramAboutUploads(newRows);
+      if (telegram.failed > 0) {
+        console.error("Telegram broadcast failed for import", telegram);
       }
-    }
+      if (telegram.sent > 0) {
+        const summary = await notifyTelegramGeneralSummary(telegram.sent);
+        if (!summary.ok) {
+          console.error("Telegram gallery summary failed for import", {
+            sent: telegram.sent,
+            message: summary.message,
+          });
+        }
+      }
+    });
   }
 
   revalidatePath("/admin/media");
   revalidatePath("/");
   return {
     ok: true,
-    message:
-      telegramFailed > 0
-        ? `Imported ${imported.value.imported}, skipped ${imported.value.skipped}, removed ${removed.value.removed}. Telegram failed to send ${telegramFailed} items. ${telegramError ?? ""}`.trim()
-        : `Imported ${imported.value.imported}, skipped ${imported.value.skipped}, removed ${removed.value.removed}.`,
+    message: `Imported ${imported.value.imported}, skipped ${imported.value.skipped}, removed ${removed.value.removed}.`,
   };
 }
 

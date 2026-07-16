@@ -4,7 +4,7 @@
  * TagValueInput — sdílený vstup hodnot jedné kategorie štítků (plán 014).
  *
  * Jediná pravda pro chování štítků napříč adminem: přidání Enterem nebo čárkou
- * při psaní (i vložení řetězce s čárkami), našeptávač přes `<datalist>`, chipy
+ * při psaní (i vložení řetězce s čárkami), klikací našeptávač, chipy
  * s odebráním. Čistě prezentační — `onAdd` dostává už rozdělené hodnoty
  * (`splitTagInput`), dedupe/ukládání řeší rodič; `onRemove` dostává hodnotu.
  */
@@ -39,7 +39,14 @@ export function TagValueInput({
   onRemove,
 }: TagValueInputProps) {
   const [draft, setDraft] = useState("");
-  const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+
+  const lowerValues = new Set(values.map((value) => value.toLowerCase()));
+  const query = draft.trim().toLowerCase();
+  const availableSuggestions = suggestions.filter((item) => {
+    if (lowerValues.has(item.toLowerCase())) return false;
+    return query.length === 0 || item.toLowerCase().startsWith(query);
+  });
 
   const resolveSuggestedValue = (raw: string): string => {
     const trimmed = raw.trim();
@@ -53,6 +60,12 @@ export function TagValueInput({
   const commit = (raw: string) => {
     const vals = splitTagInput(raw);
     if (vals.length > 0) onAdd(vals);
+  };
+
+  const commitSuggestion = (value: string) => {
+    commit(value);
+    setDraft("");
+    setSuggestionsOpen(true);
   };
 
   return (
@@ -79,42 +92,63 @@ export function TagValueInput({
           ))}
         </ul>
       ) : null}
-      <input
-        aria-label={`Tags — ${label}`}
-        className={FIELD_CLASS}
-        list={suggestions.length > 0 && suggestionsEnabled ? listId : undefined}
-        placeholder="type and press Enter or comma"
-        value={draft}
-        disabled={disabled}
-        onChange={(e) => {
-          const raw = e.target.value;
-          if (!suggestionsEnabled) setSuggestionsEnabled(true);
-          // Čárka při psaní (i vložení řetězce) přidá hotové hodnoty hned.
-          if (raw.includes(",")) {
-            const parts = raw.split(",");
-            const remainder = parts.pop() ?? "";
-            commit(parts.join(","));
-            setDraft(remainder);
-          } else {
-            setDraft(raw);
-          }
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            commit(resolveSuggestedValue(draft));
-            setDraft("");
-            setSuggestionsEnabled(false);
-          }
-        }}
-      />
-      {suggestions.length > 0 ? (
-        <datalist id={listId}>
-          {suggestions.map((s) => (
-            <option key={s} value={s} />
-          ))}
-        </datalist>
-      ) : null}
+      <div className="relative">
+        <input
+          aria-label={`Tags — ${label}`}
+          aria-controls={listId}
+          aria-expanded={suggestionsOpen && availableSuggestions.length > 0}
+          autoComplete="off"
+          className={`${FIELD_CLASS} w-full`}
+          placeholder="type or choose a tag"
+          value={draft}
+          disabled={disabled}
+          onBlur={() => setSuggestionsOpen(false)}
+          onClick={() => setSuggestionsOpen(true)}
+          onFocus={() => setSuggestionsOpen(true)}
+          onChange={(e) => {
+            const raw = e.target.value;
+            setSuggestionsOpen(true);
+            // Čárka při psaní (i vložení řetězce) přidá hotové hodnoty hned.
+            if (raw.includes(",")) {
+              const parts = raw.split(",");
+              const remainder = parts.pop() ?? "";
+              commit(parts.join(","));
+              setDraft(remainder);
+            } else {
+              setDraft(raw);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commit(resolveSuggestedValue(draft));
+              setDraft("");
+              setSuggestionsOpen(true);
+            }
+          }}
+        />
+        {suggestionsOpen && availableSuggestions.length > 0 ? (
+          <ul
+            id={listId}
+            className="absolute z-[80] mt-1 max-h-44 w-full overflow-auto rounded-[var(--radius-md)] border border-charcoal bg-[color:var(--color-graphite)] p-1"
+          >
+            {availableSuggestions.map((s) => (
+              <li key={s}>
+                <button
+                  type="button"
+                  className="block w-full rounded-[var(--radius-sm)] px-2 py-1 text-left text-[length:var(--text-caption)] text-chalk-white hover:bg-charcoal"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    commitSuggestion(s);
+                  }}
+                >
+                  {s}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
     </div>
   );
 }

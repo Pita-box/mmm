@@ -259,6 +259,11 @@ rozšíření oproti původnímu textu plánu**:
   vpravo nahoře — tužka (edit kategorie/štítky + Skrýt, jen uploader), sdílet
   (copy `/?m=<id>`, všechny role), koš (delete, jen uploader). Edit panel se
   odkryje až po kliknutí na tužku. Využívá `MediaEditPanel` + akce z plánu 011.
+- **Telegram broadcast po publikaci:** klasický bulk finalize po `Publikovat vše`
+  posílá nově vytvořená média do Telegram threadu `Gallery` přes
+  `notifyTelegramAboutUploads`. Od 2026-07-16 má stejnou povinnost i `Sync from
+  Drive`; oba flow posílají fotky i videa a Telegram práci plánují přes
+  `after(...)`, aby UI nečekalo na streamování souborů z Drive do Telegramu.
 - **Kompletní smazání vč. Google Drive:** `deleteMediaAction` maže nejdřív z
   Drive, pak z DB (aby „Synchronizovat z Drive" nemohla re-import);
   `driveStorage.deleteFile` idempotentní (404 = ok).

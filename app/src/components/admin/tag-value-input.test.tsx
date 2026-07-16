@@ -41,15 +41,29 @@ describe("TagValueInput", () => {
     fireEvent.change(input, { target: { value: "bea" } });
     fireEvent.keyDown(input, { key: "Enter" });
     expect(onAdd).toHaveBeenCalledWith(["bear"]);
-    expect(input).not.toHaveAttribute("list");
+    expect(input).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("po dalším psaní znovu zapne našeptávač", () => {
+  it("klik na pole ukáže nepoužité našeptané tagy i po vybraných hodnotách", () => {
+    const { input } = setup(["blonde"]);
+    fireEvent.click(input);
+    expect(screen.getByRole("button", { name: "bear" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "blonde" })).not.toBeInTheDocument();
+  });
+
+  it("klik na našeptaný tag ho hned přidá", () => {
+    const { onAdd, input } = setup();
+    fireEvent.click(input);
+    fireEvent.mouseDown(screen.getByRole("button", { name: "bear" }));
+    expect(onAdd).toHaveBeenCalledWith(["bear"]);
+  });
+
+  it("po dalším psaní našeptávač zůstává dostupný", () => {
     const { input } = setup();
     fireEvent.change(input, { target: { value: "bea" } });
     fireEvent.keyDown(input, { key: "Enter" });
     fireEvent.change(input, { target: { value: "bl" } });
-    expect(input).toHaveAttribute("list", "t");
+    expect(input).toHaveAttribute("aria-expanded", "true");
   });
 
   it("když nic neodpovídá, Enter uloží napsanou hodnotu", () => {
