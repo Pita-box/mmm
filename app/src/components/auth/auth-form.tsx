@@ -74,6 +74,17 @@ export function AuthForm({ action, mode, callbackUrl }: AuthFormProps) {
         />
       </div>
 
+      {!isSignup ? (
+        <label className="flex cursor-pointer items-center gap-2 text-[length:var(--text-caption)] text-silver">
+          <input
+            type="checkbox"
+            name="rememberMe"
+            className="h-4 w-4 accent-netflix-red"
+          />
+          Remember me for 30 days
+        </label>
+      ) : null}
+
       {state.error ? (
         <p role="alert" className="text-[length:var(--text-caption)] text-netflix-red">
           {state.error}

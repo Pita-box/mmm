@@ -92,6 +92,20 @@ describe("decideAccess — stav účtu a vypršení relace (R1.6, R15.3, R15.4)"
     );
     expect(decision.outcome).toBe("allow");
   });
+
+  it("remember me relace může být aktivní déle než 30 minut", () => {
+    const decision = decideAccess(
+      ctx({
+        path: "/models",
+        session: {
+          lastActivityAt: new Date(NOW.getTime() - 60 * 60 * 1000),
+          inactivityLimitMs: 30 * 24 * 60 * 60 * 1000,
+        },
+      }),
+      MVP,
+    );
+    expect(decision.outcome).toBe("allow");
+  });
 });
 
 describe("decideAccess — page visibility (R16.3)", () => {

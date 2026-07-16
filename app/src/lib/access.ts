@@ -32,6 +32,7 @@ export const SESSION_INACTIVITY_LIMIT_MS = 30 * 60 * 1000;
 export interface SessionContext {
   /** Čas poslední aktivity; od něj se počítá 30min inaktivita. */
   readonly lastActivityAt: Date;
+  readonly inactivityLimitMs?: number;
 }
 
 /**
@@ -127,7 +128,7 @@ function isUploaderAdminPath(path: string): boolean {
 /** Vypršela relace kvůli 30min inaktivitě? (R1.6) */
 function isSessionExpired(session: SessionContext, now: Date): boolean {
   const elapsed = now.getTime() - session.lastActivityAt.getTime();
-  return elapsed >= SESSION_INACTIVITY_LIMIT_MS;
+  return elapsed >= (session.inactivityLimitMs ?? SESSION_INACTIVITY_LIMIT_MS);
 }
 
 /**

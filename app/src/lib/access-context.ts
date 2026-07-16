@@ -46,6 +46,7 @@ export interface SessionPrincipal {
   readonly subscriptionStatus: SubscriptionStatus;
   /** ISO 8601 čas poslední aktivity; od něj se počítá 30min inaktivita. */
   readonly lastActivityAt: string;
+  readonly rememberMe?: boolean;
 }
 
 // ─── Konfigurace režimu (PAYMENTS_ENABLED) ────────────────────────────────────
@@ -119,7 +120,8 @@ function isValidPrincipal(value: unknown): value is SessionPrincipal {
     (p.accountStatus === "active" || p.accountStatus === "blocked") &&
     (p.subscriptionStatus === "active" || p.subscriptionStatus === "inactive") &&
     typeof p.lastActivityAt === "string" &&
-    !Number.isNaN(Date.parse(p.lastActivityAt))
+    !Number.isNaN(Date.parse(p.lastActivityAt)) &&
+    (p.rememberMe === undefined || typeof p.rememberMe === "boolean")
   );
 }
 
@@ -229,7 +231,12 @@ export function buildRequestContext(args: BuildContextArgs): RequestContext {
     path,
     isApiRoute,
     now,
-    session: { lastActivityAt: new Date(principal.lastActivityAt) },
+    session: {
+      lastActivityAt: new Date(principal.lastActivityAt),
+      inactivityLimitMs: principal.rememberMe
+        ? 30 * 24 * 60 * 60 * 1000
+        : undefined,
+    },
     role: principal.role,
     accountStatus: principal.accountStatus,
     hiddenSections,

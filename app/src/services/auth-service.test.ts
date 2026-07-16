@@ -5,6 +5,7 @@ import {
   isLockedOut,
   computeSessionExpiry,
   SESSION_INACTIVITY_MS,
+  REMEMBERED_SESSION_MS,
   LOCKOUT_DURATION_MS,
   MAX_FAILED_ATTEMPTS,
 } from "./auth-service";
@@ -46,6 +47,13 @@ describe("pure helpers", () => {
     const now = new Date("2025-01-01T12:00:00Z");
     expect(computeSessionExpiry(now).getTime()).toBe(
       now.getTime() + SESSION_INACTIVITY_MS,
+    );
+  });
+
+  it("computeSessionExpiry adds 30 days when remember me is enabled", () => {
+    const now = new Date("2025-01-01T12:00:00Z");
+    expect(computeSessionExpiry(now, true).getTime()).toBe(
+      now.getTime() + REMEMBERED_SESSION_MS,
     );
   });
 });

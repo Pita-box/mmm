@@ -22,6 +22,7 @@ import type { PrismaClient } from "@prisma/client";
 
 /** Doba života cookie = 30 min inaktivity (R2.3, R1.6). */
 const SESSION_MAX_AGE_SECONDS = 30 * 60;
+const REMEMBERED_SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 
 /**
  * DB-backed ověření relace (plán 002, R15.3/R15.4, R1.6/R2.3). Cookie sám o sobě
@@ -49,7 +50,13 @@ export async function validateSession(
   });
   if (session === null) return null; // odhlášeno / revokováno (R15.4)
   if (session.user.status !== "active") return null; // zablokováno (R15.3)
-  if (now - session.lastActivityAt.getTime() >= SESSION_INACTIVITY_LIMIT_MS) {
+  const inactivityLimit = principal.rememberMe
+    ? REMEMBERED_SESSION_MAX_AGE_SECONDS * 1000
+    : SESSION_INACTIVITY_LIMIT_MS;
+  if (
+    now >= session.expiresAt.getTime() ||
+    now - session.lastActivityAt.getTime() >= inactivityLimit
+  ) {
     await db.session.delete({ where: { id: session.id } }).catch(() => {});
     return null; // vypršela inaktivita (R1.6, R2.3) — úklid běží i bez touch
   }
@@ -161,7 +168,9 @@ export async function establishSession(
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: SESSION_MAX_AGE_SECONDS,
+    maxAge: principal.rememberMe
+      ? REMEMBERED_SESSION_MAX_AGE_SECONDS
+      : SESSION_MAX_AGE_SECONDS,
   });
   return true;
 }

@@ -39,6 +39,7 @@ function fakeDb(row: unknown) {
 const sessionRow = (over: Record<string, unknown> = {}) => ({
   id: "s1",
   lastActivityAt: new Date(NOW - 1000),
+  expiresAt: new Date(NOW + SESSION_INACTIVITY_LIMIT_MS),
   user: { role: "User", status: "active", subscriptionStatus: "inactive" },
   ...over,
 });
@@ -75,6 +76,25 @@ describe("validateAndTouchSession (plán 002)", () => {
     expect(result?.role).toBe("Admin");
     expect(result?.subscriptionStatus).toBe("active");
     expect(result?.lastActivityAt).toBe(new Date(NOW).toISOString());
+  });
+
+  it("remember me relace zůstane aktivní po více než 30 minutách", async () => {
+    const remembered = { ...principal, rememberMe: true };
+    const { db, calls } = fakeDb(
+      sessionRow({
+        lastActivityAt: new Date(NOW - 60 * 60 * 1000),
+        expiresAt: new Date(NOW + 29 * 24 * 60 * 60 * 1000),
+      }),
+    );
+    expect(await validateAndTouchSession(remembered, db, NOW)).not.toBeNull();
+    expect(calls.updated).toBe(1);
+  });
+
+  it("relace po expiresAt vyprší i s remember me", async () => {
+    const remembered = { ...principal, rememberMe: true };
+    const { db, calls } = fakeDb(sessionRow({ expiresAt: new Date(NOW) }));
+    expect(await validateAndTouchSession(remembered, db, NOW)).toBeNull();
+    expect(calls.deleted).toBe(1);
   });
 });
 

@@ -33,6 +33,8 @@ export const MAX_FAILED_ATTEMPTS = 5;
 export const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 /** Inaktivita, po které relace vyprší: 30 minut (R2.3, R1.6). */
 export const SESSION_INACTIVITY_MS = 30 * 60 * 1000;
+/** Zapamatované přihlášení platí 30 dní. */
+export const REMEMBERED_SESSION_MS = 30 * 24 * 60 * 60 * 1000;
 
 // ─── Čisté pomocné funkce ────────────────────────────────────────────────────
 
@@ -56,8 +58,10 @@ export function isLockedOut(
 }
 
 /** Čas vypršení nové relace = now + 30 min inaktivity (R2.3). */
-export function computeSessionExpiry(now: Date): Date {
-  return new Date(now.getTime() + SESSION_INACTIVITY_MS);
+export function computeSessionExpiry(now: Date, rememberMe = false): Date {
+  return new Date(
+    now.getTime() + (rememberMe ? REMEMBERED_SESSION_MS : SESSION_INACTIVITY_MS),
+  );
 }
 
 // ─── Služba ───────────────────────────────────────────────────────────────────
@@ -129,7 +133,7 @@ export class AuthService {
    * Chyba je generická — neprozradí, které pole je špatně (R2.4).
    */
   async login(
-    input: { email: string; password: string },
+    input: { email: string; password: string; rememberMe?: boolean },
     now: Date = new Date(),
   ): Promise<Result<SessionRecord, AuthError>> {
     const normalizedEmail = normalizeEmail(input.email);
@@ -174,7 +178,7 @@ export class AuthService {
     const session = await this.repo.createSession({
       userId: user.id,
       lastActivityAt: now,
-      expiresAt: computeSessionExpiry(now),
+      expiresAt: computeSessionExpiry(now, input.rememberMe),
     });
     return ok(session);
   }

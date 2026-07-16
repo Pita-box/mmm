@@ -35,8 +35,9 @@ function safeCallback(raw: FormDataEntryValue | null): string {
 async function startSession(
   email: string,
   password: string,
+  rememberMe = false,
 ): Promise<string | null> {
-  const login = await authService.login({ email, password });
+  const login = await authService.login({ email, password, rememberMe });
   if (isErr(login)) return login.error.message;
 
   const user = await prisma.user.findUnique({
@@ -57,6 +58,7 @@ async function startSession(
     accountStatus: user.status,
     subscriptionStatus: user.subscriptionStatus,
     lastActivityAt: login.value.lastActivityAt.toISOString(),
+    rememberMe,
   };
 
   const issued = await establishSession(principal);
@@ -73,7 +75,8 @@ export async function signInAction(
 ): Promise<AuthFormState> {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
-  const error = await startSession(email, password);
+  const rememberMe = formData.get("rememberMe") === "on";
+  const error = await startSession(email, password, rememberMe);
   if (error !== null) return { error };
   redirect(safeCallback(formData.get("callbackUrl")));
 }
