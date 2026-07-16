@@ -115,23 +115,27 @@ export function UploadWizard({
 
   function finalize(publish: boolean) {
     startTransition(async () => {
-      const payload: WizardUploadItem[] = items.map((it, i) => ({
-        driveFileId: it.driveFileId,
-        mimeType: it.mimeType,
-        sizeBytes: it.sizeBytes,
-        modelId: metas[i].modelId || null,
-        tags: metas[i].tags,
-        posterDriveFileId: it.posterDriveFileId ?? null,
-      }));
-      const res = await onFinalize(payload, publish);
-      if (res.ok) {
-        setResult(`Done: created ${res.created}.`);
-        setItems([]);
-        setMetas([]);
-        setCur(0);
-        router.refresh();
-      } else {
-        setResult(res.message ?? "Some items failed.");
+      try {
+        const payload: WizardUploadItem[] = items.map((it, i) => ({
+          driveFileId: it.driveFileId,
+          mimeType: it.mimeType,
+          sizeBytes: it.sizeBytes,
+          modelId: metas[i].modelId || null,
+          tags: metas[i].tags,
+          posterDriveFileId: it.posterDriveFileId ?? null,
+        }));
+        const res = await onFinalize(payload, publish);
+        if (res.ok) {
+          setResult(`Done: created ${res.created}.`);
+          setItems([]);
+          setMetas([]);
+          setCur(0);
+          router.refresh();
+        } else {
+          setResult(res.message ?? "Some items failed.");
+        }
+      } catch {
+        setResult("The server did not confirm the result. Your tags are preserved; retry is safe.");
       }
     });
   }

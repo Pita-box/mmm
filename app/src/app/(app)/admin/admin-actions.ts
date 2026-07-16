@@ -11,6 +11,7 @@
  * cesty. Mapování `Result` → výsledek akce je sjednoceno do `ActionResult`.
  */
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import type { PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isErr } from "@/lib/result";
@@ -341,6 +342,7 @@ interface PersistMediaInput {
 
 interface PersistMediaResult extends ActionResult {
   readonly mediaId?: string;
+  readonly created?: boolean;
 }
 
 const telegramBroadcastService = createTelegramBroadcastService({
@@ -358,6 +360,12 @@ const telegramBroadcastService = createTelegramBroadcastService({
  * Používá ji upload wizard při finalizaci souborů, které už jsou na Drive.
  */
 async function persistMediaWithTags(input: PersistMediaInput): Promise<PersistMediaResult> {
+  const existing = await prisma.mediaItem.findUnique({
+    where: { driveFileId: input.driveFileId },
+    select: { id: true },
+  });
+  if (existing) return { ok: true, mediaId: existing.id, created: false };
+
   let createdMediaId: string | undefined;
   const targetFolder = await resolveTargetDriveFolderId(input.modelId);
   if (!targetFolder.ok) return { ok: false, message: targetFolder.message };
@@ -418,7 +426,7 @@ async function persistMediaWithTags(input: PersistMediaInput): Promise<PersistMe
 
   revalidatePath("/admin/media");
   revalidatePath("/");
-  return { ok: true, mediaId: createdMediaId };
+  return { ok: true, mediaId: createdMediaId, created: true };
 }
 
 async function notifyTelegramAboutUpload(input: {
@@ -792,10 +800,8 @@ export async function finalizeUploadsAction(
   const principal = await requireUploader();
   let created = 0;
   let failed = 0;
-  let telegramFailed = 0;
   let lastError: string | undefined;
-  let lastTelegramError: string | undefined;
-  let telegramSent = 0;
+  const telegramItems: WizardUploadItem[] = [];
   for (const item of items) {
     if (classifyType(item.mimeType) === null) {
       failed++;
@@ -814,40 +820,30 @@ export async function finalizeUploadsAction(
       publish,
     });
     if (res.ok) {
-      created++;
-      if (publish) {
-        const telegram = await notifyTelegramAboutUpload({
-          driveFileId: item.driveFileId,
-          mimeType: item.mimeType,
-          modelId: item.modelId,
-        });
-        if (!telegram.ok) {
-          telegramFailed++;
-          lastTelegramError = telegram.message;
-          console.error("Telegram broadcast failed for upload", {
-            driveFileId: item.driveFileId,
-            message: telegram.message,
-          });
-        } else {
-          telegramSent++;
-        }
-      }
+      if (res.created) created++;
+      if (publish && res.created) telegramItems.push(item);
     }
     else {
       failed++;
       lastError = res.message;
     }
   }
-  if (publish && telegramSent > 0) {
-    const summary = await notifyTelegramGeneralSummary(telegramSent);
-    if (!summary.ok) {
-      telegramFailed++;
-      lastTelegramError = summary.message;
-      console.error("Telegram gallery summary failed for finalize uploads", {
-        sent: telegramSent,
-        message: summary.message,
-      });
-    }
+  if (telegramItems.length > 0) {
+    after(async () => {
+      const telegram = await notifyTelegramAboutUploads(telegramItems);
+      if (telegram.failed > 0) {
+        console.error("Telegram broadcast failed for finalized uploads", telegram);
+      }
+      if (telegram.sent > 0) {
+        const summary = await notifyTelegramGeneralSummary(telegram.sent);
+        if (!summary.ok) {
+          console.error("Telegram gallery summary failed for finalized uploads", {
+            sent: telegram.sent,
+            message: summary.message,
+          });
+        }
+      }
+    });
   }
   revalidatePath("/admin/media");
   revalidatePath("/");
@@ -858,9 +854,7 @@ export async function finalizeUploadsAction(
     message:
       failed > 0
         ? `Created ${created}, failed ${failed}. ${lastError ?? ""}`.trim()
-        : telegramFailed > 0
-          ? `Created ${created}. Telegram failed to send ${telegramFailed} items. ${lastTelegramError ?? ""}`.trim()
-          : undefined,
+        : undefined,
   };
 }
 
