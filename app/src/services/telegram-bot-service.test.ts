@@ -14,7 +14,7 @@ describe("telegram bot service", () => {
       groupUrl: "https://t.me/+mmmred",
     });
     expect(text).toContain("Hi Mai");
-    expect(text).toContain("/help");
+    expect(text).toContain("Join our private group");
     expect(text).toContain("https://t.me/+mmmred");
   });
 
@@ -72,6 +72,28 @@ describe("telegram bot service", () => {
       {},
     );
     expect(reply).toBeNull();
+  });
+
+  it("returns the welcome message for any private-chat text", () => {
+    const reply = resolveTelegramWebhookReply(
+      {
+        message: {
+          message_id: 2,
+          text: "something else",
+          chat: { id: 123, type: "private" },
+          from: { first_name: "Mai" },
+        },
+      },
+      { groupUrl: "https://t.me/+mmmred" },
+    );
+
+    expect(reply).toEqual(
+      expect.objectContaining({
+        chatId: "123",
+        replyToMessageId: 2,
+      }),
+    );
+    expect(reply?.text).toContain("Hi Mai");
   });
 
   it("returns suggestion ack for message in suggestions thread", () => {

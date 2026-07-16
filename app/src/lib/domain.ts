@@ -50,9 +50,6 @@ export const PUBLIC_PATHS = [
   "/signup",
   "/paywall",
   "/api/webhooks/telegram",
-<<<<<<< HEAD
   "/api/cron/scheduler",
-=======
->>>>>>> 2c944f5 (Edit diaglog of telegram-bot-service.ts)
 ] as const;
 export type PublicPath = (typeof PUBLIC_PATHS)[number];

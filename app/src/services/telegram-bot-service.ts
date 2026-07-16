@@ -149,6 +149,17 @@ export function resolveTelegramWebhookReply(
     }
   }
 
+  if (message.chat.type === "private") {
+    return {
+      chatId: String(message.chat.id),
+      replyToMessageId: message.message_id,
+      text: buildTelegramWelcomeMessage({
+        firstName: message.from?.first_name,
+        groupUrl: options.groupUrl,
+      }),
+    }
+  }
+
   const threadId = message.message_thread_id
   if (!threadId) return null
 
