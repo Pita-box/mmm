@@ -5,16 +5,16 @@
  * přihlášení server action vydá session cookie a přesměruje na `callbackUrl`
  * (zachování cíle pro návrat, R21.4).
  */
-import Link from "next/link";
-import { AuthForm } from "@/components/auth/auth-form";
-import { signInAction } from "@/app/auth-actions";
+import Link from "next/link"
+import { AuthForm } from "@/components/auth/auth-form"
+import { signInAction } from "@/app/auth-actions"
 
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string }>;
+  searchParams: Promise<{ callbackUrl?: string }>
 }) {
-  const { callbackUrl } = await searchParams;
+  const { callbackUrl } = await searchParams
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-deep-space px-6 text-chalk-white">
@@ -30,11 +30,13 @@ export default async function SignInPage({
       <AuthForm action={signInAction} mode="signin" callbackUrl={callbackUrl} />
 
       <p className="text-[length:var(--text-caption)] text-silver">
-        Nemáte účet?{" "}
-        <Link href="/signup" className="font-semibold text-netflix-red hover:underline">
-          Zaregistrujte se
+        No have account?{" "}
+        <Link
+          href="/signup"
+          className="font-semibold text-netflix-red hover:underline">
+          Sign up
         </Link>
       </p>
     </main>
-  );
+  )
 }

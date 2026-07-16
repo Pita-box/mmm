@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   FilterCategoryMenu,
   FilterMode,
@@ -104,6 +104,8 @@ export function FilterBar({
   mediaCount,
 }: FilterBarProps) {
   const [collapsed, setCollapsed] = useState(true);
+  const [mobileHidden, setMobileHidden] = useState(false);
+  const lastScrollY = useRef(0);
   const dirty = useMemo(
     () =>
       normalizeSelection(draftSelection) !== normalizeSelection(appliedSelection) ||
@@ -114,6 +116,24 @@ export function FilterBar({
     if (collapsed) setCollapsed(false);
   };
 
+  useEffect(() => {
+    lastScrollY.current = window.scrollY;
+    const onScroll = () => {
+      const next = window.scrollY;
+      const prev = lastScrollY.current;
+      if (!collapsed || next < 80) {
+        setMobileHidden(false);
+      } else if (next > prev + 8) {
+        setMobileHidden(true);
+      } else if (next < prev - 8) {
+        setMobileHidden(false);
+      }
+      lastScrollY.current = next;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [collapsed]);
+
   if (menu.length === 0) {
     return (
       <p className="text-[length:var(--text-body)] text-[color:var(--color-silver)]">
@@ -123,9 +143,13 @@ export function FilterBar({
   }
 
   return (
-    <section className="sticky top-20 z-30">
+    <section
+      className={`sticky top-20 z-30 transform transition-transform duration-200 md:static md:translate-y-0 ${
+        mobileHidden && collapsed ? "-translate-y-[calc(100%+5rem)]" : "translate-y-0"
+      }`}
+    >
       <div
-        className={`rounded-[var(--radius-2xl)] border border-[color:var(--color-charcoal)] bg-[color:var(--color-deep-space)]/95 shadow-[0_18px_48px_rgba(0,0,0,0.35)] backdrop-blur-md transition-[height,padding] duration-300 ${
+        className={`rounded-[var(--radius-2xl)] border border-[color:var(--color-charcoal)] bg-[color:var(--color-deep-space)]/95 shadow-[0_18px_48px_rgba(0,0,0,0.35)] backdrop-blur-md transition-[height,padding] duration-300 md:h-auto md:overflow-visible md:p-5 ${
           collapsed ? "h-[92px] overflow-hidden px-4 py-3" : "p-5"
         }`}
         onClick={collapsed ? expandOnInteract : undefined}
@@ -137,7 +161,7 @@ export function FilterBar({
               : "flex flex-wrap items-start"
           }`}
         >
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 md:hidden">
             <p className="inline-flex items-center gap-2 text-[length:var(--text-caption)] font-semibold uppercase tracking-wide text-[color:var(--color-silver)]">
               <Sparkles aria-hidden size={14} className="text-[color:var(--color-netflix-red)]" />
               Smart Filter
@@ -187,6 +211,7 @@ export function FilterBar({
             <Button
               type="button"
               variant="secondary"
+              className="md:hidden"
               onClick={() => setCollapsed(collapsed ? false : true)}
             >
               {collapsed ? <ChevronDown aria-hidden size={16} /> : <ChevronUp aria-hidden size={16} />}
@@ -205,7 +230,7 @@ export function FilterBar({
         <div className={`relative ${collapsed ? "mt-2" : "mt-4"}`}>
           <div
             className={`overflow-hidden transition-[max-height] duration-300 ease-out ${
-              collapsed ? "max-h-[0px]" : "max-h-[1200px]"
+              collapsed ? "max-h-[0px] md:max-h-[1200px]" : "max-h-[1200px]"
             }`}
           >
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -244,7 +269,7 @@ export function FilterBar({
           {collapsed ? (
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-[var(--radius-2xl)] bg-gradient-to-b from-transparent to-[color:var(--color-deep-space)]"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-[var(--radius-2xl)] bg-gradient-to-b from-transparent to-[color:var(--color-deep-space)] md:hidden"
             />
           ) : null}
         </div>

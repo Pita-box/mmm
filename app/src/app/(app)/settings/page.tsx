@@ -5,22 +5,22 @@
  * `SettingsPanel` server actions pro uložení profilu, změnu hesla a vyhodnocení
  * Telegram cíle.
  */
-import { SettingsPanel } from "@/components/settings/settings-panel";
-import { settingsService } from "@/services/settings-service";
-import { isOk } from "@/lib/result";
-import { requireSession } from "@/lib/session";
-import { requireVisibleSection } from "@/lib/section-visibility";
+import { SettingsPanel } from "@/components/settings/settings-panel"
+import { settingsService } from "@/services/settings-service"
+import { isOk } from "@/lib/result"
+import { requireSession } from "@/lib/session"
+import { requireVisibleSection } from "@/lib/section-visibility"
 import {
   saveProfileAction,
   changePasswordAction,
   telegramTargetAction,
-} from "./settings-actions";
+} from "./settings-actions"
 
 export default async function SettingsPage() {
-  const principal = await requireSession();
-  await requireVisibleSection("settings", principal.role);
-  const profile = await settingsService.getProfile(principal.userId);
-  const initialDisplayName = isOk(profile) ? profile.value.displayName : "";
+  const principal = await requireSession()
+  await requireVisibleSection("settings", principal.role)
+  const profile = await settingsService.getProfile(principal.userId)
+  const initialDisplayName = isOk(profile) ? profile.value.displayName : ""
 
   return (
     <section className="flex flex-col gap-6">
@@ -29,7 +29,7 @@ export default async function SettingsPage() {
           Settings
         </h1>
         <p className="mt-2 text-[length:var(--text-body)] text-[color:var(--color-silver)]">
-          Spravujte svůj profil, heslo a přístup do komunity.
+          Manage your profile, password, and community access.
         </p>
       </header>
 
@@ -40,5 +40,5 @@ export default async function SettingsPage() {
         telegramTarget={telegramTargetAction}
       />
     </section>
-  );
+  )
 }
