@@ -4,8 +4,8 @@
  * CORS). Proxy vrací `{ done, id }`. Bajty serverem jen po chunku (8 MB).
  */
 
-/** Velikost chunku — násobek 256 KB dle Drive protokolu. */
-export const UPLOAD_CHUNK_BYTES = 8 * 1024 * 1024;
+/** 4 MB chunk projde limitem Vercel Functions 4.5 MB a splňuje Drive násobek 256 KB. */
+export const UPLOAD_CHUNK_BYTES = 4 * 1024 * 1024;
 
 export async function uploadResumable(
   uploadUrl: string,
