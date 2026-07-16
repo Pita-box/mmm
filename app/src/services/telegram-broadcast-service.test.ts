@@ -121,13 +121,15 @@ describe("createTelegramBroadcastService", () => {
       const body = await readBody(init?.body);
       expect(body).toContain('name="supports_streaming"');
       expect(body).toContain("true");
+      expect(body).toContain('name="message_thread_id"');
+      expect(body).toContain("777");
       expect(body).toContain('name="video"; filename="clip.mp4"');
       return new Response("ok", { status: 200 });
     });
 
     const service = createTelegramBroadcastService({
       storage,
-      config: { botToken: "bot-token", chatId: "-100123" },
+      config: { botToken: "bot-token", chatId: "-100123", defaultThreadId: 777 },
       fetchFn,
     });
 
