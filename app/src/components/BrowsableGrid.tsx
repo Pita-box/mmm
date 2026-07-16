@@ -15,9 +15,10 @@ import type { MediaCardItem } from "./MediaCard";
 export interface BrowsableGridProps {
   /** Fond médií k zobrazení (Approved_Media). */
   readonly media: readonly MediaCardItem[];
+  readonly canEdit?: boolean;
 }
 
-export function BrowsableGrid({ media }: BrowsableGridProps) {
+export function BrowsableGrid({ media, canEdit = false }: BrowsableGridProps) {
   const [selected, setSelected] = useState<MediaCardItem | null>(null);
   const loadPage = useMemo(() => poolLoader(media), [media]);
 
@@ -28,6 +29,7 @@ export function BrowsableGrid({ media }: BrowsableGridProps) {
         item={selected}
         sequence={media}
         onClose={() => setSelected(null)}
+        canEdit={canEdit}
         onPrev={(() => {
           const i = selected ? media.findIndex((m) => m.id === selected.id) : -1;
           return i > 0 ? () => setSelected(media[i - 1]) : undefined;

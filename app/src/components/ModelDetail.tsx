@@ -916,7 +916,7 @@ export function ModelDetail({
       )}
 
       {hasMedia ? (
-        <BrowsableGrid media={media} />
+        <BrowsableGrid media={media} canEdit={canEdit} />
       ) : (
         <p className="flex flex-col items-center gap-3 py-12 text-center text-[length:var(--text-body)] text-[color:var(--color-ash)]">
           <ImageOff aria-hidden size={40} className="text-[color:var(--color-slate)]" />
