@@ -375,52 +375,64 @@ async function persistMediaWithTags(input: PersistMediaInput): Promise<PersistMe
   ]);
   if (!moved.ok) return moved;
   try {
-    await prisma.$transaction(async (tx) => {
-      const txClient = tx as unknown as PrismaClient;
-      const mediaService = createMediaService(txClient);
-      const tagService = createTagService(txClient);
+    await prisma.$transaction(
+      async (tx) => {
+        const txClient = tx as unknown as PrismaClient;
+        const mediaService = createMediaService(txClient);
+        const tagService = createTagService(txClient);
 
-      const created = await mediaService.createMediaItem({
-        modelId: input.modelId,
-        driveFileId: input.driveFileId,
-        mimeType: input.mimeType,
-        sizeBytes: input.sizeBytes,
-        width: 0,
-        height: 0,
-        publishAt: input.publishAt,
-        uploaderId: input.uploaderId,
-        posterDriveFileId: input.posterDriveFileId ?? null,
-      });
-      if (isErr(created)) throw new UploadAbort(created.error.message);
-      createdMediaId = created.value.id;
-
-      // Wizard „uložit skryté" (plán 012): médium vznikne, ale skryjeme ho.
-      if (input.publish === false) {
-        await txClient.mediaItem.update({
-          where: { id: created.value.id },
-          data: { status: "hidden" },
+        const created = await mediaService.createMediaItem({
+          modelId: input.modelId,
+          driveFileId: input.driveFileId,
+          mimeType: input.mimeType,
+          sizeBytes: input.sizeBytes,
+          width: 0,
+          height: 0,
+          publishAt: input.publishAt,
+          uploaderId: input.uploaderId,
+          posterDriveFileId: input.posterDriveFileId ?? null,
         });
-      }
+        if (isErr(created)) throw new UploadAbort(created.error.message);
+        createdMediaId = created.value.id;
 
-      for (const category of FIXED_CATEGORIES) {
-        for (const raw of input.tags[category] ?? []) {
-          const value = await tagService.upsertValue(category, raw);
-          if (isErr(value)) throw new UploadAbort(value.error.message);
-          const assigned = await tagService.assignValueToMedia(
-            created.value.id,
-            value.value.id,
-          );
-          if (isErr(assigned)) throw new UploadAbort(assigned.error.message);
+        // Wizard „uložit skryté" (plán 012): médium vznikne, ale skryjeme ho.
+        if (input.publish === false) {
+          await txClient.mediaItem.update({
+            where: { id: created.value.id },
+            data: { status: "hidden" },
+          });
         }
-      }
-    });
+
+        for (const category of FIXED_CATEGORIES) {
+          for (const raw of input.tags[category] ?? []) {
+            const value = await tagService.upsertValue(category, raw);
+            if (isErr(value)) throw new UploadAbort(value.error.message);
+            const assigned = await tagService.assignValueToMedia(
+              created.value.id,
+              value.value.id,
+            );
+            if (isErr(assigned)) throw new UploadAbort(assigned.error.message);
+          }
+        }
+      },
+      { maxWait: 10_000, timeout: 30_000 },
+    );
   } catch (e) {
-    // Rollback transakce zahodil Media_Item; smaž i soubor na Drive (R5.4).
-    await driveStorage.deleteFile(input.driveFileId);
-    if (input.posterDriveFileId) await driveStorage.deleteFile(input.posterDriveFileId);
+    const code =
+      typeof e === "object" && e !== null && "code" in e && typeof e.code === "string"
+        ? e.code
+        : undefined;
+    console.error("Media persistence failed", {
+      driveFileId: input.driveFileId,
+      code,
+      message: e instanceof Error ? e.message : String(e),
+    });
     return {
       ok: false,
-      message: e instanceof UploadAbort ? e.message : "Failed to save the media.",
+      message:
+        e instanceof UploadAbort
+          ? e.message
+          : `Failed to save the media${code ? ` (${code})` : ""}. You can retry.`,
     };
   }
 
