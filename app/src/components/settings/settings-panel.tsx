@@ -12,6 +12,7 @@ import { useActionState, useState, useTransition } from "react";
 import { Save, KeyRound, Send } from "lucide-react";
 import { AdminCard, Field, TextInput, Button } from "@/components/admin";
 import type { FormState, TelegramTarget } from "@/app/(app)/settings/settings-actions";
+import { trackEvent } from "@/lib/analytics";
 
 type FormAction = (prev: FormState, formData: FormData) => Promise<FormState>;
 
@@ -62,6 +63,7 @@ export function SettingsPanel({
 
   function openTelegram() {
     setTelegramError(null);
+    trackEvent("join_telegram_group", { source_page: "settings" });
     startTelegram(async () => {
       const target = await telegramTarget();
       if ("url" in target) {

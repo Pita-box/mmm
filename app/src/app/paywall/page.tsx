@@ -6,10 +6,12 @@
  */
 import Link from "next/link";
 import { Lock } from "lucide-react";
+import { TrackEventOnMount } from "@/components/TrackEventOnMount";
 
 export default function PaywallPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-deep-space px-6 text-center text-chalk-white">
+      <TrackEventOnMount event="paywall_view" />
       <Lock aria-hidden size={48} className="text-netflix-red" />
       <h1 className="text-[length:var(--text-heading)] font-black text-netflix-red">
         Předplatné

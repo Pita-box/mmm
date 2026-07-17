@@ -25,6 +25,7 @@ import { ProfileAvatarImage } from "./ProfileAvatarImage";
 import { Button, TextInput, TextArea, Field } from "./admin/admin-ui";
 import type { ModelOption } from "./admin/upload-wizard";
 import type { MediaCardItem } from "./MediaCard";
+import { trackEvent } from "@/lib/analytics";
 import {
   defaultProfileAvatarPercentCrop,
   normalizeProfileAvatarPercentCrop,
@@ -190,6 +191,15 @@ export function ModelDetail({
     avatarLibraryPage * LIBRARY_PAGE_SIZE,
     (avatarLibraryPage + 1) * LIBRARY_PAGE_SIZE,
   );
+
+  useEffect(() => {
+    trackEvent("view_model", {
+      model_id: modelId,
+      model_name: name,
+      media_count: media.length,
+      tag_count: tags.length,
+    });
+  }, [media.length, modelId, name, tags.length]);
 
   useEffect(() => {
     if (!coverEditorOpen && !avatarEditorOpen && !confirmOpen) return;

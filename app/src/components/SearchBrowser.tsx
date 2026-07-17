@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SearchX } from "lucide-react";
 import Link from "next/link";
 import { FilterBar } from "./FilterBar";
@@ -16,6 +16,7 @@ import {
   type TagValueView,
 } from "@/services/filter-service";
 import type { PublicMediaItem } from "@/services/drive-connector";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * Položka pro stránku Search: veřejná reprezentace média (`PublicMediaItem`)
@@ -133,7 +134,25 @@ export function SearchBrowser({ pool }: SearchBrowserProps) {
   const cards = useMemo(() => results.map(toCard), [results]);
   const profiles = useMemo(() => buildProfileResults(results), [results]);
 
+  useEffect(() => {
+    trackEvent("view_search", {
+      pool_count: pool.length,
+    });
+  }, [pool.length]);
+
   const applyFilters = () => {
+    const nextResults = apply(draftSelection, pool, now, draftMode);
+    const filterCount = Object.values(draftSelection).reduce(
+      (sum, values) => sum + (values?.length ?? 0),
+      0,
+    );
+    trackEvent("apply_filters", {
+      filter_count: filterCount,
+      result_count: nextResults.length,
+      mode: draftMode,
+      profile_count: buildProfileResults(nextResults).length,
+      source_page: "search",
+    });
     setAppliedSelection(draftSelection);
     setAppliedMode(draftMode);
   };

@@ -27,6 +27,7 @@ import {
   RotateCw,
 } from "lucide-react";
 import { DRIVE_DOMAINS } from "@/lib/drive-domains";
+import { trackEvent } from "@/lib/analytics";
 
 export interface MediaPlayerProps {
   /** Proxy Streaming_URL videa (`/api/stream/<token>`). */
@@ -37,6 +38,12 @@ export interface MediaPlayerProps {
   readonly autoPlay?: boolean;
   /** Doplňkové třídy vnějšího kontejneru (např. fit do viewportu). */
   readonly className?: string;
+  readonly analytics?: {
+    readonly mediaId: string;
+    readonly mediaType: string;
+    readonly modelId?: string | null;
+    readonly modelName?: string | null;
+  };
 }
 
 /** Trvalý odkaz na Google Drive se nikdy nepřehrává (R6.4). */
@@ -54,10 +61,18 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaPlayerProps) {
+export function MediaPlayer({
+  src,
+  poster,
+  autoPlay = false,
+  className,
+  analytics,
+}: MediaPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startedRef = useRef(false);
+  const progressRef = useRef(new Set<number>());
 
   const [playing, setPlaying] = useState(false);
   const [current, setCurrent] = useState(0);
@@ -73,6 +88,8 @@ export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaP
   // Nový zdroj → znovu fake black screen + spinner (prev/next v lightboxu).
   useEffect(() => {
     setLoading(true);
+    startedRef.current = false;
+    progressRef.current = new Set();
   }, [src]);
 
   // Auto-hide ovládání během přehrávání po nečinnosti.
@@ -217,6 +234,15 @@ export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaP
         onCanPlay={() => setLoading(false)}
         onLoadedData={() => setLoading(false)}
         onPlay={() => {
+          if (!startedRef.current && analytics) {
+            startedRef.current = true;
+            trackEvent("video_start", {
+              media_id: analytics.mediaId,
+              media_type: analytics.mediaType,
+              model_id: analytics.modelId ?? null,
+              model_name: analytics.modelName ?? null,
+            });
+          }
           setPlaying(true);
           setLoading(false);
           revealControls();
@@ -225,9 +251,34 @@ export function MediaPlayer({ src, poster, autoPlay = false, className }: MediaP
           setPlaying(false);
           setControlsVisible(true);
         }}
-        onTimeUpdate={(e) => setCurrent(e.currentTarget.currentTime)}
+        onTimeUpdate={(e) => {
+          const currentTime = e.currentTarget.currentTime;
+          setCurrent(currentTime);
+          if (!analytics || !duration || duration <= 0) return;
+          const percent = (currentTime / duration) * 100;
+          for (const threshold of [25, 50, 75]) {
+            if (percent >= threshold && !progressRef.current.has(threshold)) {
+              progressRef.current.add(threshold);
+              trackEvent("video_progress", {
+                media_id: analytics.mediaId,
+                media_type: analytics.mediaType,
+                model_id: analytics.modelId ?? null,
+                model_name: analytics.modelName ?? null,
+                progress_percent: threshold,
+              });
+            }
+          }
+        }}
         onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
         onEnded={() => {
+          if (analytics) {
+            trackEvent("video_complete", {
+              media_id: analytics.mediaId,
+              media_type: analytics.mediaType,
+              model_id: analytics.modelId ?? null,
+              model_name: analytics.modelName ?? null,
+            });
+          }
           setPlaying(false);
           setControlsVisible(true);
         }}

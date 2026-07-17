@@ -10,10 +10,11 @@
  * `/admin/membership-gate`), přes ni výzva s informací o členství. Náhledy jsou
  * jen thumbnaily — bez lightboxu (`MasonryGrid` bez `onSelect`).
  */
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Lock, Send } from "lucide-react";
 import { MasonryGrid, poolLoader } from "./MasonryGrid";
 import type { MediaCardItem } from "./MediaCard";
+import { trackEvent } from "@/lib/analytics";
 
 export interface MembershipGateProps {
   /** Sample náhledy (Approved_Media vybraná adminem) pro rozmazané pozadí. */
@@ -38,6 +39,12 @@ function DemoBackdrop() {
 export function MembershipGate({ media }: MembershipGateProps) {
   const loadPage = useMemo(() => poolLoader(media), [media]);
   const telegram = process.env.NEXT_PUBLIC_TELEGRAM_GROUP_URL;
+
+  useEffect(() => {
+    trackEvent("membership_gate_view", {
+      sample_media_count: media.length,
+    });
+  }, [media.length]);
 
   return (
     <section className="relative min-h-[70vh]">
@@ -67,6 +74,10 @@ export function MembershipGate({ media }: MembershipGateProps) {
               href={telegram}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() =>
+                trackEvent("join_telegram_group", {
+                  source_page: "membership_gate",
+                })}
               className="inline-flex items-center gap-2 rounded-[var(--radius-pills)] bg-[color:var(--color-netflix-red)] px-6 py-3 text-[length:var(--text-body)] font-bold text-[color:var(--color-chalk-white)] transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-chalk-white)]"
             >
               <Send aria-hidden size={18} />

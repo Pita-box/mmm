@@ -35,6 +35,7 @@ import {
   issueStreamingUrlsAction,
 } from "@/app/(app)/media-actions";
 import { DRIVE_DOMAINS } from "@/lib/drive-domains";
+import { trackEvent } from "@/lib/analytics";
 
 export interface MediaLightboxProps {
   /** Vybrané médium k zobrazení, nebo `null` (zavřeno). */
@@ -136,6 +137,17 @@ export function MediaLightbox({
   }, [selectedMediaId, selectedMediaType]);
 
   useEffect(() => {
+    if (!item) return;
+    trackEvent("view_media", {
+      media_id: item.id,
+      media_type: item.mediaType,
+      model_id: item.modelId ?? null,
+      model_name: item.title ?? null,
+      source_page: "lightbox",
+    });
+  }, [item]);
+
+  useEffect(() => {
     if (!selectedMediaId || sequence.length === 0) return;
     const currentIndex = sequence.findIndex((entry) => entry.id === selectedMediaId);
     if (currentIndex < 0) return;
@@ -234,6 +246,11 @@ export function MediaLightbox({
 
   const handleShare = () => {
     const shareUrl = `${window.location.origin}/?m=${mediaId}`;
+    trackEvent("copy_share_link", {
+      media_id: mediaId,
+      media_type: item.mediaType,
+      model_id: item.modelId ?? null,
+    });
     navigator.clipboard
       ?.writeText(shareUrl)
       .then(() => setToast("Link is copied! Ready to share."))
@@ -343,6 +360,12 @@ export function MediaLightbox({
             poster={url}
             autoPlay
             className={FIT}
+            analytics={{
+              mediaId: item.id,
+              mediaType: item.mediaType,
+              modelId: item.modelId ?? null,
+              modelName: item.title ?? null,
+            }}
           />
         ) : (
           <div className="relative">
