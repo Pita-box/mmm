@@ -2,6 +2,57 @@
 
 Záznamy chronologicky, nejnovější nahoře.
 
+## 2026-07-17 — GTM MCP + live analytics přes GTM
+
+### Hotové tasky
+- Google Tag Manager byl zprovozněn přes MCP server a container `GTM-MTKZ9V3D`
+  je publikovaný live.
+- Web je přepnutý z přímého GA4 na **GTM-only** měření.
+
+### Nové funkce / změny
+- **GTM MCP workflow**
+  - do Codexu byl globálně přidaný a OAuth-přihlášený `gtm-mcp-server`
+    (`https://gtm-mcp.stape.ai/mcp`), takže GTM změny jdou dělat přímo z Codexu;
+  - přes MCP byl obsloužen account `MMMRED` (`accountId 6366522631`) a web
+    container `www.mmmred.site` (`containerId 258581126`, public id
+    `GTM-MTKZ9V3D`).
+- **GTM live verze**
+  - vytvořena a publikována live verze `2` v GTM containeru;
+  - v containeru je `GA4 Measurement ID = G-21TCS1LSCC`;
+  - base tag `MMMRED - GA4 Config` běží bez automatického pageview
+    (`send_page_view = false`);
+  - pageviews jdou přes samostatný `MMMRED - page_view` tag na triggerech
+    `All Pages` + `History Change`, takže fungují i pro Next.js SPA navigace.
+- **Co je trackované v GTM / GA4**
+  - `page_view`
+  - `view_search`
+  - `apply_filters`
+  - `view_model`
+  - `view_media`
+  - `video_start`
+  - `video_progress` (25/50/75)
+  - `video_complete`
+  - `join_telegram_group`
+  - `copy_share_link`
+  - `membership_gate_view`
+  - `paywall_view`
+- **Přenášené parametry**
+  - dle eventu: `model_id`, `model_name`, `media_id`, `media_type`,
+    `filter_count`, `result_count`, `profile_count`, `mode`, `source_page`,
+    `progress_percent`, `sample_media_count`, `tag_count`, `media_count`,
+    `pool_count`.
+- **Kód webu**
+  - přímý GA4 script byl odstraněn z root layoutu a nahrazen GTM loadem;
+  - přidán klientský helper `lib/analytics.ts` + `TrackEventOnMount.tsx`;
+  - event source napojený na Search, model detail, membership gate, Telegram CTA,
+    lightbox share a video player;
+  - `Admin` a `Distributor` GTM nenačítají, takže vlastní interní/admin provoz
+    se neměří.
+
+### Ověření
+- `pnpm exec tsc --noEmit` 0
+- `pnpm vitest run src/components/MediaLightbox.test.tsx src/components/MediaPlayer.test.tsx src/components/FilterBar.test.tsx` 14/14
+
 ## 2026-07-16 — Telegram Bot API server config + Drive sync broadcast
 
 ### Nové funkce / změny

@@ -20,6 +20,7 @@ import { AdminCard, Button, Badge } from "./admin-ui";
 export interface AdminUserRow {
   readonly id: string;
   readonly email: string;
+  readonly createdAt: string;
   readonly role: Role;
   readonly status: AccountStatus;
   readonly subscriptionStatus: SubscriptionStatus;
@@ -28,6 +29,17 @@ export interface AdminUserRow {
 }
 
 const ROLES: readonly Role[] = ["User", "Distributor", "Admin"];
+
+function formatCreatedAt(dateIso: string): string {
+  const date = new Date(dateIso);
+  if (Number.isNaN(date.getTime())) return dateIso;
+  return new Intl.DateTimeFormat("cs-CZ", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "Europe/Prague",
+  }).format(date);
+}
 
 export interface UsersOverviewProps {
   readonly users?: readonly AdminUserRow[];
@@ -161,6 +173,9 @@ export function UsersOverview({
                       {user.email}
                     </span>
                     <span className="flex items-center gap-2">
+                      <span className="text-[length:var(--text-caption)] text-silver">
+                        Created: {formatCreatedAt(user.createdAt)}
+                      </span>
                       <RoleBadge role={user.role} />
                       <StatusBadge status={user.status} />
                     </span>

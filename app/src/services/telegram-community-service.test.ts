@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildTelegramGallerySummaryMessage,
   buildTelegramGeneralPingDayKey,
+  buildTelegramNewSignupMessage,
   parseTelegramGeneralRandomMessages,
   pickRandomTelegramGeneralMessage,
   resolveDueTelegramGeneralPingSlot,
@@ -20,6 +21,12 @@ describe("telegram community service", () => {
     );
     expect(buildTelegramGallerySummaryMessage(5)).toBe(
       "5 new items were added on the site.",
+    );
+  });
+
+  it("builds new signup notification", () => {
+    expect(buildTelegramNewSignupMessage(" user@example.com ")).toBe(
+      "New account registered: user@example.com",
     );
   });
 

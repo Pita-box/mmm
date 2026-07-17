@@ -9,11 +9,23 @@
  * generické tam, kde to vyžaduje R2.4 (Auth_Service už hlášku formuluje).
  */
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isErr } from "@/lib/result";
 import { authService } from "@/services/auth-service";
+import { buildTelegramNewSignupMessage } from "@/services/telegram-community-service";
+import { createTelegramBroadcastService } from "@/services/telegram-broadcast-service";
 import { establishSession, clearSession, getSessionPrincipal } from "@/lib/session";
 import type { SessionPrincipal } from "@/lib/access-context";
+
+const telegramService = createTelegramBroadcastService({
+  config: {
+    botToken: process.env.MMM_TELEGRAM_BOT_TOKEN,
+    chatId: process.env.MMM_TELEGRAM_CHAT_ID,
+    defaultThreadId: process.env.TELEGRAM_THREAD_GENERAL,
+    botApiBaseUrl: process.env.TELEGRAM_BOT_API_BASE_URL,
+  },
+});
 
 /** Stav auth formuláře vracený do `useActionState`. */
 export interface AuthFormState {
@@ -91,6 +103,20 @@ export async function signUpAction(
 
   const registered = await authService.register({ email, password });
   if (isErr(registered)) return { error: registered.error.message };
+
+  after(async () => {
+    const notified = await telegramService.sendMessage({
+      chatId: process.env.MMM_TELEGRAM_CHAT_ID ?? "",
+      threadId: process.env.TELEGRAM_THREAD_GENERAL,
+      text: buildTelegramNewSignupMessage(registered.value.email),
+    });
+    if (!notified.ok) {
+      console.error("Telegram signup notification failed", {
+        email: registered.value.email,
+        message: notified.error.message,
+      });
+    }
+  });
 
   const error = await startSession(email, password);
   if (error !== null) return { error };

@@ -44,6 +44,13 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (reason) | REJECTED (rational
 ## Post-plan notes
 
 - **2026-07-02 až 2026-07-04:** následný product polish a workflow práce pokračoval už mimo číslované advisor plány a je zapisovaný průběžně v `plans/build-journal.md` (crop/avatar/cover UX, popup overflow + interní scroll, stránkování knihovny médií, watermark, model-detail upload, Search filter polish, odstranění collections, Telegram notifikace, další UI opravy).
+- **2026-07-17:** mimo advisor plány byla rozjeta analytika přes **GTM MCP**:
+  Codex má globálně přidaný a OAuth-přihlášený `gtm-mcp-server`, přes který byl
+  nakonfigurován a publikován live GTM container `GTM-MTKZ9V3D` pro MMMRED.
+  Web byl přepnut na `GTM-only` (bez přímého GA4 scriptu), `Admin` a
+  `Distributor` se neměří a do `plans/build-journal.md` byl zapsán seznam
+  eventů/parametrů, které se teď sbírají (`page_view`, search/model/media/video,
+  Telegram CTA, membership gate, paywall).
 
 ## Dependency notes
 

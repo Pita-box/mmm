@@ -18,6 +18,10 @@ export function buildTelegramGallerySummaryMessage(count: number): string {
   return `${count} new ${isSingular ? "item" : "items"} ${isSingular ? "was" : "were"} added on the site.`;
 }
 
+export function buildTelegramNewSignupMessage(email: string): string {
+  return `New account registered: ${email.trim()}`;
+}
+
 export function parseTelegramGeneralRandomMessages(
   raw: string | null | undefined,
 ): string[] {

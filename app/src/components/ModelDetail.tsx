@@ -173,6 +173,8 @@ export function ModelDetail({
     width: currentAvatarItem?.width ?? 1,
     height: currentAvatarItem?.height ?? 1,
   };
+  const coverLibraryImageUrl = (item: MediaCardItem) => item.thumbnailUrl ?? item.posterUrl;
+  const avatarLibraryImageUrl = (item: MediaCardItem) => item.thumbnailUrl ?? item.posterUrl;
   const currentAvatarPercentCrop = profileAvatarPercentCropFromStored(
     {
       avatarCropX: initialAvatarCropX,
@@ -633,7 +635,7 @@ export function ModelDetail({
                           );
                           setCoverTab("edit");
                         }}
-                        className={`aspect-[16/10] overflow-hidden rounded-[var(--radius-xl)] border transition-colors ${
+                        className={`aspect-[16/10] overflow-hidden rounded-[var(--radius-xl)] border bg-[color:var(--color-deep-space)] transition-colors ${
                           draftCoverMediaId === item.id
                             ? "border-[color:var(--color-netflix-red)]"
                             : "border-[color:var(--color-charcoal)]"
@@ -641,9 +643,9 @@ export function ModelDetail({
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element -- proxy /api/thumb, ne next/image */}
                         <img
-                          src={item.posterUrl}
+                          src={coverLibraryImageUrl(item)}
                           alt={item.title ?? name}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain"
                         />
                       </button>
                     ))}
@@ -835,7 +837,7 @@ export function ModelDetail({
                           setDraftAvatarCrop(resolveAvatarCropForItem(item));
                           setAvatarTab("edit");
                         }}
-                        className={`aspect-square overflow-hidden rounded-[var(--radius-xl)] border transition-colors ${
+                        className={`aspect-square overflow-hidden rounded-[var(--radius-xl)] border bg-[color:var(--color-deep-space)] transition-colors ${
                           draftAvatarMediaId === item.id
                             ? "border-[color:var(--color-netflix-red)]"
                             : "border-[color:var(--color-charcoal)]"
@@ -843,9 +845,9 @@ export function ModelDetail({
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element -- proxy /api/thumb, ne next/image */}
                         <img
-                          src={item.posterUrl}
+                          src={avatarLibraryImageUrl(item)}
                           alt={item.title ?? name}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain"
                         />
                       </button>
                     ))}

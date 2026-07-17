@@ -20,6 +20,7 @@ export default async function AdminUsersPage() {
     select: {
       id: true,
       email: true,
+      createdAt: true,
       role: true,
       status: true,
       subscriptionStatus: true,
@@ -30,6 +31,7 @@ export default async function AdminUsersPage() {
   const users: AdminUserRow[] = rows.map((u) => ({
     id: u.id,
     email: u.email,
+    createdAt: u.createdAt.toISOString(),
     role: u.role,
     status: u.status,
     subscriptionStatus: u.subscriptionStatus,
